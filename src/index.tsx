@@ -1776,7 +1776,9 @@ app.get('/projects/:id', (c) => {
             <span class="bg-brand-soft text-brand px-2.5 py-0.5 rounded font-semibold" style="font-size:11px;">{proj.industry}</span>
             <StatusBadge status={proj.status} />
           </div>
-          <h1 class="font-bold text-text-title mb-4" style="font-size:24px;font-family:'Noto Sans SC',sans-serif;line-height:1.3;">{proj.name}</h1>
+          <h1 class="font-bold text-text-title mb-1" style="font-size:24px;font-family:'Noto Sans SC',sans-serif;line-height:1.3;">{proj.name}</h1>
+          {/* View / Participant Count (Task 3) */}
+          <div id="detail-view-count" style="font-size:12px;color:#A8A29E;margin-top:4px;margin-bottom:12px;" />
 
           {/* Owner */}
           <div class="flex items-start gap-3 mb-4 p-3 rounded-xl" style="background:#FAFAF9;">
@@ -1961,80 +1963,55 @@ app.get('/projects/:id', (c) => {
         </div>
       </main>
 
-      {/* Share Panel Overlay */}
-      <div id="share-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);z-index:1000;">
-        <div id="share-panel" style="position:absolute;bottom:0;left:0;right:0;background:#fff;border-radius:20px 20px 0 0;padding:24px;transform:translateY(100%);transition:transform 300ms ease-out;max-height:85vh;overflow-y:auto;">
+      {/* Share Sheet Overlay (Task 1 — Premium Share Card) */}
+      <div id="share-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:1000;">
+        <div id="share-panel" style="position:absolute;bottom:0;left:0;right:0;background:#fff;border-radius:24px 24px 0 0;padding:24px;transform:translateY(100%);transition:transform 300ms ease-out;max-height:85vh;overflow-y:auto;">
           {/* Drag indicator */}
           <div style="width:40px;height:4px;border-radius:2px;background:#D6D3D1;margin:0 auto 20px;" />
-          <div style="font-size:18px;font-weight:600;color:#1C1917;margin-bottom:16px;">分享给同学</div>
 
-          {/* Share Card Preview */}
-          <div style="background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:12px;overflow:hidden;">
-            {/* Top red bar */}
-            <div style="height:6px;background:#B91C1C;" />
-            <div style="padding:20px;">
-              {/* Logo row */}
-              <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;">
-                <svg width="20" height="20" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="sc-gt" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#DC2626"/><stop offset="100%" stop-color="#B91C1C"/></linearGradient><linearGradient id="sc-gb" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#991B1B"/><stop offset="100%" stop-color="#DC2626"/></linearGradient></defs><circle cx="44" cy="28" r="22" fill="url(#sc-gt)"/><circle cx="36" cy="44" r="22" fill="url(#sc-gb)" opacity="0.85"/></svg>
-                <span style="font-size:11px;color:#A8A29E;">项目分享</span>
-              </div>
-              {/* Project name */}
-              <div style="font-size:18px;font-weight:700;color:#1C1917;margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">{proj.name}</div>
-              {/* Initiator */}
-              <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
-                <div style="width:24px;height:24px;border-radius:50%;background:#B91C1C;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">{owner.name.charAt(0)}</div>
-                <span style="font-size:12px;color:#78716C;">{owner.name} · {owner.company}</span>
-              </div>
-              {/* Terms 2x2 grid */}
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
-                <div>
-                  <div style="font-size:10px;color:#A8A29E;">融资总额</div>
-                  <div style="font-size:15px;font-weight:700;color:#1C1917;">¥{proj.targetAmount}万</div>
-                </div>
-                <div>
-                  <div style="font-size:10px;color:#A8A29E;">分成比例</div>
-                  <div style="font-size:15px;font-weight:700;color:#1C1917;">{proj.revenueShareRate}%</div>
-                </div>
-                <div>
-                  <div style="font-size:10px;color:#A8A29E;">联营期限</div>
-                  <div style="font-size:15px;font-weight:700;color:#1C1917;">{proj.duration}个月</div>
-                </div>
-                <div>
-                  <div style="font-size:10px;color:#A8A29E;">预估月回</div>
-                  <div style="font-size:15px;font-weight:700;color:#1C1917;">¥{(proj.estimatedMonthlyRevenue * proj.revenueShareRate / 100).toFixed(1)}万</div>
-                </div>
-              </div>
-              {/* Dashed divider */}
-              <div style="border-top:1px dashed #E7E5E4;margin-bottom:16px;" />
-              {/* Share code */}
-              <div style="text-align:center;">
-                <div style="font-size:10px;color:#A8A29E;margin-bottom:4px;">分享码</div>
-                <div style="font-size:22px;font-weight:800;font-family:Montserrat,sans-serif;color:#B91C1C;letter-spacing:3px;">{proj.shareCode || '------'}</div>
-              </div>
-              {/* QR placeholder */}
-              <div style="margin:12px auto 0;width:100px;height:100px;background:#F5F5F4;border-radius:8px;display:flex;align-items:center;justify-content:center;">
-                <i class="fas fa-qrcode" style="font-size:48px;color:#D6D3D1;" />
-              </div>
-              <div style="text-align:center;font-size:10px;color:#A8A29E;margin-top:8px;">打开中流通 · 输入分享码查看详情</div>
+          {/* Premium Share Card Preview */}
+          <div id="share-card-preview" style="width:100%;max-width:320px;margin:0 auto;border-radius:20px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.1);background:#fff;border:1px solid #F5F5F4;">
+            {/* A. Brand Header */}
+            <div style="padding:16px 20px;background:linear-gradient(135deg,#B91C1C,#7F1D1D);display:flex;align-items:center;justify-content:space-between;">
+              <span style="font-size:16px;font-weight:800;color:#fff;letter-spacing:2px;">中流通</span>
+              <span style="font-size:11px;color:rgba(255,255,255,0.7);border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:2px 8px;">项目推介</span>
             </div>
-            {/* Bottom red bar */}
-            <div style="height:3px;background:#B91C1C;" />
+            {/* B. Project Info */}
+            <div style="padding:20px;">
+              <div style="font-size:20px;font-weight:700;color:#1C1917;line-height:1.4;">{proj.name}</div>
+              <div style="margin-top:8px;font-size:13px;color:#78716C;">发起人：{owner.name} · {owner.className || owner.cohort}</div>
+              <div style="margin-top:12px;font-size:13px;color:#57534E;line-height:1.6;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">{proj.description || '暂无项目简介'}</div>
+            </div>
+            {/* C. Core Data Grid */}
+            <div style="margin:0 20px;padding:16px;background:#FAFAF9;border-radius:12px;">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div style="text-align:center;"><div style="font-size:18px;font-weight:700;color:#B91C1C;">¥{proj.targetAmount}万</div><div style="font-size:11px;color:#A8A29E;margin-top:2px;">融资规模</div></div>
+                <div style="text-align:center;"><div style="font-size:18px;font-weight:700;color:#B91C1C;">{proj.revenueShareRate}%</div><div style="font-size:11px;color:#A8A29E;margin-top:2px;">收入分成</div></div>
+                <div style="text-align:center;"><div style="font-size:18px;font-weight:700;color:#B91C1C;">{proj.duration}个月</div><div style="font-size:11px;color:#A8A29E;margin-top:2px;">联营期限</div></div>
+                <div style="text-align:center;"><div style="font-size:18px;font-weight:700;color:#B91C1C;">≈¥{(proj.targetAmount * proj.revenueShareRate / 100).toFixed(2)}万</div><div style="font-size:11px;color:#A8A29E;margin-top:2px;">预估月回款</div></div>
+              </div>
+            </div>
+            {/* D. Share Code Area */}
+            <div style="padding:20px;text-align:center;">
+              <div style="border-top:1px dashed #E7E5E4;margin-bottom:16px;" />
+              <div style="font-size:28px;font-weight:800;letter-spacing:6px;color:#1C1917;font-family:monospace;">{proj.shareCode || '------'}</div>
+              <div style="font-size:11px;color:#A8A29E;margin-top:6px;">输入分享码或扫码查看详情</div>
+              <div style="margin:12px auto 0;width:100px;height:100px;background:#F5F5F4;border-radius:8px;display:flex;align-items:center;justify-content:center;">
+                <span style="font-size:14px;color:#A8A29E;">QR</span>
+              </div>
+            </div>
+            {/* E. Bottom Link */}
+            <div style="padding:12px 20px 16px;text-align:center;">
+              <span style="font-size:11px;color:#A8A29E;">https://zlc.yyzltop.com/share/{proj.shareCode || ''}</span>
+            </div>
           </div>
 
-          {/* Action buttons */}
-          <div style="display:flex;gap:12px;margin-top:20px;">
-            <button id="btn-copy-code" style="flex:1;background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:12px;padding:12px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;">
-              <i class="fas fa-copy" style="font-size:20px;color:#B91C1C;" />
-              <span style="font-size:12px;color:#78716C;">复制分享码</span>
-            </button>
-            <button id="btn-copy-link" style="flex:1;background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:12px;padding:12px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;">
-              <i class="fas fa-link" style="font-size:20px;color:#3B82F6;" />
-              <span style="font-size:12px;color:#78716C;">复制链接</span>
-            </button>
-            <button id="btn-save-card" style="flex:1;background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:12px;padding:12px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;">
-              <i class="fas fa-image" style="font-size:20px;color:#16A34A;" />
-              <span style="font-size:12px;color:#78716C;">保存卡片</span>
-            </button>
+          {/* Action Buttons 2x2 Grid */}
+          <div style="margin-top:20px;padding:0 8px;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <button id="btn-copy-code" style="background:#FAFAF9;border:1px solid #E7E5E4;border-radius:12px;padding:14px;text-align:center;font-size:14px;color:#44403C;cursor:pointer;transition:background 0.2s;">复制分享码</button>
+            <button id="btn-copy-link" style="background:#FAFAF9;border:1px solid #E7E5E4;border-radius:12px;padding:14px;text-align:center;font-size:14px;color:#44403C;cursor:pointer;transition:background 0.2s;">复制链接</button>
+            <button id="btn-copy-text" style="background:linear-gradient(135deg,#B91C1C,#991B1B);border:none;border-radius:12px;padding:14px;text-align:center;font-size:14px;color:#fff;cursor:pointer;transition:opacity 0.2s;">复制文字版</button>
+            <button id="btn-save-card" style="background:#FAFAF9;border:1px solid #E7E5E4;border-radius:12px;padding:14px;text-align:center;font-size:14px;color:#44403C;cursor:pointer;transition:background 0.2s;">保存卡片</button>
           </div>
         </div>
       </div>
@@ -2099,7 +2076,10 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, nam
     initiatorClassId: proj.initiatorClassId || '',
     initiatorClassName: proj.initiatorClassName || '',
     recommendedByTeacher: proj.recommendedByTeacher || [],
+    viewCount: proj.viewCount || 0,
   })};
+  var OWNER = ${JSON.stringify({ name: owner.name, className: owner.className || owner.cohort || '' })};
+  var MOCK_CONTRACTS_FOR_COUNT = ${JSON.stringify(mockContracts.filter(c => c.projectId === proj.id && c.status === 'active').length)};
   var MEMBERS = ${JSON.stringify(mockMembers.map(m => ({ id:m.id, name:m.name, classId:m.classId||'' })))};
   var TEACHERS = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, name:t.name, classIds:t.classIds })))};
 
@@ -2108,6 +2088,28 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, nam
     var banner = document.getElementById('share-from-banner');
     if(banner) banner.style.display = 'block';
   }
+
+  // ── Task 3: viewCount increment + display ──
+  (function(){
+    // Read stored view counts from localStorage
+    var viewCounts = {};
+    try { viewCounts = JSON.parse(localStorage.getItem('zlc_view_counts') || '{}'); } catch(e){}
+    var currentCount = viewCounts[PROJ.id] !== undefined ? viewCounts[PROJ.id] : PROJ.viewCount;
+    currentCount++;
+    viewCounts[PROJ.id] = currentCount;
+    localStorage.setItem('zlc_view_counts', JSON.stringify(viewCounts));
+
+    // Get participant count (signed contracts)
+    var participantCount = MOCK_CONTRACTS_FOR_COUNT;
+    // Also check localStorage contracts
+    var lsContracts = [];
+    try { lsContracts = JSON.parse(localStorage.getItem('zlc_contracts') || '[]'); } catch(e){}
+    var lsSignedCount = lsContracts.filter(function(c){ return c.projectId === PROJ.id && c.status === 'active'; }).length;
+    participantCount = Math.max(participantCount, participantCount + lsSignedCount);
+
+    var vcEl = document.getElementById('detail-view-count');
+    if(vcEl) vcEl.textContent = currentCount + '人浏览 · ' + participantCount + '人参与';
+  })();
 
   // Render relation tag on detail page
   (function(){
@@ -2315,6 +2317,11 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, nam
     });
   }
 
+  // Auto-open share sheet if ?share=true (Task 2)
+  if(window.location.search.indexOf('share=true') !== -1){
+    setTimeout(openSharePanel, 500);
+  }
+
   // ── Referral Logic ──
   var refOverlay = document.getElementById('referral-overlay');
   var refModal = document.getElementById('referral-modal');
@@ -2459,7 +2466,8 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, nam
     btnCopyCode.addEventListener('click', function(){
       if(PROJ.shareCode){
         navigator.clipboard.writeText(PROJ.shareCode).then(function(){
-          showToast('分享码已复制，发给同学即可', 'success');
+          btnCopyCode.textContent = '\\u2713 已复制';
+          setTimeout(function(){ btnCopyCode.textContent = '复制分享码'; }, 2000);
         }).catch(function(){ showToast('复制失败，请手动复制: ' + PROJ.shareCode, 'error'); });
       }
     });
@@ -2469,9 +2477,31 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, nam
   var btnCopyLink = document.getElementById('btn-copy-link');
   if(btnCopyLink){
     btnCopyLink.addEventListener('click', function(){
-      var link = window.location.origin + '/share/' + PROJ.shareCode;
+      var link = 'https://zlc.yyzltop.com/share/' + PROJ.shareCode;
       navigator.clipboard.writeText(link).then(function(){
-        showToast('链接已复制', 'success');
+        btnCopyLink.textContent = '\\u2713 已复制';
+        setTimeout(function(){ btnCopyLink.textContent = '复制链接'; }, 2000);
+      }).catch(function(){ showToast('复制失败，请手动复制', 'error'); });
+    });
+  }
+
+  // Copy text version (core feature)
+  var btnCopyText = document.getElementById('btn-copy-text');
+  if(btnCopyText){
+    btnCopyText.addEventListener('click', function(){
+      var monthlyRepayment = (PROJ.targetAmount * PROJ.revenueShareRate / 100).toFixed(2);
+      var textContent = '\\uD83D\\uDCE2 【项目推介】' + PROJ.name + '\\n\\n'
+        + '\\uD83D\\uDC64 发起人：' + OWNER.name + '（' + OWNER.className + '）\\n'
+        + '\\uD83D\\uDCB0 融资规模：¥' + PROJ.targetAmount + '万\\n'
+        + '\\uD83D\\uDCCA 收入分成：' + PROJ.revenueShareRate + '%\\n'
+        + '\\u23F1 联营期限：' + PROJ.duration + '个月\\n'
+        + '\\uD83D\\uDCC8 预估月回款：≈¥' + monthlyRepayment + '万\\n\\n'
+        + '\\uD83D\\uDD17 查看详情：https://zlc.yyzltop.com/share/' + PROJ.shareCode + '\\n'
+        + '\\uD83D\\uDD11 分享码：' + PROJ.shareCode + '\\n\\n'
+        + '——来自「中流通」一亿中流私董会项目投资平台';
+      navigator.clipboard.writeText(textContent).then(function(){
+        btnCopyText.textContent = '\\u2713 已复制，去微信粘贴吧';
+        setTimeout(function(){ btnCopyText.textContent = '复制文字版'; }, 3000);
       }).catch(function(){ showToast('复制失败，请手动复制', 'error'); });
     });
   }
@@ -2480,7 +2510,7 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, nam
   var btnSaveCard = document.getElementById('btn-save-card');
   if(btnSaveCard){
     btnSaveCard.addEventListener('click', function(){
-      showToast('请长按或截屏保存上方卡片', 'success');
+      showToast('请长按上方卡片截图保存', 'info');
     });
   }
 
@@ -3074,12 +3104,40 @@ app.get('/create', (c) => {
   // Publish
   document.getElementById('btn-publish').addEventListener('click', function(){
     var proj = collectData('open');
+    // Generate a share code
+    var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    var shareCode = '';
+    for(var i=0;i<6;i++) shareCode += chars.charAt(Math.floor(Math.random()*chars.length));
+    proj.shareCode = shareCode;
+    proj.initiatorClassId = u.classId || '';
+    proj.initiatorClassName = u.className || '';
+    proj.viewCount = 0;
     var projects = [];
     try { projects = JSON.parse(localStorage.getItem('zlc_user_projects') || '[]'); } catch(e){}
     projects.push(proj);
     localStorage.setItem('zlc_user_projects', JSON.stringify(projects));
-    showToast('项目发布成功！', 'success');
-    setTimeout(function(){ window.location.href = '/projects/' + proj.id; }, 800);
+
+    // Show custom success modal with share button (Task 2)
+    var overlay = document.createElement('div');
+    overlay.className = 'success-modal-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.3s;';
+    overlay.innerHTML = '<div style="background:#fff;border-radius:24px;padding:32px;max-width:320px;width:90%;text-align:center;">'
+      + '<i class="fas fa-check-circle" style="font-size:64px;color:#16A34A;animation:iconPop 0.5s cubic-bezier(0.16,1,0.3,1);"></i>'
+      + '<div style="font-size:20px;font-weight:700;color:#1C1917;margin-top:16px;">发起成功</div>'
+      + '<div style="font-size:14px;color:#78716C;margin-top:8px;">项目已发布到大厅，分享给同学吧</div>'
+      + '<div style="margin-top:20px;display:flex;flex-direction:column;gap:10px;">'
+      + '<button id="success-share-btn" style="background:linear-gradient(135deg,#B91C1C,#991B1B);color:#fff;border:none;border-radius:12px;padding:14px;width:100%;font-size:15px;font-weight:600;cursor:pointer;">\\uD83D\\uDCE4 分享给同学</button>'
+      + '<button id="success-view-btn" style="background:transparent;color:#44403C;border:1px solid #E7E5E4;border-radius:12px;padding:14px;width:100%;font-size:15px;font-weight:600;cursor:pointer;">查看项目</button>'
+      + '</div></div>';
+    document.body.appendChild(overlay);
+    requestAnimationFrame(function(){ overlay.style.opacity = '1'; });
+
+    document.getElementById('success-share-btn').addEventListener('click', function(){
+      window.location.href = '/projects/' + proj.id + '?share=true';
+    });
+    document.getElementById('success-view-btn').addEventListener('click', function(){
+      window.location.href = '/projects/' + proj.id;
+    });
   });
 })();
 `}} />
@@ -3393,7 +3451,7 @@ app.get('/repayments', (c) => {
   if (!u) return;
 
   var CONTRACTS = ${JSON.stringify(mockContracts)};
-  var PROJECTS = ${JSON.stringify(mockProjects)};
+  var PROJECTS = ${JSON.stringify(mockProjects.map(p => ({ ...p })))};
   var MEMBERS = ${JSON.stringify(mockMembers.map(m => ({ id:m.id, name:m.name, company:m.company })))};
   var REP_RECORDS = ${JSON.stringify(mockRepaymentRecords)};
   var REV_REPORTS = ${JSON.stringify(mockRevenueReports)};
@@ -3545,18 +3603,28 @@ app.get('/repayments', (c) => {
       else if(p.status==='draft') badgeStyle = 'background:#F5F5F4;color:#78716C;border:1px solid #E7E5E4;';
       else badgeStyle = 'background:#F0FDF4;color:#16a34a;border:1px solid #BBF7D0;';
 
-      // Count participants from contracts
+      // Count participants from contracts (signed)
       var projContracts = CONTRACTS.filter(function(c){ return c.projectId === p.id && c.status === 'active'; });
       var participantCount = projContracts.length || p.investors.length;
 
-      initiateHTML += '<div style="background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,0.04),0 2px 8px rgba(0,0,0,0.03);padding:16px;">';
-      initiateHTML += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">';
+      // Get viewCount from localStorage or mock data (Task 3)
+      var viewCounts = {};
+      try { viewCounts = JSON.parse(localStorage.getItem('zlc_view_counts') || '{}'); } catch(e){}
+      var viewCount = viewCounts[p.id] !== undefined ? viewCounts[p.id] : (p.viewCount || 0);
+
+      initiateHTML += '<div style="background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,0.04),0 2px 8px rgba(0,0,0,0.03);padding:16px;position:relative;">';
+      // Share icon button (Task 2) — top right
+      if(p.status !== 'draft'){
+        initiateHTML += '<a href="/projects/' + p.id + '?share=true" style="position:absolute;top:16px;right:16px;color:#78716C;text-decoration:none;display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;transition:color 0.2s,background 0.2s;" onmouseover="this.style.color=\\'#B91C1C\\';this.style.background=\\'#FEE2E2\\';" onmouseout="this.style.color=\\'#78716C\\';this.style.background=\\'transparent\\';"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></a>';
+      }
+      initiateHTML += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;padding-right:' + (p.status !== 'draft' ? '32px' : '0') + ';">';
       initiateHTML += '<span style="font-size:16px;font-weight:600;color:#1C1917;">' + p.name + '</span>';
       initiateHTML += '<span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;' + badgeStyle + '">' + statusLabel + '</span>';
       initiateHTML += '</div>';
+      // View/Participant count (Task 3)
+      initiateHTML += '<div style="font-size:12px;color:#A8A29E;margin-top:4px;margin-bottom:8px;">' + viewCount + '人浏览 · ' + participantCount + '人参与</div>';
       initiateHTML += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">';
       initiateHTML += '<span style="background:#FEE2E2;color:#B91C1C;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">' + p.industry + '</span>';
-      initiateHTML += '<span style="font-size:13px;color:#78716C;">' + participantCount + '位同学参与</span>';
       initiateHTML += '</div>';
 
       // Row 3: depends on status

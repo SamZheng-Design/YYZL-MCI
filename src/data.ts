@@ -109,6 +109,7 @@ export interface Project {
   initiatorClassId?: string
   initiatorClassName?: string
   recommendedByTeacher?: string[]
+  viewCount?: number
 }
 
 export const mockProjects: Project[] = [
@@ -121,6 +122,7 @@ export const mockProjects: Project[] = [
     totalShares: 50, raisedShares: 38, sharePrice: 10, minShares: 1,
     status: 'open', createdAt: '2026-03-10',
     investors: ['m-002', 'm-004', 'm-005'],
+    viewCount: 47,
   },
   {
     id: 'p-002', name: '工业视觉检测新产线', ownerId: 'm-002',
@@ -132,6 +134,7 @@ export const mockProjects: Project[] = [
     totalShares: 6, raisedShares: 6, sharePrice: 25, minShares: 1,
     status: 'active', createdAt: '2026-01-15',
     investors: ['m-001', 'm-004', 'm-005'],
+    viewCount: 128,
   },
   {
     id: 'p-003', name: '优学AI双师课堂全国推广', ownerId: 'm-003',
@@ -142,6 +145,7 @@ export const mockProjects: Project[] = [
     totalShares: 30, raisedShares: 12, sharePrice: 10, minShares: 1,
     status: 'open', createdAt: '2026-03-15',
     investors: ['m-001'],
+    viewCount: 35,
   },
   {
     id: 'p-004', name: '鼎盛冷链华东仓网优化', ownerId: 'm-004',
@@ -152,6 +156,7 @@ export const mockProjects: Project[] = [
     totalShares: 60, raisedShares: 45, sharePrice: 20, minShares: 1,
     status: 'open', createdAt: '2026-03-05',
     investors: ['m-001', 'm-002', 'm-005'],
+    viewCount: 89,
   },
   {
     id: 'p-005', name: 'AI英语口语APP开发', ownerId: 'm-003',
@@ -162,6 +167,7 @@ export const mockProjects: Project[] = [
     totalShares: 5, raisedShares: 5, sharePrice: 5, minShares: 1,
     status: 'active', createdAt: '2026-02-10',
     investors: ['m-001', 'm-004'],
+    viewCount: 62,
   },
 ]
 
