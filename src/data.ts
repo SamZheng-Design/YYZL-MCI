@@ -28,25 +28,31 @@ export interface Teacher {
   classIds: string[]
   role: 'teacher'
   status: 'active' | 'inactive'
+  title?: string
+  bio?: string
 }
 
 export const mockMembers: Member[] = [
+  // ── 任务一：已有学员（更新 company/industry/title/bio） ──
   {
-    id: 'm-001', phone: '13888888888', name: '张建国', company: '星火餐饮集团',
-    industry: '餐饮连锁', title: '董事长',
-    bio: '20年餐饮连锁经验，全国120家门店', cohort: '第12期', status: 'active', joinDate: '2024-03-15',
+    id: 'm-001', phone: '13800001111', name: '张明远', company: '明远餐饮集团',
+    industry: '餐饮连锁', title: '创始人兼CEO',
+    bio: '深耕华南餐饮18年，旗下「明远·粤味」连锁品牌覆盖广深佛莞18家直营门店，年营收1.2亿',
+    cohort: '第12期', status: 'active', joinDate: '2024-03-15',
     classId: 'class-12', className: '第12期',
   },
   {
-    id: 'm-002', phone: '13966666666', name: '李明远', company: '新锐智造科技',
-    industry: '智能制造', title: '创始人/CEO',
-    bio: '前华为供应链总监，专注工业自动化', cohort: '第10期', status: 'active', joinDate: '2023-09-20',
-    classId: 'class-10', className: '第10期',
+    id: 'm-002', phone: '13800002222', name: '李芳华', company: '芳华供应链科技',
+    industry: '供应链管理', title: '董事长',
+    bio: '前顺丰供应链高管，2019年创立芳华供应链，专注生鲜冷链最后一公里，服务3000+商户',
+    cohort: '第12期', status: 'active', joinDate: '2024-03-15',
+    classId: 'class-12', className: '第12期',
   },
   {
-    id: 'm-003', phone: '13733333333', name: '王晓薇', company: '优学教育科技',
-    industry: '教育培训', title: '创始人',
-    bio: '前新东方区域总监，AI教育创业者', cohort: '第14期', status: 'active', joinDate: '2025-01-10',
+    id: 'm-003', phone: '13800003333', name: '王建国', company: '建国智能装备',
+    industry: '智能制造', title: '总经理',
+    bio: '二代接班人，将传统五金厂转型为智能制造企业，年产值从3000万做到1.8亿，拥有12项专利',
+    cohort: '第14期', status: 'active', joinDate: '2025-01-10',
     classId: 'class-14', className: '第14期',
   },
   {
@@ -62,6 +68,147 @@ export const mockMembers: Member[] = [
     classId: 'class-11', className: '第11期',
   },
   {
+    id: 'm-006', phone: '13800006666', name: '赵晓峰', company: '晓峰教育科技',
+    industry: '教育培训', title: '创始人',
+    bio: '原新东方区域校长，2020年创办素质教育品牌「小峰学堂」，全国8个城市23家校区，在读学员6000+',
+    cohort: '第16期', status: 'active', joinDate: '2025-06-01',
+    classId: 'class-16', className: '第16期',
+  },
+  {
+    id: 'm-007', phone: '13800007777', name: '孙丽娜', company: '丽娜美妆集团',
+    industry: '美妆个护', title: '创始人兼CEO',
+    bio: '从微商起家到自有品牌「LINA」，年GMV破2亿，抖音美妆类目TOP20，自建化妆品工厂',
+    cohort: '第16期', status: 'active', joinDate: '2025-06-01',
+    classId: 'class-16', className: '第16期',
+  },
+  {
+    id: 'm-008', phone: '13800008888', name: '周大伟', company: '大伟农业科技',
+    industry: '现代农业', title: '董事长',
+    bio: '返乡创业标杆，建成华中地区最大有机蔬菜基地，与盒马、山姆合作，年供应量8000吨',
+    cohort: '第16期', status: 'active', joinDate: '2025-06-01',
+    classId: 'class-16', className: '第16期',
+  },
+  // ── 任务三：新增学员第一批（m-009 ~ m-024） ──
+  // 第12期补充
+  {
+    id: 'm-009', phone: '13800009999', name: '钱志强', company: '志强物流集团',
+    industry: '智慧物流', title: '创始人',
+    bio: '华南专线物流龙头，自有车辆200+台，年运输量120万吨，正在布局智慧物流数字化平台',
+    cohort: '第12期', status: 'active', joinDate: '2024-03-15',
+    classId: 'class-12', className: '第12期',
+  },
+  {
+    id: 'm-010', phone: '13800101010', name: '林晓婷', company: '晓婷母婴连锁',
+    industry: '母婴零售', title: '创始人兼CEO',
+    bio: '从一家社区母婴店做到全省68家连锁，会员体系覆盖15万家庭，年营收1.5亿',
+    cohort: '第12期', status: 'active', joinDate: '2024-03-15',
+    classId: 'class-12', className: '第12期',
+  },
+  // 第14期补充
+  {
+    id: 'm-011', phone: '13800111111', name: '吴铭哲', company: '铭哲新材料',
+    industry: '新材料', title: '总经理',
+    bio: '专注汽车轻量化铝合金材料，比亚迪、吉利一级供应商，年产值2.3亿，净利润率18%',
+    cohort: '第14期', status: 'active', joinDate: '2025-01-10',
+    classId: 'class-14', className: '第14期',
+  },
+  {
+    id: 'm-012', phone: '13800121212', name: '郑雅文', company: '雅文文化传媒',
+    industry: '文化传媒', title: '创始人',
+    bio: '短视频MCN机构，签约达人200+，全平台粉丝矩阵3亿+，年营收9000万，利润率25%',
+    cohort: '第14期', status: 'active', joinDate: '2025-01-10',
+    classId: 'class-14', className: '第14期',
+  },
+  // 第16期补充
+  {
+    id: 'm-013', phone: '13800131313', name: '黄嘉豪', company: '嘉豪健身管理',
+    industry: '健身运动', title: 'CEO',
+    bio: '「JOY FIT」连锁健身品牌，长三角地区15家门店，会员4.2万人，年营收8500万',
+    cohort: '第16期', status: 'active', joinDate: '2025-06-01',
+    classId: 'class-16', className: '第16期',
+  },
+  {
+    id: 'm-014', phone: '13800141414', name: '许思颖', company: '思颖宠物医疗',
+    industry: '宠物服务', title: '创始人兼首席兽医',
+    bio: '连锁宠物医院品牌「爱宠优选」，全国12家医院，年接诊量18万例，营收1.1亿',
+    cohort: '第16期', status: 'active', joinDate: '2025-06-01',
+    classId: 'class-16', className: '第16期',
+  },
+  // 第18期（新增班级）
+  {
+    id: 'm-015', phone: '13800151515', name: '陈浩然', company: '浩然新能源',
+    industry: '新能源', title: '董事长',
+    bio: '光伏组件制造商，产能2GW，出口东南亚和中东，年营收4.5亿，获评国家专精特新企业',
+    cohort: '第18期', status: 'active', joinDate: '2025-09-01',
+    classId: 'class-18', className: '第18期',
+  },
+  {
+    id: 'm-016', phone: '13800161616', name: '刘雨桐', company: '雨桐家居设计',
+    industry: '家居建材', title: '创始人',
+    bio: '原创设计师家居品牌「木与光」，线上年销2亿+，天猫家具类目TOP10，自有工厂3间',
+    cohort: '第18期', status: 'active', joinDate: '2025-09-01',
+    classId: 'class-18', className: '第18期',
+  },
+  {
+    id: 'm-017', phone: '13800171717', name: '杨振宁', company: '振宁汽车服务',
+    industry: '汽车后市场', title: 'CEO',
+    bio: '「快修侠」连锁汽修品牌，华东地区42家门店，年服务车辆50万台次，营收1.8亿',
+    cohort: '第18期', status: 'active', joinDate: '2025-09-01',
+    classId: 'class-18', className: '第18期',
+  },
+  {
+    id: 'm-018', phone: '13800181818', name: '何晓琳', company: '晓琳跨境电商',
+    industry: '跨境电商', title: '总经理',
+    bio: '亚马逊北美站大卖家，自有品牌3个，年GMV 2.5亿，FBA仓储面积5000平米',
+    cohort: '第18期', status: 'active', joinDate: '2025-09-01',
+    classId: 'class-18', className: '第18期',
+  },
+  // 第20期（新增班级）
+  {
+    id: 'm-019', phone: '13800191919', name: '马俊杰', company: '俊杰医疗器械',
+    industry: '医疗健康', title: '创始人兼CEO',
+    bio: '二类医疗器械研发制造，主打家用智能健康监测设备，进入2000+药房渠道，年营收7000万',
+    cohort: '第20期', status: 'active', joinDate: '2026-01-15',
+    classId: 'class-20', className: '第20期',
+  },
+  {
+    id: 'm-020', phone: '13800202020', name: '胡雅静', company: '雅静食品科技',
+    industry: '食品加工', title: '董事长',
+    bio: '健康零食品牌「轻悦」，主打低糖低卡产品线，全渠道铺货8万+终端，年营收1.6亿',
+    cohort: '第20期', status: 'active', joinDate: '2026-01-15',
+    classId: 'class-20', className: '第20期',
+  },
+  {
+    id: 'm-021', phone: '13800212121', name: '宋伟明', company: '伟明环保科技',
+    industry: '环保科技', title: '总经理',
+    bio: '工业废水处理解决方案提供商，服务客户包括中石化、宝钢等央企，年合同额1.2亿',
+    cohort: '第20期', status: 'active', joinDate: '2026-01-15',
+    classId: 'class-20', className: '第20期',
+  },
+  {
+    id: 'm-022', phone: '13800222222', name: '田甜', company: '甜蜜旅行社',
+    industry: '文旅', title: '创始人',
+    bio: '定制化高端旅行品牌，专注企业家私人旅行和商务考察，年服务客户5000+，营收6000万',
+    cohort: '第20期', status: 'active', joinDate: '2026-01-15',
+    classId: 'class-20', className: '第20期',
+  },
+  // 第22期（新增班级）
+  {
+    id: 'm-023', phone: '13800232323', name: '冯子轩', company: '子轩物联网科技',
+    industry: '物联网', title: 'CTO兼联合创始人',
+    bio: '工业物联网平台，为制造企业提供设备监控和预测维护SaaS，接入设备10万+台，ARR 3000万',
+    cohort: '第22期', status: 'active', joinDate: '2026-03-01',
+    classId: 'class-22', className: '第22期',
+  },
+  {
+    id: 'm-024', phone: '13800242424', name: '曹美玲', company: '美玲服饰集团',
+    industry: '服装零售', title: '董事长',
+    bio: '女装品牌「MAYLINE」，全国180家专柜/门店，年营收3.2亿，正在推进线上数字化转型',
+    cohort: '第22期', status: 'active', joinDate: '2026-03-01',
+    classId: 'class-22', className: '第22期',
+  },
+  // ── 管理员 ──
+  {
     id: 'm-admin', phone: '18000000000', name: '管理员', company: '一亿中流',
     industry: '平台管理', title: '平台管理员',
     bio: '一亿中流平台管理员', cohort: '管理团队', status: 'active', joinDate: '2023-01-01', role: 'admin',
@@ -71,9 +218,15 @@ export const mockMembers: Member[] = [
 
 // ── 老师数据 ──────────────────────────────────────────────
 export const mockTeachers: Teacher[] = [
-  { id: 't-001', name: '刘老师', phone: '18011111111', avatar: null, classIds: ['class-12', 'class-14'], role: 'teacher', status: 'active' },
-  { id: 't-002', name: '陈老师', phone: '18022222222', avatar: null, classIds: ['class-10', 'class-11'], role: 'teacher', status: 'active' },
-  { id: 't-003', name: '周老师', phone: '18033333333', avatar: null, classIds: ['class-08'], role: 'teacher', status: 'active' },
+  // 任务二：已有老师（更新 name/title/bio/classIds）
+  { id: 't-001', name: '刘海涛', phone: '18011111111', avatar: null, classIds: ['class-12', 'class-14'], role: 'teacher', status: 'active', title: '战略导师', bio: '前波士顿咨询合伙人，专注消费与制造业战略咨询20年，辅导超60家企业完成战略升级' },
+  { id: 't-002', name: '陈敏芝', phone: '18022222222', avatar: null, classIds: ['class-16'], role: 'teacher', status: 'active', title: '资本导师', bio: '原中金资本副总裁，主导投资项目30+，累计管理资金规模超50亿，擅长产融结合与上市辅导' },
+  // 任务四：新增老师第一批
+  { id: 't-003', name: '张文博', phone: '18033333333', avatar: null, classIds: ['class-18'], role: 'teacher', status: 'active', title: '产业导师', bio: '前美的集团副总裁，专注制造业数字化转型咨询，辅导企业50+家实现智能化升级' },
+  { id: 't-004', name: '王丽华', phone: '18044444444', avatar: null, classIds: ['class-20'], role: 'teacher', status: 'active', title: '增长导师', bio: '连续创业者，曾将两家公司从0做到10亿营收并成功退出，现专注企业增长战略辅导' },
+  { id: 't-005', name: '李国栋', phone: '18055555555', avatar: null, classIds: ['class-22'], role: 'teacher', status: 'active', title: '资本导师', bio: '原达晨财智合伙人，主导投资上市公司7家，专注消费和科技赛道早中期投资' },
+  // 原周老师，负责早期班级
+  { id: 't-006', name: '周老师', phone: '18066666666', avatar: null, classIds: ['class-08', 'class-10', 'class-11'], role: 'teacher', status: 'active', title: '运营导师', bio: '资深企业运营顾问，专注中小企业精细化运营管理，累计服务企业100+家' },
 ]
 
 // ── 班级工具函数 ─────────────────────────────────────────
