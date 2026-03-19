@@ -1327,24 +1327,24 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
           <style>
             #splash-screen {
               position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;
-              background:linear-gradient(160deg,#0A0A0A 0%,#1C1917 50%,#0A0A0A 100%);
+              background:linear-gradient(160deg,#7F1D1D 0%,#B91C1C 40%,#991B1B 70%,#7F1D1D 100%);
               display:flex;align-items:center;justify-content:center;
               opacity:1;transition:none;
             }
             #splash-screen::before {
               content:'';position:absolute;inset:0;
               background-image:repeating-radial-gradient(circle at 1px 1px,rgba(255,255,255,0.07) 0px,transparent 1px);
-              background-size:3px 3px;opacity:0.03;pointer-events:none;
+              background-size:3px 3px;opacity:0.05;pointer-events:none;
             }
             #splash-screen .sp-line-top {
               position:absolute;top:0;left:50%;width:1px;height:80px;
-              background:linear-gradient(180deg,transparent,#D4A853,transparent);
+              background:linear-gradient(180deg,transparent,rgba(255,255,255,0.3),transparent);
               transform:translateX(-50%) scaleY(0);transform-origin:top;
               animation:splash-line-grow 1000ms ease-out 200ms forwards;
             }
             #splash-screen .sp-line-bot {
               position:absolute;bottom:0;left:50%;width:1px;height:80px;
-              background:linear-gradient(0deg,transparent,#D4A853,transparent);
+              background:linear-gradient(0deg,transparent,rgba(255,255,255,0.3),transparent);
               transform:translateX(-50%) scaleY(0);transform-origin:bottom;
               animation:splash-line-grow 1000ms ease-out 200ms forwards;
             }
@@ -1362,16 +1362,16 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
               font-family:'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;
             }
             #splash-screen .sp-brand-x {
-              font-size:28px;font-weight:300;color:#D4A853;margin:0 12px;
+              font-size:28px;font-weight:300;color:rgba(255,255,255,0.6);margin:0 12px;
             }
             #splash-screen .sp-product {
-              font-size:18px;font-weight:500;color:rgba(255,255,255,0.4);letter-spacing:8px;margin-top:16px;
+              font-size:18px;font-weight:500;color:rgba(255,255,255,0.5);letter-spacing:8px;margin-top:16px;
               font-family:'Noto Sans SC',sans-serif;
               opacity:0;transform:translateY(20px);
               animation:splash-fade-in 800ms ease-out 400ms forwards;
             }
             #splash-screen .sp-slogan {
-              font-size:14px;font-weight:400;color:#D4A853;letter-spacing:3px;font-style:italic;margin-top:24px;
+              font-size:14px;font-weight:400;color:rgba(255,255,255,0.7);letter-spacing:3px;font-style:italic;margin-top:24px;
               font-family:'Inter',sans-serif;
               opacity:0;transform:translateY(20px);
               animation:splash-fade-in 800ms ease-out 800ms forwards;
@@ -1381,7 +1381,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
               opacity:0;animation:splash-fade-in 500ms ease-out 1200ms forwards;
             }
             #splash-screen .sp-dot {
-              width:6px;height:6px;border-radius:50%;background:#D4A853;
+              width:6px;height:6px;border-radius:50%;background:#fff;
               animation:splash-dot-bounce 600ms ease-in-out infinite;
             }
             #splash-screen .sp-dot:nth-child(2){animation-delay:150ms;}
