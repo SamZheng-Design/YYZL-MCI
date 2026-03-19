@@ -5,7 +5,7 @@ import { Hono } from 'hono'
 import { renderer } from './renderer'
 import {
   mockMembers, mockProjects, mockRepayments,
-  getUserStats, DEMO_VERIFY_CODE,
+  getUserStats, getProjectStats, calculateRBF, DEMO_VERIFY_CODE,
 } from './data'
 import type { Member, Project } from './data'
 
@@ -473,20 +473,471 @@ const PlaceholderPage = ({ tabKey, title, icon, desc }: { tabKey: string; title:
   </div>
 )
 
-app.get('/projects', (c) => c.render(
-  <PlaceholderPage tabKey="projects" title="项目大厅" icon="fa-store" desc="发现优质收入分成项目，与学员共同参与" />,
-  { title: '项目大厅 — 中流通' }
-))
+// ── Status badge helper ───────────────────────────────────
+const statusLabel: Record<string, string> = { open: '募集中', funded: '已满额', active: '运营中', completed: '已完成' }
+const StatusBadge = ({ status }: { status: string }) => (
+  <span class={`badge badge-${status}`}>{statusLabel[status] || status}</span>
+)
 
-app.get('/projects/:id', (c) => {
-  const id = c.req.param('id')
-  const proj = mockProjects.find(p => p.id === id)
+// ══════════════════════════════════════════════════════════
+// Projects Hall  (/projects)
+// ══════════════════════════════════════════════════════════
+app.get('/projects', (c) => {
+  const stats = getProjectStats()
+  const industries = ['全部', ...Array.from(new Set(mockProjects.map(p => p.industry)))]
+
   return c.render(
-    <PlaceholderPage tabKey="projects" title={proj ? proj.name : '项目详情'} icon="fa-file-invoice-dollar" desc={proj ? proj.description : '项目详情页开发中'} />,
-    { title: (proj ? proj.name : '项目详情') + ' — 中流通' }
+    <div class="has-tabbar">
+      <AuthCheckScript />
+      <Navbar />
+
+      <main class="max-w-lg mx-auto">
+        {/* Title */}
+        <section class="px-4 pt-4 pb-3">
+          <h1 class="font-bold text-text-title" style="font-size:22px;font-family:'Noto Sans SC',sans-serif;">项目大厅</h1>
+          <p class="text-text-secondary mt-0.5" style="font-size:14px;">发现同学的优质项目</p>
+        </section>
+
+        {/* KPI Banner */}
+        <section class="px-4 mb-4">
+          <div class="kpi-banner">
+            <div class="kpi-item"><div class="kpi-val">{stats.openCount}</div><div class="kpi-label">募集中</div></div>
+            <div class="kpi-item"><div class="kpi-val">{stats.activeCount}</div><div class="kpi-label">运营中</div></div>
+            <div class="kpi-item"><div class="kpi-val">¥{stats.totalRaised}</div><div class="kpi-label">累计金额(万)</div></div>
+            <div class="kpi-item"><div class="kpi-val">¥{stats.totalRepaid}</div><div class="kpi-label">累计回款(万)</div></div>
+          </div>
+        </section>
+
+        {/* Filter Bar */}
+        <div class="filter-bar">
+          <select id="filter-industry" class="filter-select">
+            {industries.map(ind => <option value={ind}>{ind}</option>)}
+          </select>
+          <select id="filter-status" class="filter-select">
+            <option value="全部">全部状态</option>
+            <option value="open">募集中</option>
+            <option value="active">运营中</option>
+            <option value="completed">已完成</option>
+          </select>
+          <select id="filter-sort" class="filter-select">
+            <option value="latest">最新发布</option>
+            <option value="amount">金额最大</option>
+            <option value="rate">分成最高</option>
+          </select>
+        </div>
+
+        {/* Project Cards — rendered via client JS for filtering */}
+        <section id="project-list" class="px-4 pt-4 pb-4 flex flex-col gap-4" />
+
+        {/* Empty state (hidden by default) */}
+        <div id="empty-state" class="px-4 py-12 text-center" style="display:none;">
+          <div class="flex items-center justify-center mb-3">
+            <div class="flex items-center justify-center rounded-full bg-brand-soft" style="width:56px;height:56px;">
+              <i class="fas fa-search text-brand" style="font-size:22px;" />
+            </div>
+          </div>
+          <p class="text-text-secondary font-medium" style="font-size:15px;">暂无符合条件的项目</p>
+          <p class="text-text-tertiary mt-1" style="font-size:13px;">请调整筛选条件再试</p>
+        </div>
+      </main>
+
+      <TabBar active="projects" />
+
+      {/* Inject projects data + filter logic */}
+      <script dangerouslySetInnerHTML={{ __html: `
+(function(){
+  var PROJECTS = ${JSON.stringify(mockProjects)};
+  var MEMBERS = ${JSON.stringify(mockMembers.map(m => ({ id:m.id, name:m.name, company:m.company, cohort:m.cohort })))};
+
+  var listEl = document.getElementById('project-list');
+  var emptyEl = document.getElementById('empty-state');
+  var fInd = document.getElementById('filter-industry');
+  var fSta = document.getElementById('filter-status');
+  var fSort = document.getElementById('filter-sort');
+
+  function getMember(id){ return MEMBERS.find(function(m){return m.id===id;}) || {name:'?',company:'',cohort:''}; }
+
+  function statusLabel(s){ return {open:'募集中',funded:'已满额',active:'运营中',completed:'已完成'}[s]||s; }
+  function badgeClass(s){ return 'badge badge-'+s; }
+
+  function render(){
+    var ind = fInd.value, sta = fSta.value, sort = fSort.value;
+    var list = PROJECTS.filter(function(p){
+      if(ind!=='全部' && p.industry!==ind) return false;
+      if(sta!=='全部' && p.status!==sta) return false;
+      return true;
+    });
+    if(sort==='amount') list.sort(function(a,b){return b.targetAmount-a.targetAmount;});
+    else if(sort==='rate') list.sort(function(a,b){return b.revenueShareRate-a.revenueShareRate;});
+    else list.sort(function(a,b){return b.createdAt.localeCompare(a.createdAt);});
+
+    if(!list.length){ listEl.innerHTML=''; emptyEl.style.display='block'; return; }
+    emptyEl.style.display='none';
+
+    listEl.innerHTML = list.map(function(p){
+      var o = getMember(p.ownerId);
+      var pct = Math.round(p.raisedAmount/p.targetAmount*100);
+      var remain = p.totalShares - p.raisedShares;
+      return '<a href="/projects/'+p.id+'" class="bg-white rounded-2xl shadow-card shadow-card-hover p-5 block" style="text-decoration:none;color:inherit;">'
+        +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">'
+          +'<div style="width:36px;height:36px;border-radius:50%;background:#B91C1C;color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;">'+o.name.charAt(0)+'</div>'
+          +'<div><span style="font-size:14px;font-weight:500;color:#1C1917;">'+o.name+'</span>'
+          +'<span style="font-size:12px;color:#78716C;margin-left:6px;">'+o.company+' · '+o.cohort+'</span></div>'
+        +'</div>'
+        +'<div style="font-size:18px;font-weight:600;color:#1C1917;margin-bottom:8px;">'+p.name+'</div>'
+        +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;">'
+          +'<span style="background:#FEE2E2;color:#B91C1C;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">'+p.industry+'</span>'
+          +'<span class="'+badgeClass(p.status)+'">'+statusLabel(p.status)+'</span>'
+        +'</div>'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">'
+          +'<div><div style="font-size:17px;font-weight:700;color:#1C1917;">¥'+p.targetAmount+'<span style="font-size:12px;font-weight:400;color:#78716C;">万</span></div><div style="font-size:11px;color:#A8A29E;">融资总额</div></div>'
+          +'<div><div style="font-size:17px;font-weight:700;color:#1C1917;">'+p.revenueShareRate+'<span style="font-size:12px;font-weight:400;color:#78716C;">%</span></div><div style="font-size:11px;color:#A8A29E;">分成比例</div></div>'
+          +'<div><div style="font-size:17px;font-weight:700;color:#1C1917;">'+p.duration+'<span style="font-size:12px;font-weight:400;color:#78716C;">月</span></div><div style="font-size:11px;color:#A8A29E;">联营期限</div></div>'
+        +'</div>'
+        +'<div style="height:8px;border-radius:99px;background:#F5F5F4;overflow:hidden;margin-bottom:8px;">'
+          +'<div style="height:100%;border-radius:99px;background:linear-gradient(90deg,#D4A853,#B8860B);width:'+pct+'%;"></div>'
+        +'</div>'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;">'
+          +'<span style="font-size:12px;color:#78716C;">已募 '+pct+'% (¥'+p.raisedAmount+'/'+p.targetAmount+'万)'+(p.status==="open"?' · 剩余'+remain+'份':'')+'</span>'
+          +'<span style="font-size:13px;font-weight:600;color:#B91C1C;">查看详情 →</span>'
+        +'</div>'
+      +'</a>';
+    }).join('');
+  }
+
+  fInd.addEventListener('change', render);
+  fSta.addEventListener('change', render);
+  fSort.addEventListener('change', render);
+  render();
+})();
+`}} />
+    </div>,
+    { title: '项目大厅 — 中流通' }
   )
 })
 
+// ══════════════════════════════════════════════════════════
+// Project Detail  (/projects/:id)
+// ══════════════════════════════════════════════════════════
+app.get('/projects/:id', (c) => {
+  const id = c.req.param('id')
+  const proj = mockProjects.find(p => p.id === id)
+  if (!proj) {
+    return c.render(
+      <PlaceholderPage tabKey="projects" title="项目未找到" icon="fa-circle-xmark" desc="该项目不存在或已被删除" />,
+      { title: '项目未找到 — 中流通' }
+    )
+  }
+
+  const owner = mockMembers.find(m => m.id === proj.ownerId)!
+  const rbf = calculateRBF(proj.targetAmount, proj.revenueShareRate, proj.estimatedMonthlyRevenue, proj.recoveryMultiple)
+  const pct = Math.round((proj.raisedAmount / proj.targetAmount) * 100)
+  const remainShares = proj.totalShares - proj.raisedShares
+  const investorMembers = proj.investors.map(iid => mockMembers.find(m => m.id === iid)).filter(Boolean) as Member[]
+  const bgColors = ['#B91C1C','#D4A853','#991B1B','#B8860B','#7F1D1D']
+
+  return c.render(
+    <div>
+      <AuthCheckScript />
+      <Navbar />
+
+      <main class="px-4 pt-3 pb-8 max-w-lg mx-auto">
+        {/* Back link */}
+        <a href="/projects" class="back-link mb-4 inline-flex">
+          <i class="fas fa-arrow-left" style="font-size:13px;" /> 返回项目大厅
+        </a>
+
+        {/* 1. Project Header Card */}
+        <div class="bg-white rounded-2xl shadow-card p-5 mb-4">
+          <div class="flex items-center justify-between mb-3">
+            <span class="bg-brand-soft text-brand px-2.5 py-0.5 rounded font-semibold" style="font-size:11px;">{proj.industry}</span>
+            <StatusBadge status={proj.status} />
+          </div>
+          <h1 class="font-bold text-text-title mb-4" style="font-size:24px;font-family:'Noto Sans SC',sans-serif;line-height:1.3;">{proj.name}</h1>
+
+          {/* Owner */}
+          <div class="flex items-start gap-3 mb-4 p-3 rounded-xl" style="background:#FAFAF9;">
+            <div class="flex items-center justify-center rounded-full bg-brand text-white font-bold flex-shrink-0" style="width:44px;height:44px;font-size:18px;">
+              {owner.name.charAt(0)}
+            </div>
+            <div>
+              <div class="font-semibold text-text-title" style="font-size:15px;">{owner.name} <span class="text-text-tertiary font-normal" style="font-size:13px;">· {owner.title}</span></div>
+              <div class="text-text-secondary" style="font-size:13px;">{owner.company} · {owner.cohort}</div>
+              <div class="text-text-tertiary mt-1" style="font-size:12px;">{owner.bio}</div>
+            </div>
+          </div>
+
+          <p class="text-text-title" style="font-size:15px;line-height:1.7;">{proj.description}</p>
+        </div>
+
+        {/* 2. RBF Terms Card */}
+        <div class="terms-card shadow-card mb-4">
+          <div class="px-5 py-4" style="border-bottom:1px solid #F5F5F4;">
+            <h3 class="font-semibold text-text-title" style="font-size:16px;">
+              <i class="fas fa-file-contract text-brand mr-2" style="font-size:14px;" />
+              收入分成条款
+            </h3>
+          </div>
+          <div class="terms-grid">
+            <div class="terms-cell">
+              <div class="terms-label">融资总额</div>
+              <div class="terms-value">¥{proj.targetAmount}<span class="text-text-tertiary" style="font-size:13px;font-weight:400;">万</span></div>
+            </div>
+            <div class="terms-cell">
+              <div class="terms-label">分成比例</div>
+              <div class="terms-value">{proj.revenueShareRate}<span class="text-text-tertiary" style="font-size:13px;font-weight:400;">%</span></div>
+            </div>
+            <div class="terms-cell">
+              <div class="terms-label">联营期限</div>
+              <div class="terms-value">{proj.duration}<span class="text-text-tertiary" style="font-size:13px;font-weight:400;">月</span></div>
+            </div>
+            <div class="terms-cell">
+              <div class="terms-label">回收倍数</div>
+              <div class="terms-value">{proj.recoveryMultiple}<span class="text-text-tertiary" style="font-size:13px;font-weight:400;">x</span></div>
+            </div>
+            <div class="terms-cell">
+              <div class="terms-label">回收上限</div>
+              <div class="terms-value">¥{rbf.recoveryCap}<span class="text-text-tertiary" style="font-size:13px;font-weight:400;">万</span></div>
+            </div>
+            <div class="terms-cell">
+              <div class="terms-label">预估月收入</div>
+              <div class="terms-value">¥{proj.estimatedMonthlyRevenue}<span class="text-text-tertiary" style="font-size:13px;font-weight:400;">万</span></div>
+            </div>
+          </div>
+          <div class="calc-highlight">
+            <div>
+              <div class="terms-label">预估月回款</div>
+              <div class="font-bold text-brand" style="font-size:18px;">¥{rbf.monthlyShare.toFixed(1)}万</div>
+            </div>
+            <div>
+              <div class="terms-label">预估回收期</div>
+              <div class="font-bold text-brand" style="font-size:18px;">约{rbf.paybackMonths}月</div>
+            </div>
+          </div>
+        </div>
+
+        {/* 3. Fundraising Progress */}
+        <div class="bg-white rounded-2xl shadow-card p-5 mb-4">
+          <h3 class="font-semibold text-text-title mb-3" style="font-size:16px;">
+            <i class="fas fa-chart-pie text-gold mr-2" style="font-size:14px;" />
+            募集进度
+          </h3>
+          <div class="progress-bar-lg mb-3">
+            <div class="progress-fill" style={`width:${pct}%`} />
+          </div>
+          <div class="font-semibold text-text-title mb-1" style="font-size:16px;">
+            已募 ¥{proj.raisedAmount}万 / ¥{proj.targetAmount}万 <span class="text-gold-dark">({pct}%)</span>
+          </div>
+          <div class="text-text-secondary" style="font-size:13px;">
+            已参与 {proj.investors.length} 位同学 · {remainShares > 0 ? `剩余 ${remainShares} 份` : '已满额'}
+          </div>
+        </div>
+
+        {/* 4. Participate Calculator (open only, not owner) */}
+        {proj.status === 'open' && remainShares > 0 && (
+          <div class="calc-card shadow-card p-5 mb-4">
+            <h3 class="font-semibold text-text-title mb-4" style="font-size:16px;">
+              <i class="fas fa-calculator text-gold mr-2" style="font-size:14px;" />
+              我要参与
+            </h3>
+            <div class="flex items-center gap-3 mb-4">
+              <select id="share-select" class="share-select">
+                {Array.from({ length: Math.min(remainShares, 10) }, (_, i) => i + 1).map(n => (
+                  <option value={String(n)}>{n} 份</option>
+                ))}
+              </select>
+              <span class="text-text-tertiary" style="font-size:15px;">=</span>
+              <span id="share-amount" class="font-bold text-text-title" style="font-size:22px;">¥{proj.sharePrice}万</span>
+            </div>
+            <div class="grid grid-cols-3 gap-3 mb-5 p-3 rounded-xl" style="background:#FAFAF9;">
+              <div class="text-center">
+                <div class="text-text-tertiary" style="font-size:11px;">月回款预估</div>
+                <div id="calc-monthly" class="font-bold text-text-title" style="font-size:15px;">—</div>
+              </div>
+              <div class="text-center">
+                <div class="text-text-tertiary" style="font-size:11px;">回收上限</div>
+                <div id="calc-cap" class="font-bold text-text-title" style="font-size:15px;">—</div>
+              </div>
+              <div class="text-center">
+                <div class="text-text-tertiary" style="font-size:11px;">预估回收期</div>
+                <div id="calc-months" class="font-bold text-text-title" style="font-size:15px;">—</div>
+              </div>
+            </div>
+            <button id="participate-btn" class="btn-gold" style="font-size:16px;">
+              确认参与 ¥{proj.sharePrice}万
+            </button>
+            <p id="owner-hint" class="text-center text-text-tertiary mt-3" style="font-size:12px;display:none;">
+              您是项目发起人，无法参与自己的项目
+            </p>
+          </div>
+        )}
+
+        {/* 5. Investors */}
+        <div class="bg-white rounded-2xl shadow-card p-5 mb-4">
+          <h3 class="font-semibold text-text-title mb-3" style="font-size:16px;">
+            <i class="fas fa-users text-brand-dark mr-2" style="font-size:14px;" />
+            已参与学员
+          </h3>
+          <div class="avatar-stack mb-2">
+            {investorMembers.slice(0, 6).map((m, i) => (
+              <div class="av-circle" style={`background:${bgColors[i % bgColors.length]};`}>{m.name.charAt(0)}</div>
+            ))}
+            {investorMembers.length > 6 && (
+              <div class="av-circle" style="background:#78716C;">+{investorMembers.length - 6}</div>
+            )}
+          </div>
+          <p class="text-text-secondary" style="font-size:13px;">共 {investorMembers.length} 位同学参与</p>
+        </div>
+      </main>
+
+      {/* Confirm Modal */}
+      <div id="confirm-modal" class="modal-overlay">
+        <div class="modal-box">
+          <div class="flex items-center justify-center mb-3">
+            <div class="flex items-center justify-center rounded-full" style="width:48px;height:48px;background:linear-gradient(135deg,#D4A853,#B8860B);">
+              <i class="fas fa-handshake text-white" style="font-size:22px;" />
+            </div>
+          </div>
+          <h4 class="font-bold text-text-title mb-2" style="font-size:18px;">确认参与</h4>
+          <p id="modal-text" class="text-text-secondary" style="font-size:14px;">—</p>
+          <div class="modal-btn-row">
+            <button id="modal-cancel" class="modal-btn modal-btn-cancel">取消</button>
+            <button id="modal-confirm" class="modal-btn modal-btn-confirm">确认</button>
+          </div>
+        </div>
+      </div>
+
+      {/* Toast */}
+      <div id="toast" class="toast" />
+
+      {/* Client script */}
+      <script dangerouslySetInnerHTML={{ __html: `
+(function(){
+  var u = null;
+  try { u = JSON.parse(localStorage.getItem('zlc_user')); } catch(e){}
+  if (!u) return;
+
+  var PROJ = ${JSON.stringify({
+    id: proj.id, name: proj.name, ownerId: proj.ownerId, status: proj.status,
+    sharePrice: proj.sharePrice, totalShares: proj.totalShares, raisedShares: proj.raisedShares,
+    targetAmount: proj.targetAmount, raisedAmount: proj.raisedAmount,
+    revenueShareRate: proj.revenueShareRate, estimatedMonthlyRevenue: proj.estimatedMonthlyRevenue,
+    recoveryMultiple: proj.recoveryMultiple,
+  })};
+
+  // Toast
+  var toastEl = document.getElementById('toast');
+  var toastTimer = null;
+  function showToast(m,t){
+    if(!toastEl) return;
+    clearTimeout(toastTimer);toastEl.textContent=m;toastEl.className='toast toast-'+(t||'error');
+    requestAnimationFrame(function(){toastEl.classList.add('show');});
+    toastTimer=setTimeout(function(){toastEl.classList.remove('show');},3000);
+  }
+
+  // Hide calculator if owner
+  var ownerHint = document.getElementById('owner-hint');
+  var partBtn = document.getElementById('participate-btn');
+  if (u.id === PROJ.ownerId && partBtn) {
+    partBtn.style.display = 'none';
+    if (ownerHint) ownerHint.style.display = 'block';
+  }
+
+  // Share calculator
+  var sel = document.getElementById('share-select');
+  var amtEl = document.getElementById('share-amount');
+  var calcM = document.getElementById('calc-monthly');
+  var calcC = document.getElementById('calc-cap');
+  var calcMo = document.getElementById('calc-months');
+
+  function updateCalc(){
+    if(!sel) return;
+    var n = parseInt(sel.value) || 1;
+    var cost = n * PROJ.sharePrice;
+    if(amtEl) amtEl.textContent = '¥' + cost + '万';
+    var ratio = cost / PROJ.targetAmount;
+    var monthly = PROJ.estimatedMonthlyRevenue * (PROJ.revenueShareRate / 100) * ratio;
+    var cap = cost * PROJ.recoveryMultiple;
+    var months = monthly > 0 ? Math.ceil(cost / monthly) : 0;
+    if(calcM) calcM.textContent = '¥' + monthly.toFixed(2) + '万';
+    if(calcC) calcC.textContent = '¥' + cap.toFixed(1) + '万';
+    if(calcMo) calcMo.textContent = '约' + months + '月';
+    if(partBtn && partBtn.style.display !== 'none') partBtn.textContent = '确认参与 ¥' + cost + '万';
+  }
+  if(sel) { sel.addEventListener('change', updateCalc); updateCalc(); }
+
+  // Modal
+  var modal = document.getElementById('confirm-modal');
+  var modalText = document.getElementById('modal-text');
+  var modalCancel = document.getElementById('modal-cancel');
+  var modalConfirm = document.getElementById('modal-confirm');
+
+  function openModal(){
+    if(!sel) return;
+    var n = parseInt(sel.value) || 1;
+    var cost = n * PROJ.sharePrice;
+    if(modalText) modalText.textContent = '确认参与「' + PROJ.name + '」' + n + '份，共 ¥' + cost + '万？';
+    if(modal) modal.classList.add('show');
+  }
+  function closeModal(){ if(modal) modal.classList.remove('show'); }
+
+  if(partBtn) partBtn.addEventListener('click', openModal);
+  if(modalCancel) modalCancel.addEventListener('click', closeModal);
+  if(modal) modal.addEventListener('click', function(e){ if(e.target===modal) closeModal(); });
+
+  if(modalConfirm) modalConfirm.addEventListener('click', function(){
+    var n = parseInt(sel.value) || 1;
+    var cost = n * PROJ.sharePrice;
+
+    // Check if already invested (from localStorage)
+    var investments = [];
+    try { investments = JSON.parse(localStorage.getItem('zlc_investments') || '[]'); } catch(e){}
+    var existing = investments.find(function(inv){ return inv.projectId === PROJ.id && inv.userId === u.id; });
+    if(existing){
+      closeModal();
+      showToast('您已参与过该项目','error');
+      return;
+    }
+
+    // Save investment
+    investments.push({
+      projectId: PROJ.id,
+      userId: u.id,
+      shares: n,
+      amount: cost,
+      date: new Date().toISOString().slice(0,10),
+      projectName: PROJ.name,
+    });
+    localStorage.setItem('zlc_investments', JSON.stringify(investments));
+
+    closeModal();
+    showToast('参与成功！已投资 ¥' + cost + '万', 'success');
+
+    // Disable button
+    if(partBtn){
+      partBtn.disabled = true;
+      partBtn.textContent = '已参与 ¥' + cost + '万';
+    }
+    if(sel) sel.disabled = true;
+  });
+
+  // Check if already invested on load
+  var investments = [];
+  try { investments = JSON.parse(localStorage.getItem('zlc_investments') || '[]'); } catch(e){}
+  var alreadyIn = investments.find(function(inv){ return inv.projectId === PROJ.id && inv.userId === u.id; });
+  if(alreadyIn && partBtn){
+    partBtn.disabled = true;
+    partBtn.textContent = '已参与 ¥' + alreadyIn.amount + '万';
+    if(sel) sel.disabled = true;
+  }
+})();
+`}} />
+    </div>,
+    { title: proj.name + ' — 中流通' }
+  )
+})
+
+// ── Remaining Placeholder Pages ──────────────────────────
 app.get('/create', (c) => c.render(
   <PlaceholderPage tabKey="create" title="发起项目" icon="fa-rocket" desc="发起收入分成项目，邀请学员共同参与" />,
   { title: '发起项目 — 中流通' }

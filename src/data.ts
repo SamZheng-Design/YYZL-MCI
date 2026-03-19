@@ -48,56 +48,72 @@ export const mockMembers: Member[] = [
 export interface Project {
   id: string
   name: string
-  ownerId: string        // 发起人 member ID
+  ownerId: string
   industry: string
   description: string
-  targetAmount: number   // 目标金额 (万)
-  raisedAmount: number   // 已募金额 (万)
-  revenueShareRate: number // 分成比例 %
-  duration: number       // 回款周期 (月)
+  targetAmount: number        // 目标金额 (万)
+  raisedAmount: number        // 已募金额 (万)
+  revenueShareRate: number    // 分成比例 %
+  duration: number            // 联营期限 (月)
+  recoveryMultiple: number    // 回收倍数
+  estimatedMonthlyRevenue: number // 预估月收入 (万)
+  totalShares: number         // 总份数
+  raisedShares: number        // 已募份数
+  sharePrice: number          // 每份金额 (万)
+  minShares: number           // 最低参与份数
   status: 'open' | 'funded' | 'active' | 'completed'
   createdAt: string
-  investors: string[]    // 参与投资的 member IDs
+  investors: string[]
 }
 
 export const mockProjects: Project[] = [
   {
     id: 'p-001', name: '星火餐饮华南区20店扩张', ownerId: 'm-001',
     industry: '餐饮连锁',
-    description: '计划在广深佛莞新开20家直营门店，单店面积80-120㎡，聚焦社区快餐赛道。',
+    description: '计划在广深佛莞新开20家直营门店，单店面积80-120㎡，聚焦社区快餐赛道。已完成选址和团队组建，预计6个月内全部开业。',
     targetAmount: 500, raisedAmount: 380, revenueShareRate: 8.5, duration: 36,
+    recoveryMultiple: 1.4, estimatedMonthlyRevenue: 180,
+    totalShares: 50, raisedShares: 38, sharePrice: 10, minShares: 1,
     status: 'open', createdAt: '2026-03-10',
     investors: ['m-002', 'm-004', 'm-005'],
   },
   {
     id: 'p-002', name: '新锐智造产线升级项目', ownerId: 'm-002',
     industry: '智能制造',
-    description: '引进第四代柔性产线，提升产能40%，降低人工成本30%。',
+    description: '引进第四代柔性产线，提升产能40%，降低人工成本30%。已与德国设备商签订采购意向书，预计产线3个月内投产。',
     targetAmount: 800, raisedAmount: 800, revenueShareRate: 7.0, duration: 48,
+    recoveryMultiple: 1.5, estimatedMonthlyRevenue: 320,
+    totalShares: 40, raisedShares: 40, sharePrice: 20, minShares: 1,
     status: 'funded', createdAt: '2026-02-18',
     investors: ['m-001', 'm-003', 'm-004', 'm-005'],
   },
   {
     id: 'p-003', name: '优学AI双师课堂全国推广', ownerId: 'm-003',
     industry: '教育培训',
-    description: 'AI+真人双师模式，目标覆盖100个三四线城市学习中心。',
+    description: 'AI+真人双师模式，目标覆盖100个三四线城市学习中心。已在15个城市验证模型，单中心月均营收8万，利润率40%。',
     targetAmount: 300, raisedAmount: 120, revenueShareRate: 10.0, duration: 24,
+    recoveryMultiple: 1.6, estimatedMonthlyRevenue: 95,
+    totalShares: 30, raisedShares: 12, sharePrice: 10, minShares: 1,
     status: 'open', createdAt: '2026-03-15',
     investors: ['m-001'],
   },
   {
     id: 'p-004', name: '鼎盛冷链华东仓网优化', ownerId: 'm-004',
     industry: '物流供应链',
-    description: '新建3个智能冷库节点，覆盖长三角95%区域次日达。',
+    description: '新建3个智能冷库节点，覆盖长三角95%区域次日达。已获得土地审批和环评通过，一期仓库预计8个月建成投产。',
     targetAmount: 1200, raisedAmount: 900, revenueShareRate: 6.5, duration: 60,
+    recoveryMultiple: 1.3, estimatedMonthlyRevenue: 480,
+    totalShares: 60, raisedShares: 45, sharePrice: 20, minShares: 1,
     status: 'open', createdAt: '2026-03-05',
     investors: ['m-001', 'm-002', 'm-005'],
   },
   {
     id: 'p-005', name: '芙蓉美业旗舰店升级计划', ownerId: 'm-005',
     industry: '美容健康',
-    description: '一线城市10家门店升级为旗舰体验中心，客单价提升60%。',
+    description: '一线城市10家门店升级为旗舰体验中心，客单价提升60%。首批3家已完成改造，业绩提升显著。',
     targetAmount: 400, raisedAmount: 400, revenueShareRate: 9.0, duration: 30,
+    recoveryMultiple: 1.5, estimatedMonthlyRevenue: 150,
+    totalShares: 40, raisedShares: 40, sharePrice: 10, minShares: 1,
     status: 'active', createdAt: '2026-01-20',
     investors: ['m-001', 'm-002', 'm-003'],
   },
@@ -108,9 +124,9 @@ export interface Repayment {
   id: string
   projectId: string
   projectName: string
-  amount: number       // 万元
+  amount: number
   date: string
-  investorId: string   // 收款人
+  investorId: string
 }
 
 export const mockRepayments: Repayment[] = [
@@ -125,6 +141,39 @@ export const mockRepayments: Repayment[] = [
   { id: 'r-009', projectId: 'p-005', projectName: '芙蓉美业旗舰店升级计划', amount: 3.20, date: '2026-03-10', investorId: 'm-001' },
   { id: 'r-010', projectId: 'p-002', projectName: '新锐智造产线升级项目', amount: 4.80, date: '2026-03-08', investorId: 'm-001' },
 ]
+
+// ── RBF 计算函数 ─────────────────────────────────────────
+export interface RBFResult {
+  recoveryCap: number     // 回收上限 (万)
+  monthlyShare: number    // 月回款 (万)
+  paybackMonths: number   // 预估回收期 (月)
+}
+
+export function calculateRBF(
+  totalAmount: number,
+  revenueShareRate: number,
+  estimatedMonthlyRevenue: number,
+  recoveryMultiple: number
+): RBFResult {
+  const recoveryCap = totalAmount * recoveryMultiple
+  const monthlyShare = estimatedMonthlyRevenue * (revenueShareRate / 100)
+  const paybackMonths = monthlyShare > 0 ? Math.ceil(totalAmount / monthlyShare) : 0
+  return { recoveryCap, monthlyShare, paybackMonths }
+}
+
+// ── 项目大厅统计 ─────────────────────────────────────────
+export function getProjectStats() {
+  const openCount = mockProjects.filter(p => p.status === 'open').length
+  const activeCount = mockProjects.filter(p => p.status === 'active' || p.status === 'funded').length
+  const totalRaised = mockProjects.reduce((s, p) => s + p.raisedAmount, 0)
+  const totalRepaid = mockRepayments.reduce((s, r) => s + r.amount, 0)
+  return {
+    openCount,
+    activeCount,
+    totalRaised: Math.round(totalRaised),
+    totalRepaid: Math.round(totalRepaid * 100) / 100,
+  }
+}
 
 // ── 用户统计 helper ──────────────────────────────────────
 export function getUserStats(userId: string) {
