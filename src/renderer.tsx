@@ -1414,7 +1414,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
           <div class="sp-line-bot"></div>
           <div class="sp-center">
             <div class="sp-brand">
-              <span class="sp-brand-text">\u6EF4\u7058\u901A</span>
+              <span class="sp-brand-text">\u6EF4\u704C\u901A</span>
               <span class="sp-brand-x">\u00D7</span>
               <span class="sp-brand-text">\u4E00\u4EBF\u4E2D\u6D41</span>
             </div>
