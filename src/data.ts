@@ -110,6 +110,8 @@ export interface Project {
   initiatorClassName?: string
   recommendedByTeacher?: string[]
   viewCount?: number
+  highlightText?: string
+  highlights?: string[]
 }
 
 export const mockProjects: Project[] = [
@@ -123,6 +125,8 @@ export const mockProjects: Project[] = [
     status: 'open', createdAt: '2026-03-10',
     investors: ['m-002', 'm-004', 'm-005'],
     viewCount: 47,
+    highlightText: '华南餐饮龙头品牌，月均流水稳定300万',
+    highlights: ['18家直营门店，运营超5年', '月均流水300万+', '已获两轮机构投资'],
   },
   {
     id: 'p-002', name: '工业视觉检测新产线', ownerId: 'm-002',
@@ -135,6 +139,8 @@ export const mockProjects: Project[] = [
     status: 'active', createdAt: '2026-01-15',
     investors: ['m-001', 'm-004', 'm-005'],
     viewCount: 128,
+    highlightText: '智能制造赛道，政府重点扶持项目',
+    highlights: ['国家高新技术企业', '3项核心发明专利', '年产值增长率40%'],
   },
   {
     id: 'p-003', name: '优学AI双师课堂全国推广', ownerId: 'm-003',
@@ -146,6 +152,8 @@ export const mockProjects: Project[] = [
     status: 'open', createdAt: '2026-03-15',
     investors: ['m-001'],
     viewCount: 35,
+    highlightText: '社区生鲜万亿赛道，轻资产高周转模式',
+    highlights: ['覆盖12个社区，3万+家庭用户', '月复购率78%', '冷链仓配自建完成'],
   },
   {
     id: 'p-004', name: '鼎盛冷链华东仓网优化', ownerId: 'm-004',
@@ -157,6 +165,8 @@ export const mockProjects: Project[] = [
     status: 'open', createdAt: '2026-03-05',
     investors: ['m-001', 'm-002', 'm-005'],
     viewCount: 89,
+    highlightText: '教育培训刚需市场，续费率行业领先',
+    highlights: ['在读学员2000+', '年续费率85%', '已签约5个新校区'],
   },
   {
     id: 'p-005', name: 'AI英语口语APP开发', ownerId: 'm-003',
@@ -168,6 +178,8 @@ export const mockProjects: Project[] = [
     status: 'active', createdAt: '2026-02-10',
     investors: ['m-001', 'm-004'],
     viewCount: 62,
+    highlightText: '跨境电商蓝海机会，东南亚市场爆发期',
+    highlights: ['Shopee/Lazada双平台运营', '月GMV突破500万', '自有供应链优势'],
   },
   {
     id: 'p-006', name: '华南社区团购联营试点', ownerId: 'm-001',
@@ -179,6 +191,8 @@ export const mockProjects: Project[] = [
     status: 'completed', createdAt: '2024-11-15',
     investors: ['m-002'],
     viewCount: 156,
+    highlightText: '社区团购试点项目，已成功完成全部回款',
+    highlights: ['3个站点，覆盖8000+家庭', '项目已完成，回报率117%', '12个月完整回款记录'],
   },
 ]
 

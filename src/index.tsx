@@ -1935,6 +1935,10 @@ app.get('/projects/:id', (c) => {
             <StatusBadge status={proj.status} />
           </div>
           <h1 class="font-bold text-text-title mb-1" style="font-size:24px;font-family:'Noto Sans SC',sans-serif;line-height:1.3;">{proj.name}</h1>
+          {/* 推介语 */}
+          {proj.highlightText && (
+            <div style="font-size:14px;color:#B91C1C;font-style:italic;margin-top:6px;line-height:1.5;">{proj.highlightText}</div>
+          )}
           {/* View / Participant Count (Task 3) */}
           <div id="detail-view-count" style="font-size:12px;color:#A8A29E;margin-top:4px;margin-bottom:12px;" />
 
@@ -2023,7 +2027,25 @@ app.get('/projects/:id', (c) => {
           </div>
         </div>
 
-        {/* 2.5 Plain Language Block */}
+        {/* 2.5 项目亮点 — 仅当 highlights 存在时显示 */}
+        {proj.highlights && proj.highlights.length > 0 && (
+          <div style="margin:12px 0px;padding:16px 20px;background:#fff;border-radius:14px;border-left:3px solid #D4A853;" class="shadow-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <span style="font-size:14px;font-weight:600;color:#1C1917;">项目亮点</span>
+              <span style="font-size:14px;">⭐</span>
+            </div>
+            <div style="margin-top:10px;">
+              {proj.highlights.map((h: string) => (
+                <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;">
+                  <span style="width:6px;height:6px;background:#D4A853;border-radius:50%;flex-shrink:0;margin-top:6px;" />
+                  <span style="font-size:14px;color:#44403C;line-height:1.6;">{h}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 2.5b Plain Language Block */}
         <div class="plain-lang-block mb-4" id="plain-lang-detail" />
 
         {/* 3. Fundraising Progress */}
@@ -2127,40 +2149,58 @@ app.get('/projects/:id', (c) => {
           {/* Drag indicator */}
           <div style="width:40px;height:4px;border-radius:2px;background:#D6D3D1;margin:0 auto 20px;" />
 
-          {/* Premium Share Card Preview */}
-          <div id="share-card-preview" style="width:100%;max-width:320px;margin:0 auto;border-radius:20px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.1);background:#fff;border:1px solid #F5F5F4;">
-            {/* A. Brand Header */}
-            <div style="padding:16px 20px;background:linear-gradient(135deg,#B91C1C,#7F1D1D);display:flex;align-items:center;justify-content:space-between;">
-              <span style="font-size:16px;font-weight:800;color:#fff;letter-spacing:2px;">中流通</span>
-              <span style="font-size:11px;color:rgba(255,255,255,0.7);border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:2px 8px;">项目推介</span>
+          {/* Premium Share Card Preview — 高端邀请函风格 */}
+          <div id="share-card-preview" style="width:100%;max-width:320px;margin:0 auto;border-radius:20px;overflow:hidden;background:linear-gradient(160deg,#1C1917 0%,#292524 40%,#1C1917 100%);box-shadow:0 8px 32px rgba(0,0,0,0.3);">
+            {/* A. 品牌头部 */}
+            <div style="padding:20px 24px 16px;">
+              <div style="width:40px;height:2px;background:linear-gradient(90deg,#D4A853,#F5DEB3);margin-bottom:12px;" />
+              <div style="font-size:12px;color:#D4A853;letter-spacing:3px;">中流通 · 项目推介</div>
             </div>
-            {/* B. Project Info */}
-            <div style="padding:20px;">
-              <div style="font-size:20px;font-weight:700;color:#1C1917;line-height:1.4;">{proj.name}</div>
-              <div style="margin-top:8px;font-size:13px;color:#78716C;">发起人：{owner.name} · {owner.className || owner.cohort}</div>
-              <div style="margin-top:12px;font-size:13px;color:#57534E;line-height:1.6;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">{proj.description || '暂无项目简介'}</div>
+            {/* B. 项目名称区 */}
+            <div style="padding:0 24px;">
+              <div style="font-size:24px;font-weight:800;color:#fff;line-height:1.3;">{proj.name}</div>
+              {proj.highlightText && (
+                <div style="margin-top:8px;font-size:14px;color:rgba(212,168,83,0.9);font-style:italic;line-height:1.5;">{proj.highlightText}</div>
+              )}
             </div>
-            {/* C. Core Data Grid */}
-            <div style="margin:0 20px;padding:16px;background:#FAFAF9;border-radius:12px;">
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                <div style="text-align:center;"><div style="font-size:18px;font-weight:700;color:#B91C1C;">¥{proj.targetAmount}万</div><div style="font-size:11px;color:#A8A29E;margin-top:2px;">融资规模</div></div>
-                <div style="text-align:center;"><div style="font-size:18px;font-weight:700;color:#B91C1C;">{proj.revenueShareRate}%</div><div style="font-size:11px;color:#A8A29E;margin-top:2px;">收入分成</div></div>
-                <div style="text-align:center;"><div style="font-size:18px;font-weight:700;color:#B91C1C;">{proj.duration}个月</div><div style="font-size:11px;color:#A8A29E;margin-top:2px;">联营期限</div></div>
-                <div style="text-align:center;"><div style="font-size:18px;font-weight:700;color:#B91C1C;">≈¥{(proj.targetAmount * proj.revenueShareRate / 100).toFixed(2)}万</div><div style="font-size:11px;color:#A8A29E;margin-top:2px;">预估月回款</div></div>
+            {/* C. 发起人信息 */}
+            <div style="padding:12px 24px 0;">
+              <div style="font-size:13px;color:rgba(255,255,255,0.5);">发起人 {owner.name} · {owner.className || owner.cohort}</div>
+            </div>
+            {/* D. 核心数据区 */}
+            <div style="margin:20px 24px;padding:20px;background:rgba(255,255,255,0.06);border-radius:14px;border:1px solid rgba(255,255,255,0.08);">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                <div style="text-align:center;"><div style="font-size:22px;font-weight:800;color:#fff;">¥{proj.targetAmount}万</div><div style="font-size:11px;color:rgba(255,255,255,0.4);margin-top:4px;letter-spacing:1px;">融资规模</div></div>
+                <div style="text-align:center;"><div style="font-size:22px;font-weight:800;color:#fff;">{proj.revenueShareRate}%</div><div style="font-size:11px;color:rgba(255,255,255,0.4);margin-top:4px;letter-spacing:1px;">收入分成</div></div>
+                <div style="text-align:center;"><div style="font-size:22px;font-weight:800;color:#fff;">{proj.duration}个月</div><div style="font-size:11px;color:rgba(255,255,255,0.4);margin-top:4px;letter-spacing:1px;">联营期限</div></div>
+                <div style="text-align:center;"><div style="font-size:22px;font-weight:800;color:#fff;">≈¥{(proj.estimatedMonthlyRevenue * proj.revenueShareRate / 100).toFixed(1)}万</div><div style="font-size:11px;color:rgba(255,255,255,0.4);margin-top:4px;letter-spacing:1px;">预估月回款</div></div>
               </div>
             </div>
-            {/* D. Share Code Area */}
-            <div style="padding:20px;text-align:center;">
-              <div style="border-top:1px dashed #E7E5E4;margin-bottom:16px;" />
-              <div style="font-size:28px;font-weight:800;letter-spacing:6px;color:#1C1917;font-family:monospace;">{proj.shareCode || '------'}</div>
-              <div style="font-size:11px;color:#A8A29E;margin-top:6px;">输入分享码或扫码查看详情</div>
-              <div style="margin:12px auto 0;width:100px;height:100px;background:#F5F5F4;border-radius:8px;display:flex;align-items:center;justify-content:center;">
-                <span style="font-size:14px;color:#A8A29E;">QR</span>
+            {/* E. 项目亮点区 */}
+            {proj.highlights && proj.highlights.length > 0 && (
+              <div style="padding:0 24px;margin-top:4px;">
+                {proj.highlights.map((h: string) => (
+                  <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;">
+                    <span style="color:#D4A853;font-size:13px;flex-shrink:0;line-height:1.5;">◆</span>
+                    <span style="font-size:13px;color:rgba(255,255,255,0.7);line-height:1.5;">{h}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {/* F. 分享码区域 */}
+            <div style="padding:24px;text-align:center;">
+              <div style="border:1px dashed rgba(212,168,83,0.4);border-radius:12px;padding:16px;margin:0 24px;">
+                <div style="font-size:32px;font-weight:800;letter-spacing:8px;color:#D4A853;font-family:monospace;">{proj.shareCode || '------'}</div>
+                <div style="font-size:11px;color:rgba(255,255,255,0.35);margin-top:8px;">输入分享码 或 扫码查看</div>
+                <div style="margin:10px auto 0;width:80px;height:80px;background:rgba(255,255,255,0.08);border-radius:8px;display:flex;align-items:center;justify-content:center;">
+                  <span style="font-size:14px;color:rgba(255,255,255,0.2);">QR</span>
+                </div>
               </div>
             </div>
-            {/* E. Bottom Link */}
-            <div style="padding:12px 20px 16px;text-align:center;">
-              <span style="font-size:11px;color:#A8A29E;">https://zlc.yyzltop.com/share/{proj.shareCode || ''}</span>
+            {/* G. 底部 */}
+            <div style="padding:12px 24px 20px;text-align:center;">
+              <div style="width:40px;height:1px;background:rgba(212,168,83,0.3);margin:0 auto 8px;" />
+              <div style="font-size:10px;color:rgba(255,255,255,0.25);letter-spacing:2px;">一亿中流 · 私董会项目投资平台</div>
             </div>
           </div>
 
@@ -2235,6 +2275,8 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, nam
     initiatorClassName: proj.initiatorClassName || '',
     recommendedByTeacher: proj.recommendedByTeacher || [],
     viewCount: proj.viewCount || 0,
+    highlightText: proj.highlightText || '',
+    highlights: proj.highlights || [],
   })};
   var OWNER = ${JSON.stringify({ name: owner.name, className: owner.className || owner.cohort || '' })};
   var MOCK_CONTRACTS_FOR_COUNT = ${JSON.stringify(mockContracts.filter(c => c.projectId === proj.id && c.status === 'active').length)};
@@ -2663,14 +2705,18 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, nam
   var btnCopyText = document.getElementById('btn-copy-text');
   if(btnCopyText){
     btnCopyText.addEventListener('click', function(){
-      var monthlyRepayment = (PROJ.targetAmount * PROJ.revenueShareRate / 100).toFixed(2);
-      var textContent = '\\uD83D\\uDCE2 【项目推介】' + PROJ.name + '\\n\\n'
-        + '\\uD83D\\uDC64 发起人：' + OWNER.name + '（' + OWNER.className + '）\\n'
+      var monthlyRepayment = (PROJ.estimatedMonthlyRevenue * PROJ.revenueShareRate / 100).toFixed(1);
+      var textContent = '\\uD83D\\uDCE2 【项目推介】' + PROJ.name + '\\n';
+      if(PROJ.highlightText){ textContent += '\\uD83D\\uDCAC ' + PROJ.highlightText + '\\n'; }
+      textContent += '\\n\\uD83D\\uDC64 发起人：' + OWNER.name + '（' + OWNER.className + '）\\n'
         + '\\uD83D\\uDCB0 融资规模：¥' + PROJ.targetAmount + '万\\n'
         + '\\uD83D\\uDCCA 收入分成：' + PROJ.revenueShareRate + '%\\n'
         + '\\u23F1 联营期限：' + PROJ.duration + '个月\\n'
-        + '\\uD83D\\uDCC8 预估月回款：≈¥' + monthlyRepayment + '万\\n\\n'
-        + '\\uD83D\\uDD17 查看详情：https://zlc.yyzltop.com/share/' + PROJ.shareCode + '\\n'
+        + '\\uD83D\\uDCC8 预估月回款：≈¥' + monthlyRepayment + '万\\n';
+      if(PROJ.highlights && PROJ.highlights.length > 0){
+        PROJ.highlights.forEach(function(h){ textContent += '\\u2705 ' + h + '\\n'; });
+      }
+      textContent += '\\n\\uD83D\\uDD17 查看详情：https://zlc.yyzltop.com/share/' + PROJ.shareCode + '\\n'
         + '\\uD83D\\uDD11 分享码：' + PROJ.shareCode + '\\n\\n'
         + '——来自「中流通」一亿中流私董会项目投资平台';
       navigator.clipboard.writeText(textContent).then(function(){
@@ -2781,6 +2827,34 @@ app.get('/create', (c) => {
               <label class="form-label">项目简介 <span class="req">*</span></label>
               <textarea id="f-desc" class="form-textarea" placeholder="简述项目背景、核心优势和发展计划（200字以内）" maxlength={200} rows={3} />
               <div class="char-count" id="desc-count">0/200</div>
+            </div>
+
+            {/* 推介语输入 */}
+            <div class="mb-4">
+              <label style="font-size:13px;font-weight:600;color:#44403C;display:block;margin-bottom:6px;">一句话推介（选填，将显示在分享卡片上）</label>
+              <div style="position:relative;">
+                <input id="f-highlight-text" type="text" class="form-input" placeholder="如：华南餐饮龙头品牌，月均流水稳定300万" maxlength={50} />
+                <div style="position:absolute;right:12px;bottom:-18px;font-size:11px;color:#A8A29E;" id="highlight-text-count">0/50</div>
+              </div>
+            </div>
+
+            {/* 项目亮点输入 */}
+            <div class="mb-4" style="margin-top:16px;">
+              <label style="font-size:13px;font-weight:600;color:#44403C;display:block;margin-bottom:6px;">项目亮点（选填，最多3条，每条一个核心卖点）</label>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="color:#D4A853;font-size:14px;flex-shrink:0;">❶</span>
+                  <input id="f-highlight-1" type="text" class="form-input" placeholder="如：18家直营门店，运营超5年" maxlength={30} style="flex:1;" />
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="color:#D4A853;font-size:14px;flex-shrink:0;">❷</span>
+                  <input id="f-highlight-2" type="text" class="form-input" placeholder="如：月均流水300万+" maxlength={30} style="flex:1;" />
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="color:#D4A853;font-size:14px;flex-shrink:0;">❸</span>
+                  <input id="f-highlight-3" type="text" class="form-input" placeholder="如：已获两轮机构投资" maxlength={30} style="flex:1;" />
+                </div>
+              </div>
             </div>
 
             <div class="mb-4">
@@ -3060,6 +3134,10 @@ app.get('/create', (c) => {
   var fDesc = document.getElementById('f-desc');
   var fDetail = document.getElementById('f-detail');
   var fFile = document.getElementById('f-file');
+  var fHighlightText = document.getElementById('f-highlight-text');
+  var fHighlight1 = document.getElementById('f-highlight-1');
+  var fHighlight2 = document.getElementById('f-highlight-2');
+  var fHighlight3 = document.getElementById('f-highlight-3');
   var fAmount = document.getElementById('f-amount');
   var fRate = document.getElementById('f-rate');
   var fDuration = document.getElementById('f-duration');
@@ -3074,6 +3152,13 @@ app.get('/create', (c) => {
     var len = fDesc.value.length;
     descCount.textContent = len + '/200';
     descCount.className = len > 200 ? 'char-count char-count-over' : 'char-count';
+  });
+  // Highlight text char count
+  var htCount = document.getElementById('highlight-text-count');
+  fHighlightText.addEventListener('input', function(){
+    var len = fHighlightText.value.length;
+    htCount.textContent = len + '/50';
+    htCount.style.color = len > 50 ? '#DC2626' : '#A8A29E';
   });
 
   // File upload
@@ -3220,6 +3305,10 @@ app.get('/create', (c) => {
     html += '</div>';
     // Name
     html += '<h2 style="font-size:20px;font-weight:700;color:#292524;margin-bottom:12px;font-family:\\'Noto Sans SC\\',sans-serif;">' + fName.value + '</h2>';
+    // HighlightText (if any)
+    if(fHighlightText.value.trim()){
+      html += '<div style="font-size:14px;color:#B91C1C;font-style:italic;margin-bottom:12px;line-height:1.5;">' + fHighlightText.value.trim() + '</div>';
+    }
     // Owner
     html += '<div style="display:flex;align-items:center;gap:10px;padding:12px;background:#FAFAF9;border-radius:12px;margin-bottom:12px;">';
     html += '<div style="width:40px;height:40px;border-radius:50%;background:#B91C1C;color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;">' + (u.name||'?').charAt(0) + '</div>';
@@ -3229,6 +3318,17 @@ app.get('/create', (c) => {
     html += '<p style="font-size:14px;line-height:1.7;color:#292524;margin-bottom:16px;">' + fDesc.value + '</p>';
     if(fDetail.value.trim()){
       html += '<p style="font-size:13px;line-height:1.7;color:#78716C;margin-bottom:16px;">' + fDetail.value + '</p>';
+    }
+    // Highlights (if any)
+    var hlArr = [fHighlight1.value.trim(), fHighlight2.value.trim(), fHighlight3.value.trim()].filter(function(v){return v;});
+    if(hlArr.length > 0){
+      html += '<div style="margin-bottom:16px;padding:16px 20px;background:#fff;border-radius:14px;border-left:3px solid #D4A853;">';
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;"><span style="font-size:14px;font-weight:600;color:#1C1917;">项目亮点</span><span style="font-size:14px;">\\u2B50</span></div>';
+      html += '<div style="margin-top:10px;">';
+      hlArr.forEach(function(h){
+        html += '<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;"><span style="width:6px;height:6px;background:#D4A853;border-radius:50%;flex-shrink:0;margin-top:6px;"></span><span style="font-size:14px;color:#44403C;line-height:1.6;">' + h + '</span></div>';
+      });
+      html += '</div></div>';
     }
     // Terms grid
     html += '<div style="border-left:4px solid #B91C1C;border-radius:12px;overflow:hidden;background:#fff;border:1px solid #F5F5F4;border-left:4px solid #B91C1C;">';
@@ -3269,10 +3369,14 @@ app.get('/create', (c) => {
     var multiple = parseFloat(fMultiple.value) || 1.5;
     var shares = minamt > 0 ? Math.floor(amount / minamt) : 0;
     var id = 'p-' + Date.now().toString(36);
+    // Collect highlights (filter empty)
+    var hlArr = [fHighlight1.value.trim(), fHighlight2.value.trim(), fHighlight3.value.trim()].filter(function(v){return v;});
     return {
       id: id, name: fName.value.trim(), ownerId: u.id,
       industry: fIndustry.value, description: fDesc.value.trim(),
       detail: fDetail.value.trim(), attachment: uploadedFileName,
+      highlightText: fHighlightText.value.trim() || '',
+      highlights: hlArr.length > 0 ? hlArr : [],
       targetAmount: amount, raisedAmount: 0,
       revenueShareRate: rate, duration: duration,
       recoveryMultiple: multiple, estimatedMonthlyRevenue: revenue,
