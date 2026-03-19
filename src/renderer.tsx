@@ -5,7 +5,7 @@ export const renderer = jsxRenderer(({ children, title }) => {
     <html lang="zh-CN">
       <head>
         <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
         <title>{title || '中流通 ZhongLiu Connect'}</title>
 
         {/* Google Fonts */}
@@ -13,13 +13,11 @@ export const renderer = jsxRenderer(({ children, title }) => {
           href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Montserrat:wght@700;800;900&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap"
           rel="stylesheet"
         />
-
         {/* FontAwesome */}
         <link
           href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css"
           rel="stylesheet"
         />
-
         {/* Tailwind CSS */}
         <script src="https://cdn.tailwindcss.com"></script>
         <script
@@ -42,7 +40,7 @@ tailwind.config = {
     }
   }
 }
-          `,
+`,
           }}
         />
 
@@ -83,7 +81,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
   border-radius: 24px;
 }
 
-/* ---- Inputs ---- */
+/* ---- Login Inputs ---- */
 .login-input {
   width: 100%;
   background: rgba(255,255,255,0.08);
@@ -101,38 +99,24 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
   box-shadow: 0 0 0 3px rgba(212,168,83,0.15);
 }
 
-/* ---- Gold Button ---- */
+/* ---- Buttons ---- */
 .btn-gold {
-  width: 100%;
-  height: 48px;
+  width: 100%; height: 48px;
   background: linear-gradient(135deg, #D4A853, #B8860B);
-  color: #FAFAF9;
-  font-weight: 700;
-  font-size: 16px;
-  border: none;
-  border-radius: 12px;
-  cursor: pointer;
+  color: #FAFAF9; font-weight: 700; font-size: 16px;
+  border: none; border-radius: 12px; cursor: pointer;
   transition: transform 0.15s, box-shadow 0.25s, opacity 0.25s;
-  position: relative;
-  overflow: hidden;
+  position: relative; overflow: hidden;
 }
 .btn-gold:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(212,168,83,0.35); }
 .btn-gold:active { transform: translateY(0); }
 .btn-gold:disabled { opacity: 0.55; cursor: not-allowed; transform: none; box-shadow: none; }
 
-/* ---- Code Button ---- */
 .btn-code {
-  white-space: nowrap;
-  background: transparent;
-  border: 1px solid rgba(255,255,255,0.25);
-  color: rgba(255,255,255,0.85);
-  border-radius: 12px;
-  padding: 0 16px;
-  height: 48px;
-  font-size: 13px;
-  cursor: pointer;
-  transition: background 0.2s, border-color 0.2s;
-  flex-shrink: 0;
+  white-space: nowrap; background: transparent;
+  border: 1px solid rgba(255,255,255,0.25); color: rgba(255,255,255,0.85);
+  border-radius: 12px; padding: 0 16px; height: 48px; font-size: 13px;
+  cursor: pointer; transition: background 0.2s, border-color 0.2s; flex-shrink: 0;
 }
 .btn-code:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.4); }
 .btn-code:disabled { opacity: 0.45; cursor: not-allowed; background: transparent; }
@@ -140,24 +124,100 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
 /* ---- Toast ---- */
 .toast {
   position: fixed; top: 32px; left: 50%; transform: translateX(-50%) translateY(-120%);
-  padding: 12px 28px;
-  border-radius: 12px;
-  font-size: 14px;
-  font-weight: 500;
+  padding: 12px 28px; border-radius: 12px; font-size: 14px; font-weight: 500;
   z-index: 9999;
   transition: transform 0.35s cubic-bezier(0.16,1,0.3,1), opacity 0.35s;
-  opacity: 0;
-  pointer-events: none;
-  backdrop-filter: blur(12px);
+  opacity: 0; pointer-events: none; backdrop-filter: blur(12px);
 }
 .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 .toast-error { background: rgba(185,28,28,0.92); color: #FEE2E2; border: 1px solid rgba(255,255,255,0.15); }
 .toast-success { background: rgba(21,128,61,0.92); color: #DCFCE7; border: 1px solid rgba(255,255,255,0.15); }
 
-/* ---- Loading Spinner ---- */
+/* ---- Spinner ---- */
 .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; }
 @keyframes spin { to { transform: rotate(360deg); } }
-          `,
+
+/* ---- Sticky Navbar ---- */
+.app-navbar {
+  position: sticky; top: 0; z-index: 50; height: 52px;
+  background: rgba(255,255,255,0.95);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border-bottom: 0.5px solid rgba(0,0,0,0.06);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 16px;
+}
+
+/* ---- Bottom Tab Bar ---- */
+.tab-bar {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+  height: 60px;
+  background: #fff;
+  border-top: 1px solid rgba(0,0,0,0.06);
+  display: flex; align-items: center; justify-content: space-around;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+.tab-bar a, .tab-bar button {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  flex: 1; gap: 2px; text-decoration: none; background: none; border: none;
+  cursor: pointer; padding: 6px 0; position: relative;
+}
+.tab-item-icon { font-size: 19px; transition: color 0.2s; }
+.tab-item-label { font-size: 10px; font-weight: 500; transition: color 0.2s; }
+.tab-inactive .tab-item-icon,
+.tab-inactive .tab-item-label { color: #A8A29E; }
+.tab-active .tab-item-icon,
+.tab-active .tab-item-label { color: #B91C1C; }
+
+/* Center "create" tab raised button */
+.tab-center-btn {
+  width: 42px; height: 42px; border-radius: 50%;
+  background: linear-gradient(135deg, #DC2626, #B91C1C);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 20px;
+  box-shadow: 0 4px 14px rgba(185,28,28,0.35);
+  margin-top: -18px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.tab-center-btn:hover { transform: scale(1.08); box-shadow: 0 6px 20px rgba(185,28,28,0.45); }
+
+/* ---- Card Shadows ---- */
+.shadow-card { box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.03); }
+.shadow-card-hover { transition: transform 0.2s, box-shadow 0.2s; }
+.shadow-card-hover:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+
+/* ---- Progress bar ---- */
+.progress-bar {
+  height: 8px; border-radius: 99px;
+  background: #F5F5F4; overflow: hidden;
+}
+.progress-fill {
+  height: 100%; border-radius: 99px;
+  background: linear-gradient(90deg, #D4A853, #B8860B);
+  transition: width 0.6s cubic-bezier(0.22,1,0.36,1);
+}
+
+/* ---- Profile menu rows ---- */
+.menu-row {
+  display: flex; align-items: center; padding: 16px 20px; gap: 14px;
+  cursor: pointer; transition: background 0.15s;
+}
+.menu-row:hover { background: #FAFAF9; }
+.menu-row:not(:last-child) { border-bottom: 1px solid #F5F5F4; }
+
+/* ---- Body padding for tab bar ---- */
+.has-tabbar { padding-bottom: 72px; }
+
+/* ---- Quick action cards ---- */
+.quick-card {
+  border-radius: 16px; padding: 20px; height: 100px;
+  display: flex; flex-direction: column; justify-content: space-between;
+  cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+  text-decoration: none; color: #FAFAF9;
+}
+.quick-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
+.quick-card-brand { background: linear-gradient(135deg, #DC2626, #991B1B); }
+.quick-card-gold { background: linear-gradient(135deg, #D4A853, #B8860B); }
+`,
           }}
         />
       </head>
