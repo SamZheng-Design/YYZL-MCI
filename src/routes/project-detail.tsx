@@ -355,7 +355,7 @@ app.get('/projects/:id', (c) => {
           <div style="width:40px;height:4px;border-radius:2px;background:#D6D3D1;margin:0 auto 20px;" />
 
           {/* Premium Share Card Preview — 高端邀请函风格 */}
-          <div id="share-card-preview" style="width:100%;max-width:320px;margin:0 auto;border-radius:20px;overflow:hidden;background:linear-gradient(160deg,#1C1917 0%,#292524 40%,#1C1917 100%);box-shadow:0 8px 32px rgba(0,0,0,0.3);">
+          <div id="share-card-preview" style="width:100%;max-width:320px;margin:0 auto;border-radius:20px;overflow:hidden;background:linear-gradient(160deg,#7F1D1D 0%,#B91C1C 35%,#991B1B 65%,#7F1D1D 100%);box-shadow:0 8px 32px rgba(185,28,28,0.3);">
             {/* A. 品牌头部 */}
             <div style="padding:20px 24px 16px;">
               <div style="width:40px;height:2px;background:linear-gradient(90deg,#D4A853,#F5DEB3);margin-bottom:12px;" />
@@ -373,12 +373,12 @@ app.get('/projects/:id', (c) => {
               <div style="font-size:13px;color:rgba(255,255,255,0.5);">发起人 {owner.name} · {owner.className || owner.cohort}</div>
             </div>
             {/* D. 核心数据区 */}
-            <div style="margin:20px 24px;padding:20px;background:rgba(255,255,255,0.06);border-radius:14px;border:1px solid rgba(255,255,255,0.08);">
+            <div style="margin:20px 24px;padding:20px;background:rgba(255,255,255,0.12);border-radius:14px;border:1px solid rgba(255,255,255,0.15);">
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-                <div style="text-align:center;"><div style="font-size:22px;font-weight:800;color:#fff;">¥{proj.targetAmount}万</div><div style="font-size:11px;color:rgba(255,255,255,0.4);margin-top:4px;letter-spacing:1px;">融资规模</div></div>
-                <div style="text-align:center;"><div style="font-size:22px;font-weight:800;color:#fff;">{proj.revenueShareRate}%</div><div style="font-size:11px;color:rgba(255,255,255,0.4);margin-top:4px;letter-spacing:1px;">收入分成</div></div>
-                <div style="text-align:center;"><div style="font-size:22px;font-weight:800;color:#fff;">{proj.duration}个月</div><div style="font-size:11px;color:rgba(255,255,255,0.4);margin-top:4px;letter-spacing:1px;">联营期限</div></div>
-                <div style="text-align:center;"><div style="font-size:22px;font-weight:800;color:#fff;">≈¥{(proj.estimatedMonthlyRevenue * proj.revenueShareRate / 100).toFixed(1)}万</div><div style="font-size:11px;color:rgba(255,255,255,0.4);margin-top:4px;letter-spacing:1px;">预估月回款</div></div>
+                <div style="text-align:center;"><div style="font-size:22px;font-weight:800;color:#fff;">¥{proj.targetAmount}万</div><div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:4px;letter-spacing:1px;">融资规模</div></div>
+                <div style="text-align:center;"><div style="font-size:22px;font-weight:800;color:#fff;">{proj.revenueShareRate}%</div><div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:4px;letter-spacing:1px;">收入分成</div></div>
+                <div style="text-align:center;"><div style="font-size:22px;font-weight:800;color:#fff;">{proj.duration}个月</div><div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:4px;letter-spacing:1px;">联营期限</div></div>
+                <div style="text-align:center;"><div style="font-size:22px;font-weight:800;color:#fff;">≈¥{(proj.estimatedMonthlyRevenue * proj.revenueShareRate / 100).toFixed(1)}万</div><div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:4px;letter-spacing:1px;">预估月回款</div></div>
               </div>
             </div>
             {/* E. 项目亮点区 */}
@@ -396,8 +396,8 @@ app.get('/projects/:id', (c) => {
             <div style="padding:24px;text-align:center;">
               <div style="border:1px dashed rgba(212,168,83,0.4);border-radius:12px;padding:16px;margin:0 24px;">
                 <div style="font-size:32px;font-weight:800;letter-spacing:8px;color:#D4A853;font-family:monospace;">{proj.shareCode || '------'}</div>
-                <div style="font-size:11px;color:rgba(255,255,255,0.35);margin-top:8px;">输入分享码 或 扫码查看</div>
-                <div style="margin:10px auto 0;width:80px;height:80px;background:rgba(255,255,255,0.08);border-radius:8px;display:flex;align-items:center;justify-content:center;">
+                <div style="font-size:11px;color:rgba(255,255,255,0.45);margin-top:8px;">输入分享码 或 扫码查看</div>
+                <div style="margin:10px auto 0;width:80px;height:80px;background:rgba(255,255,255,0.12);border-radius:8px;display:flex;align-items:center;justify-content:center;">
                   <span style="font-size:14px;color:rgba(255,255,255,0.2);">QR</span>
                 </div>
               </div>
@@ -405,7 +405,7 @@ app.get('/projects/:id', (c) => {
             {/* G. 底部 */}
             <div style="padding:12px 24px 20px;text-align:center;">
               <div style="width:40px;height:1px;background:rgba(212,168,83,0.3);margin:0 auto 8px;" />
-              <div style="font-size:10px;color:rgba(255,255,255,0.25);letter-spacing:2px;">一亿中流 · 私董会项目投资平台</div>
+              <div style="font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:2px;">一亿中流 · 私董会项目投资平台</div>
             </div>
           </div>
 
