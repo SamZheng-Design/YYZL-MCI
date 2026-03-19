@@ -3,6 +3,7 @@
 // ============================================================
 import { Hono } from 'hono'
 import { renderer } from './renderer'
+import guide from './guide'
 import {
   mockMembers, mockProjects, mockRepayments,
   mockContracts, mockRevenueReports, mockRepaymentRecords,
@@ -5814,5 +5815,8 @@ app.get('/notifications', (c) => {
     { title: '中流通 - 消息通知' }
   )
 })
+
+// ── Guide Pages (Apple-style immersive demos) ──────────────
+app.route('/guide', guide)
 
 export default app
