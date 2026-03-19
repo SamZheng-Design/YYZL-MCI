@@ -54,12 +54,12 @@ function showConfirm(opts) {
     + (opts.desc ? '<div class="modal-desc">' + opts.desc + '</div>' : '')
     + '<div class="modal-btn-row">'
     + '<button class="modal-btn modal-btn-cancel">取消</button>'
-    + '<button class="modal-btn ' + (opts.danger ? 'modal-btn-danger' : 'modal-btn-confirm') + '">确认</button>'
+    + '<button class="modal-btn modal-btn-ok ' + (opts.danger ? 'modal-btn-danger' : 'modal-btn-confirm') + '">确认</button>'
     + '</div></div>';
   _confirmOverlay.classList.add('show');
   function close(){ _confirmOverlay.classList.remove('show'); }
   _confirmOverlay.querySelector('.modal-btn-cancel').onclick = function(){ close(); if(opts.onCancel) opts.onCancel(); };
-  _confirmOverlay.querySelector('.modal-btn-confirm').onclick = function(){ close(); if(opts.onConfirm) opts.onConfirm(); };
+  _confirmOverlay.querySelector('.modal-btn-ok').onclick = function(){ close(); if(opts.onConfirm) opts.onConfirm(); };
   _confirmOverlay.addEventListener('click', function handler(e){ if(e.target === _confirmOverlay){ close(); _confirmOverlay.removeEventListener('click', handler); } });
 }
 
