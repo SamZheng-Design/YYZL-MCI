@@ -314,11 +314,215 @@ function showCoachMark(targetSelector, text, position, id) {
   overlay.addEventListener('click', dismiss);
 }
 
+// ── Floating Help Button + FAQ Panel ──
+function initHelpButton() {
+  // Already exists?
+  if (document.getElementById('help-float-btn')) return;
+  // Skip on login page
+  if (window.location.pathname === '/login') return;
+  // Teacher sees it too
+  var u = null;
+  try { u = JSON.parse(localStorage.getItem('zlc_user')); } catch(e){}
+  if (!u) return;
+
+  // First login date tracking
+  var firstLogin = localStorage.getItem('zlc_first_login_date');
+  if (!firstLogin) {
+    firstLogin = new Date().toISOString().slice(0,10);
+    localStorage.setItem('zlc_first_login_date', firstLogin);
+  }
+  var daysSince = Math.floor((Date.now() - new Date(firstLogin).getTime()) / 86400000);
+  var manualPref = localStorage.getItem('zlc_help_button_manual');
+
+  var shouldShow = false;
+  if (manualPref === 'show') shouldShow = true;
+  else if (manualPref === 'hide') shouldShow = false;
+  else shouldShow = daysSince <= 7;
+
+  var btn = document.createElement('button');
+  btn.id = 'help-float-btn';
+  btn.innerHTML = '<i class="fas fa-question" style="font-size:18px;"></i>';
+  if (daysSince <= 7) btn.classList.add('help-pulse');
+  if (!shouldShow) btn.style.display = 'none';
+  btn.addEventListener('click', openFAQPanel);
+  document.body.appendChild(btn);
+
+  // Idle timer — show help button after 60s no interaction
+  var helpIdleTimer = null;
+  function resetHelpIdle() {
+    clearTimeout(helpIdleTimer);
+    helpIdleTimer = setTimeout(function() {
+      var b = document.getElementById('help-float-btn');
+      if (b && b.style.display === 'none') {
+        b.style.display = 'flex';
+        b.classList.add('pulse-once');
+      }
+    }, 60000);
+  }
+  ['click','scroll','touchstart'].forEach(function(evt) {
+    document.addEventListener(evt, resetHelpIdle);
+  });
+  resetHelpIdle();
+}
+
+function openFAQPanel() {
+  if (document.getElementById('faq-overlay')) {
+    document.getElementById('faq-overlay').classList.add('show');
+    return;
+  }
+
+  var u = null;
+  try { u = JSON.parse(localStorage.getItem('zlc_user')); } catch(e){}
+
+  // Find teacher for current user
+  var TEACHERS_DATA = null;
+  try { TEACHERS_DATA = window.__ZLC_TEACHERS__ || []; } catch(e) { TEACHERS_DATA = []; }
+  var myClassId = (u && u.classId) ? u.classId : '';
+  var myTeacher = null;
+  if (myClassId && TEACHERS_DATA.length) {
+    myTeacher = TEACHERS_DATA.find(function(t){ return t.classIds.indexOf(myClassId) !== -1; }) || null;
+  }
+
+  var faqs = [
+    { q: '收入分成是什么？跟借钱、入股有啥区别？', a: '收入分成是一种轻量合作模式：你出钱参与同学的项目，项目赚钱后按约定比例分给你。不需要入股（不涉及股权变更），也不是借贷（没有利息和还款义务）。分多少取决于项目实际赚多少。' },
+    { q: '我怎么参与别人的项目？', a: '三种方式：1.同学直接把分享码发给你，输入后就能查看和参与；2.在项目大厅浏览所有项目，看中直接投；3.不认识发起人的话，点"请老师引荐"，老师帮你们对接后再决定。' },
+    { q: '我怎么发起自己的项目？', a: '点底部的"发起"按钮，三步填完：项目信息、分成条款、预览确认。发布后所有同学都能在大厅看到你的项目。你也可以生成分享码发到班级群。' },
+    { q: '回款是怎么计算的？', a: '公式很简单：你的月回款 = 项目当月收入 × 分成比例 × 你的份额占比。比如项目月收入50万、分成比例10%、你占所有参与人的5%，你当月回款就是50×10%×5%=0.25万。' },
+    { q: '合同有法律效力吗？', a: '有。平台使用标准化电子合同，双方确认签署后即具有法律效力。合同由滴灌通提供基础设施支持。' },
+    { q: '如果项目亏了怎么办？', a: '收入分成的特点是：项目赚多少分多少。如果某个月项目收入少，你拿到的分成也少；如果项目长期亏损没有收入，你就没有回款。到合同期限结束，无论是否收回投资，合同自动终止。这和买股票类似，有风险。' },
+    { q: '分享码是什么？怎么用？', a: '每个项目都有一个6位分享码（如TH2K9A）。你可以把分享码或分享链接发到微信群，其他同学输入分享码就能直接查看这个项目。这是线上线下结合最方便的方式。' },
+    { q: '我想先了解发起人再投，怎么办？', a: '在项目详情页点"请老师引荐"，你的老师会帮你和发起人对接。你们可以线下见面聊聊，了解清楚后再回到平台参与投资。' }
+  ];
+
+  var overlay = document.createElement('div');
+  overlay.id = 'faq-overlay';
+
+  var teacherHTML = '';
+  if (myTeacher) {
+    var classNames = myTeacher.classIds ? myTeacher.classIds.map(function(c){ return c.replace('class-','第')+'期'; }).join('、') : '';
+    teacherHTML = '<div class="faq-teacher-block">'
+      + '<div class="faq-teacher-title">\\uD83D\\uDC68\\u200D\\uD83C\\uDFEB 联系我的老师</div>'
+      + '<div class="faq-teacher-name">' + myTeacher.name + ' · ' + classNames + '老师</div>'
+      + '<div class="faq-teacher-btns">'
+      + '<button class="faq-teacher-btn faq-teacher-btn-msg" id="faq-msg-btn">发消息</button>'
+      + '<button class="faq-teacher-btn faq-teacher-btn-call" id="faq-call-btn" data-phone="' + myTeacher.phone + '">拨电话</button>'
+      + '</div></div>';
+  }
+
+  var faqListHTML = faqs.map(function(f, i) {
+    return '<div class="faq-item">'
+      + '<div class="faq-q" data-faq-idx="' + i + '">'
+      + '<span class="faq-q-text">' + f.q + '</span>'
+      + '<i class="fas fa-chevron-down faq-q-icon"></i>'
+      + '</div>'
+      + '<div class="faq-a"><div class="faq-a-text">' + f.a + '</div></div>'
+      + '</div>';
+  }).join('');
+
+  overlay.innerHTML = '<div id="faq-panel">'
+    + '<div class="faq-drag-bar"></div>'
+    + '<div class="faq-header"><span class="faq-title">帮助中心</span><button class="faq-close" id="faq-close-btn">✕</button></div>'
+    + faqListHTML
+    + teacherHTML
+    + '<div class="faq-reset-guide" id="faq-reset-guide">\\uD83D\\uDD04 重新查看使用引导</div>'
+    + '</div>';
+
+  document.body.appendChild(overlay);
+  requestAnimationFrame(function(){ overlay.classList.add('show'); });
+
+  // Close
+  overlay.addEventListener('click', function(e){ if(e.target === overlay) closeFAQ(); });
+  document.getElementById('faq-close-btn').addEventListener('click', closeFAQ);
+
+  // Teacher contact buttons
+  var faqMsgBtn = document.getElementById('faq-msg-btn');
+  if(faqMsgBtn){
+    faqMsgBtn.addEventListener('click', function(){ showToast('消息功能即将上线，请先电话联系老师'); });
+  }
+  var faqCallBtn = document.getElementById('faq-call-btn');
+  if(faqCallBtn){
+    faqCallBtn.addEventListener('click', function(){
+      var phone = faqCallBtn.getAttribute('data-phone');
+      if(phone) window.location.href = 'tel:' + phone;
+    });
+  }
+
+  // Accordion — only one open
+  var openIdx = -1;
+  overlay.querySelectorAll('.faq-q').forEach(function(q) {
+    q.addEventListener('click', function() {
+      var idx = parseInt(q.dataset.faqIdx);
+      var allA = overlay.querySelectorAll('.faq-a');
+      var allIcons = overlay.querySelectorAll('.faq-q-icon');
+      if (openIdx === idx) {
+        allA[idx].classList.remove('open');
+        allIcons[idx].classList.remove('open');
+        openIdx = -1;
+      } else {
+        allA.forEach(function(a, i){ a.classList.remove('open'); allIcons[i].classList.remove('open'); });
+        allA[idx].classList.add('open');
+        allIcons[idx].classList.add('open');
+        openIdx = idx;
+      }
+    });
+  });
+
+  // Reset guide
+  document.getElementById('faq-reset-guide').addEventListener('click', function() {
+    Object.keys(localStorage).forEach(function(key) {
+      if (key.indexOf('zlc_coach_') === 0 || key.indexOf('zlc_nudge_') === 0 || key.indexOf('zlc_onboarding_') === 0) {
+        localStorage.removeItem(key);
+      }
+    });
+    closeFAQ();
+    showToast('引导已重置，刷新页面即可重新查看');
+    setTimeout(function(){ window.location.reload(); }, 800);
+  });
+}
+
+function closeFAQ() {
+  var ov = document.getElementById('faq-overlay');
+  if (ov) { ov.classList.remove('show'); }
+}
+
+// ── Smart Nudge System ──
+function showNudge(icon, text, id) {
+  if (localStorage.getItem('zlc_nudge_' + id)) return;
+  if (document.getElementById('nudge-' + id)) return;
+
+  var nudge = document.createElement('div');
+  nudge.id = 'nudge-' + id;
+  nudge.className = 'nudge-bar';
+  nudge.innerHTML = '<span class="nudge-icon">' + icon + '</span>'
+    + '<span class="nudge-text">' + text + '</span>'
+    + '<button class="nudge-close" data-nudge-id="' + id + '">✕</button>';
+
+  nudge.querySelector('.nudge-close').addEventListener('click', function(){ closeNudge(id); });
+
+  document.body.appendChild(nudge);
+  requestAnimationFrame(function(){
+    requestAnimationFrame(function(){ nudge.classList.add('show'); });
+  });
+
+  // Auto-dismiss after 8s
+  setTimeout(function(){ closeNudge(id); }, 8000);
+}
+
+function closeNudge(id) {
+  localStorage.setItem('zlc_nudge_' + id, 'true');
+  var nudge = document.getElementById('nudge-' + id);
+  if (nudge) {
+    nudge.classList.remove('show');
+    setTimeout(function(){ nudge.remove(); }, 280);
+  }
+}
+
 // Init on page load
 document.addEventListener('DOMContentLoaded', function(){
   initReveal();
   initProgressBars();
   initHelpIcons();
+  initHelpButton();
 });
 `}} />
 )
@@ -531,7 +735,7 @@ app.get('/login', (c) => {
     isLoading=true;loginBtn.innerHTML='<span class="spinner"></span>';loginBtn.disabled=true;
     fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:phone,code:code})})
     .then(function(r){return r.json();}).then(function(d){
-      if(d.ok){localStorage.setItem('zlc_user',JSON.stringify(d.member));localStorage.setItem('zlc_token','demo-token-'+Date.now());showToast('登录成功，欢迎回来！','success');setTimeout(function(){window.location.href='/';},800);}
+      if(d.ok){localStorage.setItem('zlc_user',JSON.stringify(d.member));localStorage.setItem('zlc_token','demo-token-'+Date.now());showToast('登录成功，欢迎回来！','success');setTimeout(function(){window.location.href=d.member.role==='teacher'?'/teacher':'/';},800);}
       else{showToast(d.error||'登录失败','error');loginBtn.innerHTML='登录';loginBtn.disabled=false;isLoading=false;}
     }).catch(function(){showToast('网络错误，请重试','error');loginBtn.innerHTML='登录';loginBtn.disabled=false;isLoading=false;});
   });
@@ -667,6 +871,7 @@ app.get('/', (c) => {
 
       {/* Client script — hydrate user-specific data */}
       <script dangerouslySetInnerHTML={{ __html: `
+window.__ZLC_TEACHERS__ = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, name:t.name, phone:t.phone, classIds:t.classIds })))};
 (function(){
   var u = null;
   try { u = JSON.parse(localStorage.getItem('zlc_user')); } catch(e){}
@@ -771,9 +976,14 @@ app.get('/profile', (c) => {
             <span class="flex-1 text-text-primary font-medium" style="font-size:15px;">我的合同</span>
             <i class="fas fa-chevron-right text-text-tertiary" style="font-size:12px;" />
           </div>
-          <div class="menu-row">
+          <div class="menu-row" id="open-faq-btn" style="cursor:pointer;">
             <i class="fas fa-circle-question text-gold" style="font-size:16px;width:20px;text-align:center;" />
             <span class="flex-1 text-text-primary font-medium" style="font-size:15px;">使用帮助</span>
+            <i class="fas fa-chevron-right text-text-tertiary" style="font-size:12px;" />
+          </div>
+          <div class="menu-row" id="reset-guide-btn" style="cursor:pointer;">
+            <i class="fas fa-redo" style="font-size:14px;width:20px;text-align:center;color:#3B82F6;" />
+            <span class="flex-1 text-text-primary font-medium" style="font-size:15px;">重新查看使用引导</span>
             <i class="fas fa-chevron-right text-text-tertiary" style="font-size:12px;" />
           </div>
           <div class="menu-row">
@@ -789,11 +999,6 @@ app.get('/profile', (c) => {
           <div class="menu-row">
             <i class="fas fa-lock text-text-secondary" style="font-size:16px;width:20px;text-align:center;" />
             <span class="flex-1 text-text-primary font-medium" style="font-size:15px;">隐私政策</span>
-            <i class="fas fa-chevron-right text-text-tertiary" style="font-size:12px;" />
-          </div>
-          <div class="menu-row" id="reset-guide-btn" style="cursor:pointer;">
-            <i class="fas fa-book-open" style="font-size:16px;width:20px;text-align:center;color:#3B82F6;" />
-            <span class="flex-1 text-text-primary font-medium" style="font-size:15px;">重新查看使用引导</span>
             <i class="fas fa-chevron-right text-text-tertiary" style="font-size:12px;" />
           </div>
         </div>
@@ -815,6 +1020,7 @@ app.get('/profile', (c) => {
       <TabBar active="profile" />
 
       <script dangerouslySetInnerHTML={{ __html: `
+window.__ZLC_TEACHERS__ = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, name:t.name, phone:t.phone, classIds:t.classIds })))};
 (function(){
   var u = null;
   try { u = JSON.parse(localStorage.getItem('zlc_user')); } catch(e){}
@@ -848,21 +1054,31 @@ app.get('/profile', (c) => {
     });
   });
 
+  // Open FAQ from profile page
+  var openFaqBtn = document.getElementById('open-faq-btn');
+  if(openFaqBtn){
+    openFaqBtn.addEventListener('click', function(){
+      if(typeof openFAQPanel === 'function') openFAQPanel();
+    });
+  }
+
   // Reset guide button
   var resetGuideBtn = document.getElementById('reset-guide-btn');
   if(resetGuideBtn){
     resetGuideBtn.addEventListener('click', function(){
-      // Clear all onboarding and coach mark keys
-      var keysToRemove = [];
-      for(var i = 0; i < localStorage.length; i++){
-        var key = localStorage.key(i);
-        if(key && (key.indexOf('zlc_coach_') === 0 || key.indexOf('zlc_onboarding_') === 0)){
-          keysToRemove.push(key);
+      showConfirm({
+        title: '确认重置所有引导？',
+        desc: '下次进入页面时会重新显示使用引导。',
+        onConfirm: function(){
+          Object.keys(localStorage).forEach(function(key){
+            if(key.indexOf('zlc_coach_') === 0 || key.indexOf('zlc_nudge_') === 0 || key.indexOf('zlc_onboarding_') === 0){
+              localStorage.removeItem(key);
+            }
+          });
+          showToast('引导已重置，即将刷新', 'success');
+          setTimeout(function(){ window.location.href = '/'; }, 1000);
         }
-      }
-      keysToRemove.forEach(function(k){ localStorage.removeItem(k); });
-      showToast('引导已重置，即将跳转首页', 'success');
-      setTimeout(function(){ window.location.href = '/'; }, 1000);
+      });
     });
   }
 })();
@@ -968,6 +1184,7 @@ app.get('/projects', (c) => {
 
       {/* Inject projects data + filter logic */}
       <script dangerouslySetInnerHTML={{ __html: `
+window.__ZLC_TEACHERS__ = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, name:t.name, phone:t.phone, classIds:t.classIds })))};
 (function(){
   var PROJECTS = ${JSON.stringify(mockProjects.map(p => ({
     id:p.id, name:p.name, ownerId:p.ownerId, industry:p.industry,
@@ -1104,6 +1321,19 @@ app.get('/projects', (c) => {
   setTimeout(function(){
     showCoachMark('.relation-tag', '绿色表示同班同学，金色是老师推荐的项目，帮你快速识别', 'bottom', 'hall-tags');
   }, 800);
+
+  // ── Nudge A: Browse 30s without clicking any project ──
+  var hallNudgeTimer = null;
+  function cancelHallNudge(){ clearTimeout(hallNudgeTimer); hallNudgeTimer = null; }
+  if (!localStorage.getItem('zlc_nudge_hall_browse')) {
+    hallNudgeTimer = setTimeout(function(){ showNudge('\\uD83D\\uDCA1', '点击任意项目可以查看详细条款和预估回报', 'hall_browse'); }, 30000);
+    // Cancel on any project card click
+    document.addEventListener('click', function(e){
+      if(e.target.closest('a[href^="/projects/"]')) cancelHallNudge();
+    });
+  }
+  // Cleanup on unload
+  window.addEventListener('beforeunload', cancelHallNudge);
 })();
 `}} />
     </div>,
@@ -1535,6 +1765,7 @@ app.get('/projects/:id', (c) => {
 
       {/* Client script */}
       <script dangerouslySetInnerHTML={{ __html: `
+window.__ZLC_TEACHERS__ = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, name:t.name, phone:t.phone, classIds:t.classIds })))};
 (function(){
   var u = null;
   try { u = JSON.parse(localStorage.getItem('zlc_user')); } catch(e){}
@@ -1949,6 +2180,16 @@ app.get('/projects/:id', (c) => {
   setTimeout(function(){
     showCoachMark('#btn-referral', '不认识发起人？点这里请你的老师帮忙对接，先见面再投资', 'top', 'detail-referral');
   }, 1500);
+
+  // ── Nudge C: Detail page 30s without action ──
+  if (PROJ.status === 'open' && !localStorage.getItem('zlc_nudge_detail_action')) {
+    var detailNudgeTimer = setTimeout(function(){ showNudge('\\uD83E\\uDD1D', '感兴趣的话可以直接参与，也可以请老师先引荐认识一下', 'detail_action'); }, 30000);
+    function cancelDetailNudge(){ clearTimeout(detailNudgeTimer); }
+    if(partBtn) partBtn.addEventListener('click', cancelDetailNudge);
+    if(btnReferral) btnReferral.addEventListener('click', cancelDetailNudge);
+    if(btnShareProject) btnShareProject.addEventListener('click', cancelDetailNudge);
+    window.addEventListener('beforeunload', cancelDetailNudge);
+  }
 })();
 `}} />
     </div>,
@@ -2333,6 +2574,15 @@ app.get('/create', (c) => {
     setTimeout(function(){
       showCoachMark('#input-share-ratio', '这是你愿意分给参与人的月收入比例。填高了回款快但你让利多，填低了可能不够吸引人。一般在8%-20%', 'bottom', 'create-ratio');
     }, 800);
+    // ── Nudge B: Terms step 30s without number input ──
+    if (!localStorage.getItem('zlc_nudge_create_terms')) {
+      var termsNudgeTimer = setTimeout(function(){ showNudge('\\uD83D\\uDCCA', '不确定怎么填？展开上方的「同行案例参考」看看', 'create_terms'); }, 30000);
+      function cancelTermsNudge(){ clearTimeout(termsNudgeTimer); }
+      [fAmount, fRate, fDuration, fMinamt, fRevenue, fMultiple].forEach(function(input){
+        input.addEventListener('input', cancelTermsNudge);
+      });
+      window.addEventListener('beforeunload', cancelTermsNudge);
+    }
   });
 
   // Reference cases toggle
@@ -3738,6 +3988,347 @@ app.get('/admin', (c) => {
 `}} />
     </div>,
     { title: '中流通 - 管理后台' }
+  )
+})
+
+// ══════════════════════════════════════════════════════════
+// Teacher Workbench  (/teacher)
+// ══════════════════════════════════════════════════════════
+app.get('/teacher', (c) => {
+  const allProjects = mockProjects
+  const allMembers = mockMembers
+
+  return c.render(
+    <div class="app-container">
+      <GlobalScripts />
+      {/* Navbar */}
+      <nav class="app-navbar">
+        <a href="/teacher" class="flex items-center gap-2" style="text-decoration:none;">
+          <LogoSVG size={24} />
+          <span class="font-bold text-brand" style="font-size:17px; font-family:'Noto Sans SC',sans-serif;">
+            中流通
+          </span>
+        </a>
+        <span id="teacher-nav-title" style="font-size:14px;color:#78716C;"></span>
+      </nav>
+
+      <main class="max-w-lg mx-auto px-4 pt-4 pb-8 page-enter">
+        {/* Header */}
+        <div class="teacher-header" id="teacher-header">
+          <div class="teacher-header-name" id="th-name">老师</div>
+          <div class="teacher-header-sub" id="th-sub">加载中...</div>
+        </div>
+
+        {/* Referral Requests */}
+        <div class="teacher-card" id="referral-section">
+          <div class="teacher-card-title">
+            <span>引荐请求</span>
+            <span class="ref-badge" id="ref-badge" style="display:none;">0</span>
+          </div>
+          <div id="referral-list">
+            <div style="text-align:center;padding:16px;font-size:14px;color:#78716C;">暂无待处理的引荐请求</div>
+          </div>
+        </div>
+
+        {/* My Classes */}
+        <div class="teacher-card" id="classes-section">
+          <div class="teacher-card-title"><span>我的班级</span></div>
+          <div id="class-list"></div>
+        </div>
+
+        {/* Recommend Projects */}
+        <div class="teacher-card" id="recommend-section">
+          <div class="teacher-card-title"><span>推荐项目给我的学员</span></div>
+          <p style="font-size:12px;color:#78716C;margin-bottom:14px;">推荐后，你管理的班级学员会在大厅看到「老师推荐」金色标签</p>
+          <div id="recommended-list" class="teacher-recommend-list"></div>
+          <button id="btn-recommend-new" style="width:100%;margin-top:12px;padding:10px;background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;color:#B91C1C;font-size:14px;font-weight:600;cursor:pointer;">推荐新项目</button>
+        </div>
+
+        {/* Footer */}
+        <div class="teacher-footer">
+          <button id="teacher-logout-btn" class="teacher-logout-btn">退出登录</button>
+          <div class="teacher-footer-text">滴灌通 × 一亿中流 · 联合出品</div>
+        </div>
+      </main>
+
+      {/* Recommend Panel Overlay */}
+      <div id="recommend-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);z-index:1100;">
+        <div id="recommend-panel" style="position:absolute;bottom:0;left:0;right:0;background:#fff;border-radius:20px 20px 0 0;max-height:70vh;overflow-y:auto;padding:24px;transform:translateY(100%);transition:transform 300ms ease-out;">
+          <div style="width:40px;height:4px;border-radius:2px;background:#D6D3D1;margin:0 auto 20px;"></div>
+          <div style="font-size:18px;font-weight:600;color:#1C1917;margin-bottom:16px;">选择要推荐的项目</div>
+          <div id="recommend-project-list"></div>
+        </div>
+      </div>
+
+      <script dangerouslySetInnerHTML={{ __html: `
+window.__ZLC_TEACHERS__ = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, name:t.name, phone:t.phone, classIds:t.classIds })))};
+(function(){
+  var u = null;
+  try { u = JSON.parse(localStorage.getItem('zlc_user')); } catch(e){}
+  if (!u || u.role !== 'teacher') { window.location.href = '/login'; return; }
+
+  var ALL_PROJECTS = ${JSON.stringify(allProjects.map(p => ({
+    id:p.id, name:p.name, ownerId:p.ownerId, industry:p.industry,
+    status:p.status, recommendedByTeacher:p.recommendedByTeacher||[],
+  })))};
+  var ALL_MEMBERS = ${JSON.stringify(allMembers.map(m => ({
+    id:m.id, name:m.name, company:m.company, industry:m.industry,
+    classId:m.classId||'', className:m.className||'',
+  })))};
+  var ALL_TEACHERS = ${JSON.stringify(mockTeachers.map(t => ({
+    id:t.id, name:t.name, classIds:t.classIds,
+  })))};
+
+  // Also merge user-created projects from localStorage
+  var userProjects = [];
+  try { userProjects = JSON.parse(localStorage.getItem('zlc_user_projects') || '[]'); } catch(e){}
+  userProjects.forEach(function(up){
+    if(!ALL_PROJECTS.find(function(p){return p.id===up.id;})){
+      ALL_PROJECTS.push({id:up.id, name:up.name, ownerId:up.ownerId, industry:up.industry||'', status:up.status, recommendedByTeacher:up.recommendedByTeacher||[]});
+    }
+  });
+
+  // Find my teacher record
+  var myTeacher = ALL_TEACHERS.find(function(t){ return t.id === u.id; });
+  if (!myTeacher) { myTeacher = { id: u.id, name: u.name, classIds: u.classIds || [] }; }
+
+  // Header
+  document.getElementById('th-name').textContent = u.name + '老师';
+  var myStudents = ALL_MEMBERS.filter(function(m){ return myTeacher.classIds.indexOf(m.classId) !== -1; });
+  var classCount = myTeacher.classIds.length;
+  document.getElementById('th-sub').textContent = '管理 ' + classCount + ' 个班级 · ' + myStudents.length + ' 位学员';
+  document.getElementById('teacher-nav-title').textContent = u.name + '老师的工作台';
+
+  // ── Referral Requests ──
+  // Init referrals in localStorage if not exist
+  var initialReferrals = [
+    {
+      id: 'ref-demo-001', projectId: 'p-004', projectName: '华东冷链仓储扩建',
+      requesterId: 'm-005', requesterName: '赵丽华', requesterClassName: '第11期',
+      initiatorId: 'm-004', initiatorName: '陈伟强', initiatorClassName: '第8期',
+      teacherId: 't-002', teacherName: '陈老师',
+      message: '我对冷链物流赛道很感兴趣，之前考察过类似项目，想和陈总深入聊一下',
+      status: 'pending', requestedAt: '2026-03-18T10:30:00', connectedAt: null
+    }
+  ];
+  if (!localStorage.getItem('zlc_referrals')) {
+    localStorage.setItem('zlc_referrals', JSON.stringify(initialReferrals));
+  }
+
+  function renderReferrals() {
+    var referrals = [];
+    try { referrals = JSON.parse(localStorage.getItem('zlc_referrals') || '[]'); } catch(e){}
+    var pending = referrals.filter(function(r){ return r.teacherId === myTeacher.id && r.status === 'pending'; });
+
+    var badge = document.getElementById('ref-badge');
+    if (pending.length > 0) {
+      badge.style.display = 'inline-flex';
+      badge.textContent = pending.length;
+    } else {
+      badge.style.display = 'none';
+    }
+
+    var listEl = document.getElementById('referral-list');
+    if (pending.length === 0) {
+      listEl.innerHTML = '<div style="text-align:center;padding:16px;font-size:14px;color:#78716C;">暂无待处理的引荐请求</div>';
+      return;
+    }
+
+    listEl.innerHTML = pending.map(function(r) {
+      var initiatorMember = ALL_MEMBERS.find(function(m){ return m.id === r.initiatorId; });
+      var initiatorCompany = initiatorMember ? initiatorMember.company : '';
+      var reqDate = new Date(r.requestedAt);
+      var dateStr = reqDate.getFullYear() + '-' + String(reqDate.getMonth()+1).padStart(2,'0') + '-' + String(reqDate.getDate()).padStart(2,'0') + ' ' + String(reqDate.getHours()).padStart(2,'0') + ':' + String(reqDate.getMinutes()).padStart(2,'0');
+
+      var html = '<div class="ref-request-item">';
+      html += '<div class="ref-person-row"><div class="ref-avatar">' + r.requesterName.charAt(0) + '</div>';
+      html += '<span style="font-size:14px;color:#1C1917;">' + r.requesterName + '</span>';
+      html += '<span style="font-size:12px;color:#A8A29E;">' + r.requesterClassName + '</span></div>';
+      html += '<div style="font-size:12px;color:#A8A29E;margin:4px 0;">想认识</div>';
+      html += '<div class="ref-person-row"><div class="ref-avatar" style="background:#D4A853;">' + r.initiatorName.charAt(0) + '</div>';
+      html += '<span style="font-size:14px;color:#1C1917;">' + r.initiatorName + '</span>';
+      if(initiatorCompany) html += '<span style="font-size:12px;color:#78716C;">' + initiatorCompany + '</span>';
+      html += '<span style="font-size:12px;color:#A8A29E;">' + (r.initiatorClassName||'') + '</span></div>';
+      if(r.message){
+        html += '<div class="ref-msg-block">\\uD83D\\uDCAC ' + r.message + '</div>';
+      }
+      html += '<div style="font-size:11px;color:#A8A29E;margin-top:6px;">' + dateStr + '</div>';
+      html += '<div class="ref-btn-row">';
+      html += '<button class="ref-btn ref-btn-connected" onclick="handleRef(\\'' + r.id + '\\',\\'connected\\')">已对接</button>';
+      html += '<button class="ref-btn ref-btn-decline" onclick="handleRef(\\'' + r.id + '\\',\\'declined\\')">暂缓</button>';
+      html += '</div></div>';
+      return html;
+    }).join('');
+  }
+
+  window.handleRef = function(refId, newStatus) {
+    var referrals = [];
+    try { referrals = JSON.parse(localStorage.getItem('zlc_referrals') || '[]'); } catch(e){}
+    var ref = referrals.find(function(r){ return r.id === refId; });
+    if (ref) {
+      ref.status = newStatus;
+      if (newStatus === 'connected') ref.connectedAt = new Date().toISOString();
+      localStorage.setItem('zlc_referrals', JSON.stringify(referrals));
+      showToast(newStatus === 'connected' ? '已标记为已对接' : '已暂缓');
+      renderReferrals();
+    }
+  };
+  renderReferrals();
+
+  // ── My Classes ──
+  var classListEl = document.getElementById('class-list');
+  var classMap = {};
+  myTeacher.classIds.forEach(function(cid) {
+    var className = cid.replace('class-', '第') + '期';
+    var students = ALL_MEMBERS.filter(function(m){ return m.classId === cid; });
+    classMap[cid] = { name: className, students: students };
+  });
+
+  var classHTML = '';
+  Object.keys(classMap).forEach(function(cid, ci) {
+    var cls = classMap[cid];
+    classHTML += '<button class="class-expand-btn" onclick="toggleClass(' + ci + ')">';
+    classHTML += '<span><span style="font-weight:600;">' + cls.name + '</span> <span style="font-size:13px;color:#78716C;">' + cls.students.length + '位学员</span></span>';
+    classHTML += '<i class="fas fa-chevron-down" style="font-size:12px;color:#A8A29E;transition:transform 200ms;" id="class-arrow-' + ci + '"></i>';
+    classHTML += '</button>';
+    classHTML += '<div class="class-students" id="class-students-' + ci + '">';
+    cls.students.forEach(function(s) {
+      classHTML += '<div class="class-student-row">';
+      classHTML += '<div class="ref-avatar-sm">' + s.name.charAt(0) + '</div>';
+      classHTML += '<span>' + s.name + '</span>';
+      classHTML += '<span style="color:#78716C;">' + s.company + '</span>';
+      classHTML += '<span style="color:#A8A29E;font-size:12px;">' + (s.industry||'') + '</span>';
+      classHTML += '</div>';
+    });
+    classHTML += '</div>';
+  });
+  classListEl.innerHTML = classHTML;
+
+  window.toggleClass = function(idx) {
+    var el = document.getElementById('class-students-' + idx);
+    var arrow = document.getElementById('class-arrow-' + idx);
+    if (el.classList.contains('open')) {
+      el.classList.remove('open');
+      arrow.style.transform = 'rotate(0)';
+    } else {
+      el.classList.add('open');
+      arrow.style.transform = 'rotate(180deg)';
+    }
+  };
+
+  // ── Recommend Projects ──
+  function renderRecommended() {
+    // Reload projects to get updated recommendedByTeacher
+    var projects = ${JSON.stringify(allProjects.map(p => ({ id:p.id, name:p.name, ownerId:p.ownerId, recommendedByTeacher:p.recommendedByTeacher||[] })))};
+    // Also check localStorage for updated recommendations
+    var lsRecs = {};
+    try { lsRecs = JSON.parse(localStorage.getItem('zlc_teacher_recommendations') || '{}'); } catch(e){}
+
+    var recommended = [];
+    projects.forEach(function(p) {
+      var recs = lsRecs[p.id] || p.recommendedByTeacher;
+      if (recs && recs.indexOf(myTeacher.id) !== -1) {
+        var owner = ALL_MEMBERS.find(function(m){ return m.id === p.ownerId; });
+        recommended.push({ id: p.id, name: p.name, ownerName: owner ? owner.name : '?' });
+      }
+    });
+
+    var listEl = document.getElementById('recommended-list');
+    if (recommended.length === 0) {
+      listEl.innerHTML = '<div style="text-align:center;padding:12px;font-size:13px;color:#A8A29E;">暂无推荐项目</div>';
+      return;
+    }
+    listEl.innerHTML = recommended.map(function(r) {
+      return '<div class="teacher-recommend-item">'
+        + '<div><div class="teacher-recommend-text">' + r.name + '</div><div class="teacher-recommend-sub">发起人: ' + r.ownerName + '</div></div>'
+        + '<button class="teacher-recommend-remove" onclick="removeRecommend(\\'' + r.id + '\\')">取消推荐</button>'
+        + '</div>';
+    }).join('');
+  }
+
+  window.removeRecommend = function(pid) {
+    var lsRecs = {};
+    try { lsRecs = JSON.parse(localStorage.getItem('zlc_teacher_recommendations') || '{}'); } catch(e){}
+    var recs = lsRecs[pid] || [];
+    // Also check mock data
+    var proj = ALL_PROJECTS.find(function(p){ return p.id === pid; });
+    if (proj && !lsRecs[pid]) recs = (proj.recommendedByTeacher || []).slice();
+    recs = recs.filter(function(tid){ return tid !== myTeacher.id; });
+    lsRecs[pid] = recs;
+    localStorage.setItem('zlc_teacher_recommendations', JSON.stringify(lsRecs));
+    showToast('已取消推荐');
+    renderRecommended();
+  };
+
+  renderRecommended();
+
+  // Recommend new project panel
+  var recOverlay = document.getElementById('recommend-overlay');
+  var recPanel = document.getElementById('recommend-panel');
+  document.getElementById('btn-recommend-new').addEventListener('click', function() {
+    // Show panel with open projects
+    var openProjects = ALL_PROJECTS.filter(function(p){ return p.status === 'open'; });
+    var listEl = document.getElementById('recommend-project-list');
+    if (openProjects.length === 0) {
+      listEl.innerHTML = '<div style="text-align:center;padding:20px;color:#78716C;">暂无可推荐的项目</div>';
+    } else {
+      listEl.innerHTML = openProjects.map(function(p) {
+        var owner = ALL_MEMBERS.find(function(m){ return m.id === p.ownerId; });
+        return '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #F5F5F4;">'
+          + '<div><div style="font-size:14px;font-weight:500;color:#1C1917;">' + p.name + '</div>'
+          + '<div style="font-size:12px;color:#78716C;">' + (owner ? owner.name : '?') + ' · ' + (p.industry||'') + '</div></div>'
+          + '<button onclick="doRecommend(\\'' + p.id + '\\')" style="padding:6px 14px;background:#B91C1C;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">推荐</button>'
+          + '</div>';
+      }).join('');
+    }
+
+    recOverlay.style.display = 'block';
+    requestAnimationFrame(function(){
+      requestAnimationFrame(function(){
+        recPanel.style.transform = 'translateY(0)';
+      });
+    });
+  });
+
+  recOverlay.addEventListener('click', function(e) {
+    if (e.target === recOverlay) {
+      recPanel.style.transform = 'translateY(100%)';
+      setTimeout(function(){ recOverlay.style.display = 'none'; }, 300);
+    }
+  });
+
+  window.doRecommend = function(pid) {
+    var lsRecs = {};
+    try { lsRecs = JSON.parse(localStorage.getItem('zlc_teacher_recommendations') || '{}'); } catch(e){}
+    var proj = ALL_PROJECTS.find(function(p){ return p.id === pid; });
+    var recs = lsRecs[pid] || (proj ? (proj.recommendedByTeacher||[]).slice() : []);
+    if (recs.indexOf(myTeacher.id) === -1) recs.push(myTeacher.id);
+    lsRecs[pid] = recs;
+    localStorage.setItem('zlc_teacher_recommendations', JSON.stringify(lsRecs));
+    showToast('已推荐');
+    // Close panel
+    recPanel.style.transform = 'translateY(100%)';
+    setTimeout(function(){ recOverlay.style.display = 'none'; }, 300);
+    renderRecommended();
+  };
+
+  // Logout
+  document.getElementById('teacher-logout-btn').addEventListener('click', function(){
+    showConfirm({
+      title: '确认退出登录？',
+      desc: '退出后需要重新验证手机号登录',
+      danger: true,
+      onConfirm: function(){
+        localStorage.removeItem('zlc_user');
+        localStorage.removeItem('zlc_token');
+        window.location.href = '/login';
+      }
+    });
+  });
+})();
+`}} />
+    </div>,
+    { title: '中流通 - 老师工作台' }
   )
 })
 
