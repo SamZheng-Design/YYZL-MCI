@@ -169,6 +169,17 @@ export const mockProjects: Project[] = [
     investors: ['m-001', 'm-004'],
     viewCount: 62,
   },
+  {
+    id: 'p-006', name: '华南社区团购联营试点', ownerId: 'm-001',
+    industry: '社区零售', shareCode: 'FIN001', initiatorClassId: 'class-12', initiatorClassName: '第12期',
+    description: '与华南地区3个社区团购站点进行收入分成联营合作，项目已于2025年11月顺利完成全部回款，实际回报率达1.38倍。',
+    targetAmount: 50, raisedAmount: 50, revenueShareRate: 15.0, duration: 12,
+    recoveryMultiple: 1.5, estimatedMonthlyRevenue: 32,
+    totalShares: 10, raisedShares: 10, sharePrice: 5, minShares: 1,
+    status: 'completed', createdAt: '2024-11-15',
+    investors: ['m-002'],
+    viewCount: 156,
+  },
 ]
 
 // ── 回款记录类型（首页动态用） ─────────────────────────────
@@ -257,6 +268,14 @@ export const mockContracts: Contract[] = [
     recoveryCap: 22.5, signedByInitiator: true, signedByParticipant: true,
     signedAt: '2026-02-20', totalRepaid: 0.288, status: 'active',
   },
+  {
+    id: 'c-006', projectId: 'p-006', projectName: '华南社区团购联营试点',
+    initiatorId: 'm-001', initiatorName: '张建国', initiatorCompany: '星火餐饮集团',
+    participantId: 'm-002', participantName: '李明远',
+    amount: 10, shares: 2, revenueShareRatio: 15, cooperationTerm: 12,
+    recoveryCap: 15, signedByInitiator: true, signedByParticipant: true,
+    signedAt: '2024-11-20', totalRepaid: 11.73, status: 'completed',
+  },
 ]
 
 // ── 收入上报记录 ──────────────────────────────────────────
@@ -314,6 +333,19 @@ export const mockRepaymentRecords: RepaymentRecord[] = [
   { id: 'rep-013', contractId: 'c-004', revenueReportId: 'rr-005', participantId: 'm-001', projectName: 'AI英语口语APP开发', date: '2026-03-15', projectRevenue: 12, shareAmount: 0.384, cumulativeShare: 0.384, recoveryProgress: 2.56 },
   // m-004 在 p-005 的回款 (15万/25万 = 3/5)
   { id: 'rep-014', contractId: 'c-005', revenueReportId: 'rr-005', participantId: 'm-004', projectName: 'AI英语口语APP开发', date: '2026-03-15', projectRevenue: 12, shareAmount: 0.576, cumulativeShare: 0.576, recoveryProgress: 2.56 },
+  // m-002 在 p-006 华南社区团购联营试点 的回款 (10万投资, 15%分成, 回收上限15万)
+  { id: 'rep-100', contractId: 'c-006', revenueReportId: 'rr-p006-01', participantId: 'm-002', projectName: '华南社区团购联营试点', date: '2024-12-18', projectRevenue: 28, shareAmount: 0.84, cumulativeShare: 0.84, recoveryProgress: 5.60 },
+  { id: 'rep-101', contractId: 'c-006', revenueReportId: 'rr-p006-02', participantId: 'm-002', projectName: '华南社区团购联营试点', date: '2025-01-18', projectRevenue: 32, shareAmount: 0.96, cumulativeShare: 1.80, recoveryProgress: 12.00 },
+  { id: 'rep-102', contractId: 'c-006', revenueReportId: 'rr-p006-03', participantId: 'm-002', projectName: '华南社区团购联营试点', date: '2025-02-18', projectRevenue: 25, shareAmount: 0.75, cumulativeShare: 2.55, recoveryProgress: 17.00 },
+  { id: 'rep-103', contractId: 'c-006', revenueReportId: 'rr-p006-04', participantId: 'm-002', projectName: '华南社区团购联营试点', date: '2025-03-18', projectRevenue: 35, shareAmount: 1.05, cumulativeShare: 3.60, recoveryProgress: 24.00 },
+  { id: 'rep-104', contractId: 'c-006', revenueReportId: 'rr-p006-05', participantId: 'm-002', projectName: '华南社区团购联营试点', date: '2025-04-18', projectRevenue: 30, shareAmount: 0.90, cumulativeShare: 4.50, recoveryProgress: 30.00 },
+  { id: 'rep-105', contractId: 'c-006', revenueReportId: 'rr-p006-06', participantId: 'm-002', projectName: '华南社区团购联营试点', date: '2025-05-18', projectRevenue: 38, shareAmount: 1.14, cumulativeShare: 5.64, recoveryProgress: 37.60 },
+  { id: 'rep-106', contractId: 'c-006', revenueReportId: 'rr-p006-07', participantId: 'm-002', projectName: '华南社区团购联营试点', date: '2025-06-18', projectRevenue: 33, shareAmount: 0.99, cumulativeShare: 6.63, recoveryProgress: 44.20 },
+  { id: 'rep-107', contractId: 'c-006', revenueReportId: 'rr-p006-08', participantId: 'm-002', projectName: '华南社区团购联营试点', date: '2025-07-18', projectRevenue: 36, shareAmount: 1.08, cumulativeShare: 7.71, recoveryProgress: 51.40 },
+  { id: 'rep-108', contractId: 'c-006', revenueReportId: 'rr-p006-09', participantId: 'm-002', projectName: '华南社区团购联营试点', date: '2025-08-18', projectRevenue: 29, shareAmount: 0.87, cumulativeShare: 8.58, recoveryProgress: 57.20 },
+  { id: 'rep-109', contractId: 'c-006', revenueReportId: 'rr-p006-10', participantId: 'm-002', projectName: '华南社区团购联营试点', date: '2025-09-18', projectRevenue: 34, shareAmount: 1.02, cumulativeShare: 9.60, recoveryProgress: 64.00 },
+  { id: 'rep-110', contractId: 'c-006', revenueReportId: 'rr-p006-11', participantId: 'm-002', projectName: '华南社区团购联营试点', date: '2025-10-18', projectRevenue: 31, shareAmount: 0.93, cumulativeShare: 10.53, recoveryProgress: 70.20 },
+  { id: 'rep-111', contractId: 'c-006', revenueReportId: 'rr-p006-12', participantId: 'm-002', projectName: '华南社区团购联营试点', date: '2025-11-18', projectRevenue: 40, shareAmount: 1.20, cumulativeShare: 11.73, recoveryProgress: 78.20 },
 ]
 
 // ── 回款分配计算 ─────────────────────────────────────────

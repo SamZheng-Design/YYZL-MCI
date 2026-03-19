@@ -601,6 +601,14 @@ function initNavUserDropdown() {
     dropdown.style.display = isOpen ? 'block' : 'none';
   });
 
+  // Bell unread dot
+  var bellDot = document.getElementById('nav-bell-dot');
+  if(bellDot){
+    var unread = localStorage.getItem('zlc_unread_notifications');
+    if(unread === null) unread = 'true';
+    bellDot.style.display = (unread === 'true') ? 'block' : 'none';
+  }
+
   // Close on outside click
   document.addEventListener('click', function(e){
     if(isOpen && !dropdown.contains(e.target) && e.target !== btn){
@@ -673,9 +681,9 @@ const Navbar = () => (
       </span>
     </a>
     <div style="display:flex;align-items:center;gap:8px;">
-      <button id="nav-bell" class="flex items-center justify-center" style="width:36px;height:36px;background:none;border:none;cursor:pointer;position:relative;">
+      <button id="nav-bell" class="flex items-center justify-center" style="width:36px;height:36px;background:none;border:none;cursor:pointer;position:relative;" onclick="window.location.href='/notifications'">
         <i class="fas fa-bell" style="font-size:18px;color:#78716C;" />
-        <span style="position:absolute;top:4px;right:4px;width:8px;height:8px;background:#DC2626;border-radius:50%;border:2px solid #fff;" />
+        <span id="nav-bell-dot" style="position:absolute;top:4px;right:4px;width:8px;height:8px;background:#DC2626;border-radius:50%;border:2px solid #fff;display:none;" />
       </button>
       {/* User avatar button with dropdown */}
       <div id="nav-user-wrap" style="position:relative;">
@@ -1092,6 +1100,9 @@ app.get('/', (c) => {
           </div>
         </section>
 
+        {/* 1.8 Repayment Flash Bar (rendered by client JS) */}
+        <div id="repayment-flash-bar" />
+
         {/* 2. Quick Actions */}
         <section id="quick-actions" class="grid grid-cols-2 gap-3 mb-5">
           <a href="/create" class="quick-card quick-card-brand">
@@ -1208,6 +1219,62 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, nam
     var el3 = document.getElementById('stat-total-inv'); if(el3) animateNumber(el3, s.totalInvested, 600, 0);
     var el4 = document.getElementById('stat-total-rep'); if(el4) animateNumber(el4, s.totalRepaid, 600, 1);
   }).catch(function(){});
+
+  // ── Repayment Flash Bar ──
+  (function(){
+    var REP_RECORDS = ${JSON.stringify(mockRepaymentRecords)};
+    var CONTRACTS = ${JSON.stringify(mockContracts.map(c => ({ id:c.id, participantId:c.participantId })))};
+
+    // Dynamically patch latest 3 records' dates to today/yesterday for demo
+    var today = new Date();
+    var yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    function fmtDate(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+    var allSorted = REP_RECORDS.slice().sort(function(a,b){ return b.date.localeCompare(a.date); });
+    if(allSorted.length >= 1) allSorted[0].date = fmtDate(today);
+    if(allSorted.length >= 2) allSorted[1].date = fmtDate(today);
+    if(allSorted.length >= 3) allSorted[2].date = fmtDate(yesterday);
+
+    // Find my contracts
+    var myContractIds = {};
+    CONTRACTS.forEach(function(c){ if(c.participantId === u.id) myContractIds[c.id] = true; });
+
+    // Filter this week's repayments for current user
+    var now = new Date();
+    var dayOfWeek = now.getDay() || 7;
+    var weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - dayOfWeek + 1);
+    weekStart.setHours(0,0,0,0);
+
+    var weekTotal = 0, projectSet = {};
+    allSorted.forEach(function(r){
+      if(!myContractIds[r.contractId]) return;
+      var rd = new Date(r.date);
+      if(rd >= weekStart){
+        weekTotal += r.shareAmount;
+        projectSet[r.contractId] = true;
+      }
+    });
+    var projectCount = Object.keys(projectSet).length;
+
+    if(weekTotal > 0){
+      var bar = document.getElementById('repayment-flash-bar');
+      if(bar){
+        var amt = weekTotal.toFixed(2);
+        bar.innerHTML = '<div id="flash-inner" style="margin:12px 16px;padding:14px 16px;border-radius:14px;background:linear-gradient(135deg,#16A34A,#15803D);cursor:pointer;display:flex;align-items:center;justify-content:space-between;opacity:0;transform:translateX(40px);transition:opacity 500ms ease-out,transform 500ms ease-out;" onclick="window.location.href=\\'/repayments\\'">'
+          +'<div style="display:flex;align-items:center;gap:8px;">'
+          +'<span style="font-size:20px;">\\uD83D\\uDCB0</span>'
+          +'<span style="color:#fff;font-size:14px;">\\u672C\\u5468\\u56DE\\u6B3E +\\u00A5<b style="font-weight:700;">'+amt+'</b>\\u4E07\\u3000\\u6765\\u81EA '+projectCount+' \\u4E2A\\u9879\\u76EE</span>'
+          +'</div>'
+          +'<span style="color:#fff;font-size:18px;font-weight:300;">\\u203A</span>'
+          +'</div>';
+        setTimeout(function(){
+          var inner = document.getElementById('flash-inner');
+          if(inner){ inner.style.opacity='1'; inner.style.transform='translateX(0)'; }
+        }, 300);
+      }
+    }
+  })();
 
   // Share code input
   var shareInput = document.getElementById('home-share-input');
@@ -1507,6 +1574,7 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, nam
     id:p.id, name:p.name, ownerId:p.ownerId, industry:p.industry,
     targetAmount:p.targetAmount, raisedAmount:p.raisedAmount,
     revenueShareRate:p.revenueShareRate, duration:p.duration,
+    recoveryMultiple:p.recoveryMultiple||0,
     totalShares:p.totalShares, raisedShares:p.raisedShares,
     status:p.status, createdAt:p.createdAt, investors:p.investors,
     initiatorClassId:p.initiatorClassId||'', initiatorClassName:p.initiatorClassName||'',
@@ -1514,6 +1582,8 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, nam
   })))};
   var MEMBERS = ${JSON.stringify(mockMembers.map(m => ({ id:m.id, name:m.name, company:m.company, cohort:m.cohort, classId:m.classId||'' })))};
   var TEACHERS = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, name:t.name, classIds:t.classIds })))};
+  var CONTRACTS = ${JSON.stringify(mockContracts.map(c => ({ id:c.id, projectId:c.projectId, amount:c.amount, recoveryCap:c.recoveryCap, status:c.status })))};
+  var REP_RECORDS = ${JSON.stringify(mockRepaymentRecords.map(r => ({ contractId:r.contractId, cumulativeShare:r.cumulativeShare })))};
 
   // Merge user-created projects from localStorage
   var userProjects = [];
@@ -1601,6 +1671,22 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, nam
       var remain = p.totalShares - p.raisedShares;
       var tag = getRelationTag(p);
       var tagHTML = tag.text ? '<span class="relation-tag" style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;'+tagStyles[tag.type]+'">'+tag.text+'</span>' : '';
+      // Completed project extra line
+      var completedLine = '';
+      if(p.status === 'completed'){
+        // Calculate actual return from repayment records
+        var pContracts = CONTRACTS.filter(function(c){ return c.projectId === p.id; });
+        var totalInvested = 0, totalRepaid = 0;
+        pContracts.forEach(function(c){
+          totalInvested += c.amount;
+          var recs = REP_RECORDS.filter(function(r){ return r.contractId === c.id; });
+          if(recs.length > 0){
+            totalRepaid += recs[recs.length-1].cumulativeShare;
+          }
+        });
+        var returnPct = totalInvested > 0 ? (totalRepaid / totalInvested * 100).toFixed(1) : '0.0';
+        completedLine = '<div style="margin-top:10px;padding-top:10px;border-top:1px solid #F0FDF4;font-size:13px;color:#16A34A;font-weight:600;">\\u2705 \\u5B9E\\u9645\\u56DE\\u62A5 '+returnPct+'% \\u00B7 \\u5386\\u65F6'+p.duration+'\\u4E2A\\u6708</div>';
+      }
       return '<a href="/projects/'+p.id+'" class="bg-white rounded-2xl shadow-card shadow-card-hover p-5 block" style="text-decoration:none;color:inherit;">'
         +(tagHTML ? '<div style="margin-bottom:8px;">'+tagHTML+'</div>' : '')
         +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">'
@@ -1625,6 +1711,7 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, nam
           +'<span style="font-size:12px;color:#78716C;">已募 '+pct+'% (¥'+p.raisedAmount+'/'+p.targetAmount+'万)'+(p.status==="open"?' · 剩余'+remain+'份':'')+'</span>'
           +'<span style="font-size:13px;font-weight:600;color:#B91C1C;">查看详情 →</span>'
         +'</div>'
+        +completedLine
       +'</a>';
     }).join('');
   }
@@ -3501,7 +3588,7 @@ app.get('/repayments', (c) => {
   tabInitiate.addEventListener('click', function(){ setTab('initiate'); });
 
   // ── 我的投资 ──
-  var myContracts = CONTRACTS.filter(function(c){ return c.participantId === u.id && c.status === 'active'; });
+  var myContracts = CONTRACTS.filter(function(c){ return c.participantId === u.id && (c.status === 'active' || c.status === 'completed'); });
 
   // Summary
   var totalInvested = 0, totalRepaid = 0, activeCount = 0, completedCount = 0;
@@ -3547,10 +3634,13 @@ app.get('/repayments', (c) => {
       var lastRec = recs.length > 0 ? recs[recs.length-1] : null;
       var monthlyAvg = recs.length > 0 ? (repaid / recs.length) : 0;
       var progressPct = c.recoveryCap > 0 ? (repaid / c.recoveryCap * 100).toFixed(1) : '0.0';
-      var statusBadge = c.status === 'active' ? '<span style="background:#F0FDF4;color:#16a34a;border:1px solid #BBF7D0;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">运营中</span>' : '<span style="background:#F5F5F4;color:#78716C;border:1px solid #E7E5E4;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">已完成</span>';
+      var statusBadge = c.status === 'active' ? '<span style="background:#F0FDF4;color:#16a34a;border:1px solid #BBF7D0;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">运营中</span>' : '<span style="background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">已完成</span>';
       var initiator = MEMBERS.find(function(m){ return m.id === c.initiatorId; });
       var initName = c.initiatorName || (initiator ? initiator.name : '');
       var initComp = c.initiatorCompany || (initiator ? initiator.company : '');
+      var isCompletedContract = c.status === 'completed';
+      var barBg = isCompletedContract ? 'linear-gradient(90deg,#16A34A,#15803D)' : 'linear-gradient(90deg,#D4A853,#B8860B)';
+      var barColor = isCompletedContract ? '#16A34A' : '#D4A853';
 
       investHTML += '<a href="/investments/' + c.id + '" style="display:block;text-decoration:none;color:inherit;background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,0.04),0 2px 8px rgba(0,0,0,0.03);padding:16px;transition:transform 0.2s,box-shadow 0.2s;" onmouseover="this.style.transform=\\'translateY(-2px)\\';this.style.boxShadow=\\'0 4px 16px rgba(0,0,0,0.08)\\';" onmouseout="this.style.transform=\\'none\\';this.style.boxShadow=\\'0 1px 3px rgba(0,0,0,0.04),0 2px 8px rgba(0,0,0,0.03)\\';">';
       investHTML += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">';
@@ -3565,8 +3655,8 @@ app.get('/repayments', (c) => {
       investHTML += '</div>';
       // Progress bar
       investHTML += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">';
-      investHTML += '<div style="flex:1;height:6px;border-radius:3px;background:#F5F5F4;overflow:hidden;"><div style="height:100%;border-radius:3px;background:linear-gradient(90deg,#D4A853,#B8860B);width:' + Math.min(parseFloat(progressPct), 100) + '%;transition:width 0.6s;"></div></div>';
-      investHTML += '<span style="font-size:12px;color:#D4A853;font-weight:600;">' + progressPct + '%</span>';
+      investHTML += '<div style="flex:1;height:6px;border-radius:3px;background:#F5F5F4;overflow:hidden;"><div style="height:100%;border-radius:3px;background:'+barBg+';width:' + Math.min(parseFloat(progressPct), 100) + '%;transition:width 0.6s;"></div></div>';
+      investHTML += '<span style="font-size:12px;color:'+barColor+';font-weight:600;">' + progressPct + '%</span>';
       investHTML += '</div>';
       // Last repayment
       if(lastRec){
@@ -3748,9 +3838,19 @@ app.get('/investments/:contractId', (c) => {
 
   var statusBadge = contract.status === 'active'
     ? '<span style="background:#F0FDF4;color:#16a34a;border:1px solid #BBF7D0;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">运营中</span>'
-    : '<span style="background:#F5F5F4;color:#78716C;border:1px solid #E7E5E4;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">已完成</span>';
+    : '<span style="background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">已完成</span>';
+
+  var isCompleted = contract.status === 'completed';
+  var ringColor = isCompleted ? '#16A34A' : '#D4A853';
+  var ringColorEnd = isCompleted ? '#15803D' : '#B8860B';
+  var barGradient = isCompleted ? 'linear-gradient(180deg,#16A34A,#15803D)' : 'linear-gradient(180deg,#D4A853,#B8860B)';
 
   var html = '';
+
+  // 0. Completed badge (top green banner)
+  if(isCompleted){
+    html += '<div style="background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0;border-radius:12px;padding:12px 20px;text-align:center;font-size:15px;font-weight:600;margin-bottom:12px;">\\u2705 \\u9879\\u76EE\\u5DF2\\u5B8C\\u6210</div>';
+  }
 
   // 1. Project info
   html += '<div style="background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,0.04),0 2px 8px rgba(0,0,0,0.03);padding:16px;margin-bottom:12px;">';
@@ -3775,10 +3875,10 @@ app.get('/investments/:contractId', (c) => {
 
   html += '<div style="background:#fff;border-radius:20px;box-shadow:0 1px 3px rgba(0,0,0,0.04),0 2px 8px rgba(0,0,0,0.03);padding:32px;margin-bottom:12px;text-align:center;">';
   html += '<svg width="160" height="160" viewBox="0 0 160 160" style="margin:0 auto;display:block;">';
-  html += '<defs><linearGradient id="ring-grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#D4A853"/><stop offset="100%" stop-color="#B8860B"/></linearGradient></defs>';
+  html += '<defs><linearGradient id="ring-grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="'+ringColor+'"/><stop offset="100%" stop-color="'+ringColorEnd+'"/></linearGradient></defs>';
   html += '<circle cx="80" cy="80" r="68" fill="none" stroke="#F5F5F4" stroke-width="12"/>';
   html += '<circle cx="80" cy="80" r="68" fill="none" stroke="url(#ring-grad)" stroke-width="12" stroke-dasharray="' + circumference.toFixed(2) + '" stroke-dashoffset="' + dashOffset.toFixed(2) + '" stroke-linecap="round" transform="rotate(-90 80 80)" style="transition:stroke-dashoffset 1s ease;"/>';
-  html += '<text x="80" y="72" text-anchor="middle" fill="#D4A853" font-size="32" font-weight="800" font-family="Montserrat,sans-serif">' + progressPct.toFixed(1) + '%</text>';
+  html += '<text x="80" y="72" text-anchor="middle" fill="'+ringColor+'" font-size="32" font-weight="800" font-family="Montserrat,sans-serif">' + progressPct.toFixed(1) + '%</text>';
   html += '<text x="80" y="96" text-anchor="middle" fill="#78716C" font-size="12">回收进度</text>';
   html += '</svg>';
   html += '<div style="margin-top:16px;font-size:15px;color:#292524;">已回款 \\u00A5' + repaid.toFixed(2) + '\\u4E07 / \\u00A5' + contract.recoveryCap + '\\u4E07</div>';
@@ -3797,7 +3897,7 @@ app.get('/investments/:contractId', (c) => {
       var dateLabel = r.date.slice(5,7) + '月';
       html += '<div style="flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end;">';
       html += '<div style="font-size:11px;color:#78716C;margin-bottom:4px;">\\u00A5' + r.shareAmount.toFixed(2) + '\\u4E07</div>';
-      html += '<div style="width:40px;border-radius:4px 4px 0 0;background:linear-gradient(180deg,#D4A853,#B8860B);height:' + Math.max(pctH, 5) + '%;transition:height 0.6s ease;"></div>';
+      html += '<div style="width:40px;border-radius:4px 4px 0 0;background:'+barGradient+';height:' + Math.max(pctH, 5) + '%;transition:height 0.6s ease;"></div>';
       html += '<div style="font-size:12px;color:#78716C;margin-top:6px;">' + dateLabel + '</div>';
       html += '</div>';
     });
@@ -4737,6 +4837,127 @@ app.get('/share/:code', (c) => {
       </main>
     </div>,
     { title: '中流通 - 项目不存在' }
+  )
+})
+
+// ══════════════════════════════════════════════════════════
+// Notifications Page (/notifications)
+// ══════════════════════════════════════════════════════════
+app.get('/notifications', (c) => {
+  return c.render(
+    <div class="app-container">
+      <AuthCheckScript />
+      <GlobalScripts />
+
+      {/* Top bar */}
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px;background:#fff;border-bottom:1px solid #F5F5F4;position:sticky;top:0;z-index:100;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <a href="/" style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;text-decoration:none;">
+            <i class="fas fa-arrow-left" style="font-size:16px;color:#1C1917;" />
+          </a>
+          <span style="font-size:17px;font-weight:600;color:#1C1917;">消息通知</span>
+        </div>
+        <button id="mark-all-read" style="background:none;border:none;cursor:pointer;font-size:13px;color:#B91C1C;font-weight:500;">全部已读</button>
+      </div>
+
+      {/* Notification list */}
+      <div id="notification-list" style="background:#fff;min-height:calc(100vh - 56px);" />
+
+      <script dangerouslySetInnerHTML={{ __html: `
+(function(){
+  var u = null;
+  try { u = JSON.parse(localStorage.getItem('zlc_user')); } catch(e){}
+  if (!u) { window.location.href = '/login'; return; }
+
+  var NOTIFS_KEY = 'zlc_notifications';
+  var UNREAD_KEY = 'zlc_unread_notifications';
+
+  // Default notifications
+  var defaultNotifs = [
+    { id:'n-001', type:'participation', title:'新投资参与', content:'李明远 参与了您发起的项目「华南餐饮连锁联营」，投资金额 ¥10万', time:'2小时前', read:false, icon:'💰', link:'/projects/p-001' },
+    { id:'n-002', type:'repayment', title:'回款到账', content:'项目「华南餐饮连锁联营」本月回款已分配，您收到 ¥0.18万', time:'1天前', read:false, icon:'📈', link:'/repayments' },
+    { id:'n-003', type:'referral', title:'引荐请求', content:'学员 王晓薇（第14期）请求您引荐「智能制造设备融资」项目发起人', time:'2天前', read:true, icon:'🤝', link:'/teacher' },
+    { id:'n-004', type:'system', title:'项目状态更新', content:'您参与的项目「社区生鲜供应链」已满额募集，即将进入运营期', time:'3天前', read:true, icon:'📋', link:'/projects/p-003' },
+    { id:'n-005', type:'system', title:'平台公告', content:'中流通平台 V1.0 正式上线，欢迎各位学员体验！', time:'5天前', read:true, icon:'📢', link:null },
+    { id:'n-006', type:'repayment', title:'回款报告提醒', content:'您发起的项目「教育培训机构扩张」本月尚未提交收入报告，请及时上报', time:'5天前', read:true, icon:'⏰', link:'/initiated/p-004/report' }
+  ];
+
+  // Load from localStorage or use defaults
+  var notifs = null;
+  try { notifs = JSON.parse(localStorage.getItem(NOTIFS_KEY)); } catch(e){}
+  if(!notifs) {
+    notifs = defaultNotifs;
+    localStorage.setItem(NOTIFS_KEY, JSON.stringify(notifs));
+    localStorage.setItem(UNREAD_KEY, 'true');
+  }
+
+  var listEl = document.getElementById('notification-list');
+  var markAllBtn = document.getElementById('mark-all-read');
+
+  function renderList(){
+    if(!notifs || notifs.length === 0){
+      listEl.innerHTML = '<div style="text-align:center;padding:80px 0;">'
+        +'<div style="font-size:64px;color:#D6D3D1;margin-bottom:16px;">🔔</div>'
+        +'<p style="font-size:15px;color:#A8A29E;">暂无消息</p>'
+        +'</div>';
+      return;
+    }
+
+    var html = '';
+    notifs.forEach(function(n){
+      var dotHTML = !n.read
+        ? '<div style="width:8px;height:8px;border-radius:50%;background:#B91C1C;flex-shrink:0;margin-top:6px;"></div>'
+        : '<div style="width:8px;flex-shrink:0;"></div>';
+      var titleColor = !n.read ? 'color:#B91C1C;' : 'color:#1C1917;';
+      var linkAttr = n.link ? 'data-link="'+n.link+'"' : '';
+      html += '<div class="notif-item" data-id="'+n.id+'" '+linkAttr+' style="padding:16px;border-bottom:1px solid #F5F5F4;cursor:pointer;display:flex;gap:10px;transition:background 0.15s;" onmouseover="this.style.background=\\'#FAFAF9\\'" onmouseout="this.style.background=\\'transparent\\'">'
+        + dotHTML
+        + '<div style="flex:1;min-width:0;">'
+        + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">'
+        + '<span style="font-size:15px;font-weight:600;'+titleColor+'">'+n.title+'</span>'
+        + '<span style="font-size:16px;flex-shrink:0;margin-left:8px;">'+n.icon+'</span>'
+        + '</div>'
+        + '<div style="font-size:13px;color:#57534E;margin-top:4px;line-height:1.5;">'+n.content+'</div>'
+        + '<div style="font-size:12px;color:#A8A29E;margin-top:6px;">'+n.time+'</div>'
+        + '</div>'
+        + '</div>';
+    });
+    listEl.innerHTML = html;
+
+    // Bind click handlers
+    listEl.querySelectorAll('.notif-item').forEach(function(item){
+      item.addEventListener('click', function(){
+        var nid = item.getAttribute('data-id');
+        var link = item.getAttribute('data-link');
+        // Mark as read
+        notifs.forEach(function(n){ if(n.id === nid) n.read = true; });
+        localStorage.setItem(NOTIFS_KEY, JSON.stringify(notifs));
+        updateUnreadState();
+        if(link) window.location.href = link;
+        else renderList();
+      });
+    });
+  }
+
+  function updateUnreadState(){
+    var hasUnread = notifs.some(function(n){ return !n.read; });
+    localStorage.setItem(UNREAD_KEY, hasUnread ? 'true' : 'false');
+  }
+
+  // Mark all read
+  markAllBtn.addEventListener('click', function(){
+    notifs.forEach(function(n){ n.read = true; });
+    localStorage.setItem(NOTIFS_KEY, JSON.stringify(notifs));
+    localStorage.setItem(UNREAD_KEY, 'false');
+    renderList();
+    showToast('已全部标为已读');
+  });
+
+  renderList();
+})();
+`}} />
+    </div>,
+    { title: '中流通 - 消息通知' }
   )
 })
 

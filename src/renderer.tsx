@@ -467,7 +467,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
 .badge-open { background: #FEF2F2; color: #DC2626; border-color: #FECACA; }
 .badge-funded { background: #F0FDF4; color: #16a34a; border-color: #BBF7D0; }
 .badge-active { background: #F0FDF4; color: #16a34a; border-color: #BBF7D0; }
-.badge-completed { background: #F5F5F4; color: #78716C; border-color: #E7E5E4; }
+.badge-completed { background: #F0FDF4; color: #16A34A; border-color: #BBF7D0; }
 
 /* ══════════════════════════════════════════════════
    Detail page
