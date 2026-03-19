@@ -1,0 +1,319 @@
+// Route: /contracts/:id/sign
+import { Hono } from 'hono'
+import type { Project, Contract } from '../data'
+import {
+  GlobalScripts, Navbar, AuthCheckScript,
+} from '../components'
+
+export function registerContractSignRoute(app: Hono) {
+app.get('/contracts/:id/sign', (c) => {
+  const contractId = c.req.param('id')
+
+  return c.render(
+    <div class="app-container">
+      <AuthCheckScript />
+      <GlobalScripts />
+      <Navbar />
+
+      <main class="max-w-lg mx-auto px-4 pt-3 pb-8 page-enter">
+        <a href="javascript:history.back()" class="back-link mb-4 inline-flex">
+          <i class="fas fa-arrow-left" style="font-size:13px;" /> 返回
+        </a>
+
+        {/* Contract Content */}
+        <div class="contract-card mb-4" id="contract-body-card">
+          <div class="contract-title">收入分成合作协议</div>
+          <div class="contract-no" id="contract-no">协议编号：—</div>
+
+          <div class="contract-body" id="contract-content">
+            <p style="text-align:center;color:#A8A29E;">加载中...</p>
+          </div>
+        </div>
+
+        {/* Plain Language Block for contract */}
+        <div id="contract-plain-lang" class="plain-lang-block mb-4" style="display:none;" />
+
+        {/* Sign Area */}
+        <div class="sign-area mb-4" id="sign-area">
+          <h4 class="font-semibold text-text-title mb-4" style="font-size:16px;">
+            <i class="fas fa-pen-nib mr-2" style="color:#D4A853;font-size:14px;" />签署确认
+          </h4>
+
+          <div class="checkbox-row mb-3">
+            <input type="checkbox" id="agree-check" />
+            <label for="agree-check">我已阅读并同意以上合同条款</label>
+          </div>
+
+          <div class="verify-row">
+            <input type="text" class="verify-input" id="verify-code" placeholder="请输入验证码" maxlength={6} />
+            <button class="verify-send-btn" id="verify-send">发送验证码</button>
+          </div>
+
+          <button class="btn-gold mt-4" id="sign-btn" disabled={true} style="opacity:0.5;">
+            <i class="fas fa-signature mr-2" />确认签署
+          </button>
+
+          {/* Sign Status */}
+          <div class="sign-status" id="sign-status">
+            <div class="sign-status-item">
+              <div class="sign-status-label">甲方（发起人）</div>
+              <div class="sign-status-val sign-status-pending" id="sign-a">
+                <i class="fas fa-clock mr-1" />待签署
+              </div>
+            </div>
+            <div class="sign-status-item">
+              <div class="sign-status-label">乙方（参与人）</div>
+              <div class="sign-status-val sign-status-pending" id="sign-b">
+                <i class="fas fa-clock mr-1" />待签署
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {/* Ceremony full-screen page (Task 1 — replaces old success overlay) */}
+      <div class="ceremony-page" id="ceremony-page">
+        <div class="ceremony-check-circle" id="ceremony-circle">
+          <span class="ceremony-check-mark" id="ceremony-check">✓</span>
+        </div>
+        <div class="ceremony-title">
+          <h2>投资协议已生效</h2>
+          <p>合同由平台托管，具有法律效力</p>
+        </div>
+        <div class="ceremony-summary" id="ceremony-summary">
+          {/* Rows injected by JS */}
+        </div>
+        <div class="ceremony-buttons">
+          <button class="ceremony-btn-primary" id="ceremony-share-btn">📤 分享给同学</button>
+          <button class="ceremony-btn-secondary" id="ceremony-contract-btn">查看合同详情</button>
+          <button class="ceremony-btn-tertiary" id="ceremony-home-btn">返回首页</button>
+        </div>
+      </div>
+
+      {/* Client script */}
+      <script dangerouslySetInnerHTML={{ __html: `
+(function(){
+  var u = null;
+  try { u = JSON.parse(localStorage.getItem('zlc_user')); } catch(e){}
+  if (!u) return;
+
+  var CONTRACT_ID = '${contractId}';
+
+  // Load contract data from localStorage
+  var contracts = [];
+  try { contracts = JSON.parse(localStorage.getItem('zlc_contracts') || '[]'); } catch(e){}
+  var contract = contracts.find(function(c){ return c.id === CONTRACT_ID; });
+
+  if(!contract){
+    document.getElementById('contract-content').innerHTML = '<p style="text-align:center;color:#DC2626;">合同未找到</p>';
+    document.getElementById('sign-area').style.display = 'none';
+    return;
+  }
+
+  // Load project data
+  var proj = contract.project;
+  var ownerName = contract.ownerName || '发起人';
+
+  // Set contract number
+  document.getElementById('contract-no').textContent = '协议编号：ZLC-' + proj.id + '-' + CONTRACT_ID;
+
+  // Build contract body
+  var html = '';
+  html += '<div class="contract-party"><div class="contract-party-label">甲方（项目发起方）</div>';
+  html += '<div class="contract-party-name">' + ownerName + '</div></div>';
+  html += '<div class="contract-party"><div class="contract-party-label">乙方（投资参与方）</div>';
+  html += '<div class="contract-party-name">' + u.name + '</div></div>';
+
+  html += '<h4>第一条 项目基本信息</h4>';
+  html += '<p class="indent">项目名称：<b>' + proj.name + '</b></p>';
+  html += '<p class="indent">所属行业：' + proj.industry + '</p>';
+  html += '<p class="indent">项目简介：' + proj.description + '</p>';
+
+  html += '<h4>第二条 投资条款</h4>';
+  html += '<p class="indent">乙方同意向甲方项目投入资金 <b>¥' + contract.amount + '万元</b>（共 ' + contract.shares + ' 份，每份 ¥' + proj.sharePrice + '万元）。</p>';
+  html += '<p class="indent">收入分成比例：甲方同意将项目收入的 <b>' + proj.revenueShareRate + '%</b> 按投资占比分配给全体投资人。</p>';
+  html += '<p class="indent">联营期限：自合同生效之日起 <b>' + proj.duration + ' 个月</b>。</p>';
+
+  html += '<h4>第三条 回收上限</h4>';
+  html += '<p class="indent">乙方投资回收上限为投资金额的 <b>' + proj.recoveryMultiple + '</b> 倍，即 <b>¥' + (contract.amount * proj.recoveryMultiple).toFixed(1) + '万元</b>。达到回收上限后，分成自动停止。</p>';
+
+  html += '<h4>第四条 收入确认与分成计算</h4>';
+  html += '<p class="indent">甲方按' + (proj.reportFrequency || '月报') + '频率向平台提交经营收入数据。</p>';
+  html += '<p class="indent">分成计算公式：<b>月分成 = 当月确认收入 × ' + proj.revenueShareRate + '% × (乙方投资额 ÷ 融资总额)</b></p>';
+
+  html += '<h4>第五条 风险提示</h4>';
+  html += '<p class="indent">本项目为收入分成模式（RBF），非固定回报承诺。实际回款取决于项目经营情况，投资人需自行承担经营风险。</p>';
+
+  html += '<h4>第六条 其他约定</h4>';
+  html += '<p class="indent">本协议一式两份，甲乙双方各执一份（电子版），经双方签署后生效。</p>';
+  html += '<p class="indent">本协议由「中流通」平台提供电子签署服务，具有同等法律效力。</p>';
+
+  html += '<div style="margin-top:24px;display:flex;gap:20px;">';
+  html += '<div style="flex:1;"><div style="font-size:12px;color:#78716C;margin-bottom:4px;">甲方签署</div><div style="font-size:14px;font-weight:600;color:#1C1917;">' + ownerName + '</div></div>';
+  html += '<div style="flex:1;"><div style="font-size:12px;color:#78716C;margin-bottom:4px;">乙方签署</div><div style="font-size:14px;font-weight:600;color:#1C1917;">' + u.name + '</div></div>';
+  html += '</div>';
+
+  document.getElementById('contract-content').innerHTML = html;
+
+  // Render plain-language block for contract
+  (function(){
+    var plEl = document.getElementById('contract-plain-lang');
+    if(!plEl || !proj) return;
+    var amount = contract.amount;
+    var ratio = proj.revenueShareRate;
+    var estRevenue = proj.estimatedMonthlyRevenue;
+    var multiple = proj.recoveryMultiple;
+    var totalAmount = proj.targetAmount;
+    var monthlyShare = estRevenue * ratio / 100;
+    var myMonthly = monthlyShare * (amount / totalAmount);
+    var myMonths = myMonthly > 0 ? Math.ceil(amount / myMonthly) : 0;
+    var myCap = amount * multiple;
+
+    plEl.style.display = 'block';
+    plEl.innerHTML = '<div class="plain-lang-title">\\uD83D\\uDCAC 简单来说</div>'
+      + '<div class="plain-lang-body">'
+      + '你将投入 ' + amount + ' 万参与"' + proj.name + '"项目。项目每月收入的 ' + ratio + '% 按你的份额比例分给你。按预估，你每月约拿到 ' + myMonthly.toFixed(2) + ' 万，约 ' + myMonths + ' 个月收回本金，最多拿回 ' + myCap.toFixed(2) + ' 万。'
+      + '<br/><br/><span class="plain-lang-warning">\\u26A0\\uFE0F 以上基于预估收入，实际回款取决于项目真实经营情况。</span>'
+      + '</div>';
+  })();
+
+  // Check if already signed
+  if(contract.status === 'active'){
+    document.getElementById('sign-area').innerHTML = '<div style="text-align:center;padding:20px;"><div style="width:56px;height:56px;border-radius:50%;background:#16a34a;color:#fff;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 12px;"><i class="fas fa-check"></i></div><p style="font-size:16px;font-weight:600;color:#16a34a;">合同已签署生效</p></div>';
+    return;
+  }
+
+  // Verify code logic
+  var verifyBtn = document.getElementById('verify-send');
+  var verifyInput = document.getElementById('verify-code');
+  var agreeCheck = document.getElementById('agree-check');
+  var signBtn = document.getElementById('sign-btn');
+  var countdown = 0;
+
+  verifyBtn.addEventListener('click', function(){
+    if(countdown > 0) return;
+    countdown = 60;
+    verifyBtn.disabled = true;
+    verifyBtn.textContent = '60s';
+    showToast('验证码已发送（Demo: 888888）', 'success');
+    var cd = setInterval(function(){
+      countdown--;
+      if(countdown <= 0){ clearInterval(cd); verifyBtn.disabled = false; verifyBtn.textContent = '发送验证码'; }
+      else { verifyBtn.textContent = countdown + 's'; }
+    }, 1000);
+  });
+
+  // Enable sign button when both checked and code filled
+  function checkCanSign(){
+    var canSign = agreeCheck.checked && verifyInput.value.trim().length >= 4;
+    signBtn.disabled = !canSign;
+    signBtn.style.opacity = canSign ? '1' : '0.5';
+  }
+  agreeCheck.addEventListener('change', checkCanSign);
+  verifyInput.addEventListener('input', checkCanSign);
+
+  // Sign
+  signBtn.addEventListener('click', function(){
+    if(signBtn.disabled) return;
+    if(verifyInput.value.trim() !== '888888'){
+      showToast('验证码错误', 'error');
+      return;
+    }
+
+    // Update sign status — participant signs
+    var signB = document.getElementById('sign-b');
+    signB.className = 'sign-status-val sign-status-done';
+    signB.innerHTML = '<i class="fas fa-check-circle mr-1"></i>已签署';
+
+    // Disable sign area inputs
+    signBtn.disabled = true;
+    signBtn.textContent = '签署中...';
+    agreeCheck.disabled = true;
+    verifyInput.disabled = true;
+    verifyBtn.disabled = true;
+
+    // Simulate owner auto-sign after 1s
+    setTimeout(function(){
+      var signA = document.getElementById('sign-a');
+      signA.className = 'sign-status-val sign-status-done';
+      signA.innerHTML = '<i class="fas fa-check-circle mr-1"></i>已签署';
+
+      // Update contract in localStorage
+      contract.status = 'active';
+      contract.signedAt = new Date().toISOString();
+      var allContracts = [];
+      try { allContracts = JSON.parse(localStorage.getItem('zlc_contracts') || '[]'); } catch(e){}
+      var idx = allContracts.findIndex(function(c){ return c.id === CONTRACT_ID; });
+      if(idx >= 0) allContracts[idx] = contract;
+      localStorage.setItem('zlc_contracts', JSON.stringify(allContracts));
+
+      // Check if project should become active
+      var projectContracts = allContracts.filter(function(c){ return c.projectId === proj.id; });
+      var allActive = projectContracts.every(function(c){ return c.status === 'active'; });
+      if(allActive){
+        // Update user project status if exists
+        var userProjects = [];
+        try { userProjects = JSON.parse(localStorage.getItem('zlc_user_projects') || '[]'); } catch(e){}
+        var pIdx = userProjects.findIndex(function(p){ return p.id === proj.id; });
+        if(pIdx >= 0){ userProjects[pIdx].status = 'active'; localStorage.setItem('zlc_user_projects', JSON.stringify(userProjects)); }
+      }
+
+      // Show ceremony page (Task 1)
+      setTimeout(function(){
+        // Calculate ceremony data
+        var investmentAmount = contract.amount;
+        var proj = contract.project;
+        var sharePercentage = (investmentAmount / proj.targetAmount * 100).toFixed(1);
+        var monthlyShare = (investmentAmount * proj.revenueShareRate / 100).toFixed(2);
+        var recoveryCap = (investmentAmount * proj.recoveryMultiple).toFixed(1);
+
+        // Fill summary rows
+        var summaryEl = document.getElementById('ceremony-summary');
+        if(summaryEl){
+          summaryEl.innerHTML = ''
+            + '<div class="ceremony-summary-row"><span class="ceremony-summary-label">投资金额</span><span class="ceremony-summary-value">¥' + investmentAmount + '万</span></div>'
+            + '<div class="ceremony-summary-row"><span class="ceremony-summary-label">占比份额</span><span class="ceremony-summary-value">' + sharePercentage + '%</span></div>'
+            + '<div class="ceremony-summary-row"><span class="ceremony-summary-label">预估月回款</span><span class="ceremony-summary-value">≈¥' + monthlyShare + '万</span></div>'
+            + '<div class="ceremony-summary-row"><span class="ceremony-summary-label">回收上限</span><span class="ceremony-summary-value">¥' + recoveryCap + '万</span></div>';
+        }
+
+        // Show ceremony page
+        var ceremony = document.getElementById('ceremony-page');
+        if(ceremony){
+          ceremony.classList.add('show');
+          // Trigger animations
+          var circle = document.getElementById('ceremony-circle');
+          var check = document.getElementById('ceremony-check');
+          if(circle) circle.classList.add('animate');
+          if(check) check.classList.add('animate');
+        }
+
+        // Button handlers
+        var shareBtn = document.getElementById('ceremony-share-btn');
+        if(shareBtn){
+          shareBtn.addEventListener('click', function(){
+            window.location.href = '/projects/' + contract.projectId + '?share=true';
+          });
+        }
+        var contractBtn = document.getElementById('ceremony-contract-btn');
+        if(contractBtn){
+          contractBtn.addEventListener('click', function(){
+            ceremony.classList.remove('show');
+          });
+        }
+        var homeBtn = document.getElementById('ceremony-home-btn');
+        if(homeBtn){
+          homeBtn.addEventListener('click', function(){
+            window.location.href = '/';
+          });
+        }
+      }, 500);
+    }, 1000);
+  });
+})();
+`}} />
+    </div>,
+    { title: '中流通 - 合同签署' }
+  )
+})
+}
