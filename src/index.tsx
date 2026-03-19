@@ -7,19 +7,32 @@ import guide from './guide'
 import {
   mockMembers, mockProjects, mockRepayments,
   mockContracts, mockRevenueReports, mockRepaymentRecords,
-  mockTeachers, mockReferrals,
+  mockTeachers, mockReferrals, mockShareLogs, mockNotifications,
   getTeacherForMember, isSameClass, findProjectByShareCode,
   getRelationTag, getRelevanceScore,
   getUserStats, getProjectStats, calculateRBF, distributeRevenue,
   DEMO_VERIFY_CODE,
 } from './data'
-import type { Member, Teacher, Project, Contract, RevenueReport, RepaymentRecord, DistributionResult, RelationTag, Referral } from './data'
+import type { Member, Teacher, Project, Contract, RevenueReport, RepaymentRecord, DistributionResult, RelationTag, Referral, ShareLog, Notification } from './data'
 
 const app = new Hono()
 
 // ── Global JS Utilities (injected into every page) ─────
 const GlobalScripts = () => (
   <script dangerouslySetInnerHTML={{ __html: `
+// ── Data Init: ensure localStorage has mock data ──
+(function(){
+  if(!localStorage.getItem('zlc_referrals')){
+    localStorage.setItem('zlc_referrals', ${JSON.stringify(JSON.stringify(mockReferrals))});
+  }
+  if(!localStorage.getItem('zlc_share_logs')){
+    localStorage.setItem('zlc_share_logs', ${JSON.stringify(JSON.stringify(mockShareLogs))});
+  }
+  if(!localStorage.getItem('zlc_notifications')){
+    localStorage.setItem('zlc_notifications', ${JSON.stringify(JSON.stringify(mockNotifications))});
+  }
+})();
+
 // ── Toast (reuse single element) ──
 var _toastEl = null, _toastTimer = null;
 function showToast(message, type, duration) {
@@ -602,12 +615,28 @@ function initNavUserDropdown() {
     dropdown.style.display = isOpen ? 'block' : 'none';
   });
 
-  // Bell unread dot
+  // Bell unread count (filtered by role/id)
   var bellDot = document.getElementById('nav-bell-dot');
   if(bellDot){
-    var unread = localStorage.getItem('zlc_unread_notifications');
-    if(unread === null) unread = 'true';
-    bellDot.style.display = (unread === 'true') ? 'block' : 'none';
+    var allNotifs = [];
+    try { allNotifs = JSON.parse(localStorage.getItem('zlc_notifications') || '[]'); } catch(e){}
+    if(!allNotifs || allNotifs.length === 0){
+      try { allNotifs = JSON.parse(localStorage.getItem('zlc_notifications')); } catch(e){}
+    }
+    // Filter: global (both null) OR targetId matches OR (targetRole matches AND targetId null)
+    var myNotifs = allNotifs.filter(function(n){
+      if(n.targetRole === null && n.targetId === null) return true;
+      if(n.targetId === u.id) return true;
+      if(n.targetRole === u.role && n.targetId === null) return true;
+      return false;
+    });
+    var unreadCount = myNotifs.filter(function(n){ return !n.read; }).length;
+    if(unreadCount > 0){
+      bellDot.style.display = 'block';
+      bellDot.textContent = unreadCount > 99 ? '99+' : String(unreadCount);
+    } else {
+      bellDot.style.display = 'none';
+    }
   }
 
   // Close on outside click
@@ -686,7 +715,7 @@ const Navbar = () => (
       <span id="nav-demo-btn" style="font-size:12px;color:#B91C1C;background:rgba(185,28,28,0.08);border-radius:8px;padding:4px 10px;cursor:pointer;display:none;" />
       <button id="nav-bell" class="flex items-center justify-center" style="width:36px;height:36px;background:none;border:none;cursor:pointer;position:relative;" onclick="window.location.href='/notifications'">
         <i class="fas fa-bell" style="font-size:18px;color:#78716C;" />
-        <span id="nav-bell-dot" style="position:absolute;top:4px;right:4px;width:8px;height:8px;background:#DC2626;border-radius:50%;border:2px solid #fff;display:none;" />
+        <span id="nav-bell-dot" style="position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;background:#DC2626;color:#fff;font-size:10px;font-weight:700;border-radius:8px;text-align:center;line-height:16px;padding:0 3px;display:none;" />
       </button>
       {/* User avatar button with dropdown */}
       <div id="nav-user-wrap" style="position:relative;">
@@ -2747,13 +2776,16 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, nam
     refSubmitBtn.addEventListener('click', function(){
       if(!myTeacher) return;
       var msg = refMessage ? refMessage.value.trim() : '';
-      var now = new Date().toISOString();
+      var now = new Date();
+      var nowISO = now.toISOString();
+      var todayStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
       var ref = {
         id: 'ref-' + Date.now().toString(36),
         projectId: PROJ.id,
         projectName: PROJ.name,
         requesterId: u.id,
         requesterName: u.name || '',
+        requesterClass: u.className || '',
         requesterClassName: u.className || '',
         initiatorId: PROJ.ownerId,
         initiatorName: projOwnerMember ? projOwnerMember.name : '',
@@ -2762,7 +2794,10 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, nam
         teacherName: myTeacher.name,
         message: msg,
         status: 'pending',
-        requestedAt: now,
+        createdAt: todayStr,
+        completedAt: null,
+        completedNote: null,
+        requestedAt: nowISO,
         connectedAt: null
       };
       referrals.push(ref);
@@ -4039,6 +4074,10 @@ app.get('/repayments', (c) => {
   // ── 我的发起 ──
   var myProjects = PROJECTS.filter(function(p){ return p.ownerId === u.id; });
 
+  // Load share logs for share count
+  var shareLogs = [];
+  try { shareLogs = JSON.parse(localStorage.getItem('zlc_share_logs') || '[]'); } catch(e){}
+
   var initiateHTML = '';
 
   if(myProjects.length === 0){
@@ -4078,8 +4117,11 @@ app.get('/repayments', (c) => {
       initiateHTML += '<span style="font-size:16px;font-weight:600;color:#1C1917;">' + p.name + '</span>';
       initiateHTML += '<span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;' + badgeStyle + '">' + statusLabel + '</span>';
       initiateHTML += '</div>';
-      // View/Participant count (Task 3)
-      initiateHTML += '<div style="font-size:12px;color:#A8A29E;margin-top:4px;margin-bottom:8px;">' + viewCount + '人浏览 · ' + participantCount + '人参与</div>';
+      // View/Participant/Share count
+      var shareCount = shareLogs.filter(function(sl){ return sl.projectId === p.id; }).length;
+      var statsText = viewCount + '人浏览 · ' + participantCount + '人参与';
+      if(shareCount > 0) statsText += ' · ' + shareCount + '次分享';
+      initiateHTML += '<div style="font-size:12px;color:#A8A29E;margin-top:4px;margin-bottom:8px;">' + statsText + '</div>';
       initiateHTML += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">';
       initiateHTML += '<span style="background:#FEE2E2;color:#B91C1C;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">' + p.industry + '</span>';
       initiateHTML += '</div>';
@@ -5288,6 +5330,11 @@ app.get('/teacher', (c) => {
             <span>引荐请求</span>
             <span class="ref-badge" id="ref-badge" style="display:none;">0</span>
           </div>
+          {/* Tabs for pending/completed */}
+          <div id="referral-tabs" style="display:flex;gap:0;margin-bottom:12px;background:#F5F5F4;border-radius:10px;padding:3px;">
+            <button id="ref-tab-pending" style="flex:1;padding:8px 0;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:#fff;color:#B91C1C;box-shadow:0 1px 2px rgba(0,0,0,0.05);" onclick="switchRefTab('pending')">待处理</button>
+            <button id="ref-tab-completed" style="flex:1;padding:8px 0;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:#78716C;" onclick="switchRefTab('completed')">已处理</button>
+          </div>
           <div id="referral-list">
             <div style="text-align:center;padding:16px;font-size:14px;color:#78716C;">暂无待处理的引荐请求</div>
           </div>
@@ -5431,25 +5478,34 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, nam
   })();
 
   // ── Referral Requests ──
-  // Init referrals in localStorage if not exist
-  var initialReferrals = [
-    {
-      id: 'ref-demo-001', projectId: 'p-004', projectName: '华东冷链仓储扩建',
-      requesterId: 'm-005', requesterName: '赵丽华', requesterClassName: '第11期',
-      initiatorId: 'm-004', initiatorName: '陈伟强', initiatorClassName: '第8期',
-      teacherId: 't-002', teacherName: '陈老师',
-      message: '我对冷链物流赛道很感兴趣，之前考察过类似项目，想和陈总深入聊一下',
-      status: 'pending', requestedAt: '2026-03-18T10:30:00', connectedAt: null
+  var currentRefTab = 'pending';
+
+  window.switchRefTab = function(tab){
+    currentRefTab = tab;
+    var pendingBtn = document.getElementById('ref-tab-pending');
+    var completedBtn = document.getElementById('ref-tab-completed');
+    if(tab === 'pending'){
+      pendingBtn.style.background = '#fff'; pendingBtn.style.color = '#B91C1C'; pendingBtn.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
+      completedBtn.style.background = 'transparent'; completedBtn.style.color = '#78716C'; completedBtn.style.boxShadow = 'none';
+    } else {
+      completedBtn.style.background = '#fff'; completedBtn.style.color = '#B91C1C'; completedBtn.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
+      pendingBtn.style.background = 'transparent'; pendingBtn.style.color = '#78716C'; pendingBtn.style.boxShadow = 'none';
     }
-  ];
-  if (!localStorage.getItem('zlc_referrals')) {
-    localStorage.setItem('zlc_referrals', JSON.stringify(initialReferrals));
-  }
+    renderReferrals();
+  };
 
   function renderReferrals() {
     var referrals = [];
     try { referrals = JSON.parse(localStorage.getItem('zlc_referrals') || '[]'); } catch(e){}
-    var pending = referrals.filter(function(r){ return r.teacherId === myTeacher.id && r.status === 'pending'; });
+
+    // Filter by this teacher
+    var myRefs = referrals.filter(function(r){ return r.teacherId === myTeacher.id; });
+    var pending = myRefs.filter(function(r){ return r.status === 'pending'; });
+    var completed = myRefs.filter(function(r){ return r.status === 'completed' || r.status === 'connected'; });
+
+    // Sort pending by createdAt desc, completed by completedAt desc
+    pending.sort(function(a,b){ return new Date(b.createdAt || b.requestedAt || 0) - new Date(a.createdAt || a.requestedAt || 0); });
+    completed.sort(function(a,b){ return new Date(b.completedAt || b.connectedAt || 0) - new Date(a.completedAt || a.connectedAt || 0); });
 
     var badge = document.getElementById('ref-badge');
     if (pending.length > 0) {
@@ -5459,35 +5515,55 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, nam
       badge.style.display = 'none';
     }
 
+    var items = currentRefTab === 'pending' ? pending : completed;
     var listEl = document.getElementById('referral-list');
-    if (pending.length === 0) {
-      listEl.innerHTML = '<div style="text-align:center;padding:16px;font-size:14px;color:#78716C;">暂无待处理的引荐请求</div>';
+
+    if (items.length === 0) {
+      var emptyMsg = currentRefTab === 'pending' ? '暂无待处理的引荐请求' : '暂无已处理的引荐记录';
+      listEl.innerHTML = '<div style="text-align:center;padding:16px;font-size:14px;color:#78716C;">' + emptyMsg + '</div>';
       return;
     }
 
-    listEl.innerHTML = pending.map(function(r) {
-      var initiatorMember = ALL_MEMBERS.find(function(m){ return m.id === r.initiatorId; });
-      var initiatorCompany = initiatorMember ? initiatorMember.company : '';
-      var reqDate = new Date(r.requestedAt);
-      var dateStr = reqDate.getFullYear() + '-' + String(reqDate.getMonth()+1).padStart(2,'0') + '-' + String(reqDate.getDate()).padStart(2,'0') + ' ' + String(reqDate.getHours()).padStart(2,'0') + ':' + String(reqDate.getMinutes()).padStart(2,'0');
+    listEl.innerHTML = items.map(function(r) {
+      // Find project owner info
+      var project = ALL_PROJECTS.find(function(p){ return p.id === r.projectId; });
+      var projectOwner = project ? ALL_MEMBERS.find(function(m){ return m.id === project.ownerId; }) : null;
+      var ownerName = projectOwner ? projectOwner.name : '';
+      var ownerCompany = projectOwner ? projectOwner.company : '';
+      var dateStr = r.createdAt || r.requestedAt || '';
 
       var html = '<div class="ref-request-item">';
+      // Requester info
       html += '<div class="ref-person-row"><div class="ref-avatar">' + r.requesterName.charAt(0) + '</div>';
       html += '<span style="font-size:14px;color:#1C1917;">' + r.requesterName + '</span>';
-      html += '<span style="font-size:12px;color:#A8A29E;">' + r.requesterClassName + '</span></div>';
-      html += '<div style="font-size:12px;color:#A8A29E;margin:4px 0;">想认识</div>';
-      html += '<div class="ref-person-row"><div class="ref-avatar" style="background:#D4A853;">' + r.initiatorName.charAt(0) + '</div>';
-      html += '<span style="font-size:14px;color:#1C1917;">' + r.initiatorName + '</span>';
-      if(initiatorCompany) html += '<span style="font-size:12px;color:#78716C;">' + initiatorCompany + '</span>';
-      html += '<span style="font-size:12px;color:#A8A29E;">' + (r.initiatorClassName||'') + '</span></div>';
+      html += '<span style="font-size:12px;color:#A8A29E;">' + (r.requesterClass || r.requesterClassName || '') + '</span></div>';
+      html += '<div style="font-size:12px;color:#A8A29E;margin:4px 0;">想了解项目</div>';
+      // Project info
+      html += '<div style="display:flex;align-items:center;gap:8px;margin:4px 0;">';
+      html += '<span style="font-size:14px;font-weight:600;color:#1C1917;">' + r.projectName + '</span>';
+      if(ownerName) html += '<span style="font-size:12px;color:#78716C;">(发起人: ' + ownerName + ')</span>';
+      html += '</div>';
+      // Message
       if(r.message){
         html += '<div class="ref-msg-block">\\uD83D\\uDCAC ' + r.message + '</div>';
       }
       html += '<div style="font-size:11px;color:#A8A29E;margin-top:6px;">' + dateStr + '</div>';
-      html += '<div class="ref-btn-row">';
-      html += '<button class="ref-btn ref-btn-connected" onclick="handleRef(\\'' + r.id + '\\',\\'connected\\')">已对接</button>';
-      html += '<button class="ref-btn ref-btn-decline" onclick="handleRef(\\'' + r.id + '\\',\\'declined\\')">暂缓</button>';
-      html += '</div></div>';
+
+      if(currentRefTab === 'pending'){
+        html += '<div class="ref-btn-row">';
+        html += '<button class="ref-btn ref-btn-connected" onclick="handleRef(\\'' + r.id + '\\',\\'completed\\')">已对接</button>';
+        html += '<button class="ref-btn ref-btn-decline" onclick="handleRef(\\'' + r.id + '\\',\\'declined\\')">暂缓</button>';
+        html += '</div>';
+      } else {
+        // Show completed info
+        var completedInfo = r.completedNote || r.completedAt || '已完成';
+        var completedDate = r.completedAt || r.connectedAt || '';
+        html += '<div style="margin-top:8px;padding:8px 12px;background:#F0FDF4;border-radius:8px;font-size:12px;color:#16a34a;">';
+        html += '\\u2705 ' + completedInfo;
+        if(completedDate) html += ' <span style="color:#A8A29E;">(' + completedDate + ')</span>';
+        html += '</div>';
+      }
+      html += '</div>';
       return html;
     }).join('');
   }
@@ -5498,9 +5574,14 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, nam
     var ref = referrals.find(function(r){ return r.id === refId; });
     if (ref) {
       ref.status = newStatus;
-      if (newStatus === 'connected') ref.connectedAt = new Date().toISOString();
+      if (newStatus === 'completed' || newStatus === 'connected') {
+        var today = new Date();
+        ref.completedAt = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+        ref.completedNote = '已完成对接';
+        ref.connectedAt = new Date().toISOString();
+      }
       localStorage.setItem('zlc_referrals', JSON.stringify(referrals));
-      showToast(newStatus === 'connected' ? '已标记为已对接' : '已暂缓');
+      showToast(newStatus === 'completed' || newStatus === 'connected' ? '已标记为已对接' : '已暂缓');
       renderReferrals();
     }
   };
@@ -5725,26 +5806,39 @@ app.get('/notifications', (c) => {
   if (!u) { window.location.href = '/login'; return; }
 
   var NOTIFS_KEY = 'zlc_notifications';
-  var UNREAD_KEY = 'zlc_unread_notifications';
 
-  // Default notifications
-  var defaultNotifs = [
-    { id:'n-001', type:'participation', title:'新投资参与', content:'李明远 参与了您发起的项目「华南餐饮连锁联营」，投资金额 ¥10万', time:'2小时前', read:false, icon:'💰', link:'/projects/p-001' },
-    { id:'n-002', type:'repayment', title:'回款到账', content:'项目「华南餐饮连锁联营」本月回款已分配，您收到 ¥0.18万', time:'1天前', read:false, icon:'📈', link:'/repayments' },
-    { id:'n-003', type:'referral', title:'引荐请求', content:'学员 王晓薇（第14期）请求您引荐「智能制造设备融资」项目发起人', time:'2天前', read:true, icon:'🤝', link:'/teacher' },
-    { id:'n-004', type:'system', title:'项目状态更新', content:'您参与的项目「社区生鲜供应链」已满额募集，即将进入运营期', time:'3天前', read:true, icon:'📋', link:'/projects/p-003' },
-    { id:'n-005', type:'system', title:'平台公告', content:'中流通平台 V1.0 正式上线，欢迎各位学员体验！', time:'5天前', read:true, icon:'📢', link:null },
-    { id:'n-006', type:'repayment', title:'回款报告提醒', content:'您发起的项目「教育培训机构扩张」本月尚未提交收入报告，请及时上报', time:'5天前', read:true, icon:'⏰', link:'/initiated/p-004/report' }
-  ];
-
-  // Load from localStorage or use defaults
-  var notifs = null;
-  try { notifs = JSON.parse(localStorage.getItem(NOTIFS_KEY)); } catch(e){}
-  if(!notifs) {
-    notifs = defaultNotifs;
-    localStorage.setItem(NOTIFS_KEY, JSON.stringify(notifs));
-    localStorage.setItem(UNREAD_KEY, 'true');
+  // Relative time helper
+  function relativeTime(dateStr){
+    if(!dateStr) return '';
+    var now = new Date();
+    var d = new Date(dateStr);
+    var diffMs = now - d;
+    var diffMin = Math.floor(diffMs / 60000);
+    if(diffMin < 1) return '刚刚';
+    if(diffMin < 60) return diffMin + '分钟前';
+    var diffHour = Math.floor(diffMin / 60);
+    if(diffHour < 24) return diffHour + '小时前';
+    var diffDay = Math.floor(diffHour / 24);
+    if(diffDay < 30) return diffDay + '天前';
+    var diffMonth = Math.floor(diffDay / 30);
+    if(diffMonth < 12) return diffMonth + '个月前';
+    return Math.floor(diffMonth / 12) + '年前';
   }
+
+  // Load all notifications from localStorage
+  var allNotifs = [];
+  try { allNotifs = JSON.parse(localStorage.getItem(NOTIFS_KEY) || '[]'); } catch(e){}
+
+  // Filter by current user: global, or targetId match, or role match with null targetId
+  var notifs = allNotifs.filter(function(n){
+    if(n.targetRole === null && n.targetId === null) return true;
+    if(n.targetId === u.id) return true;
+    if(n.targetRole === u.role && (n.targetId === null || n.targetId === undefined)) return true;
+    return false;
+  });
+
+  // Sort by time descending
+  notifs.sort(function(a,b){ return new Date(b.time) - new Date(a.time); });
 
   var listEl = document.getElementById('notification-list');
   var markAllBtn = document.getElementById('mark-all-read');
@@ -5752,7 +5846,7 @@ app.get('/notifications', (c) => {
   function renderList(){
     if(!notifs || notifs.length === 0){
       listEl.innerHTML = '<div style="text-align:center;padding:80px 0;">'
-        +'<div style="font-size:64px;color:#D6D3D1;margin-bottom:16px;">🔔</div>'
+        +'<div style="font-size:64px;color:#D6D3D1;margin-bottom:16px;">\\uD83D\\uDD14</div>'
         +'<p style="font-size:15px;color:#A8A29E;">暂无消息</p>'
         +'</div>';
       return;
@@ -5765,6 +5859,7 @@ app.get('/notifications', (c) => {
         : '<div style="width:8px;flex-shrink:0;"></div>';
       var titleColor = !n.read ? 'color:#B91C1C;' : 'color:#1C1917;';
       var linkAttr = n.link ? 'data-link="'+n.link+'"' : '';
+      var timeDisplay = relativeTime(n.time);
       html += '<div class="notif-item" data-id="'+n.id+'" '+linkAttr+' style="padding:16px;border-bottom:1px solid #F5F5F4;cursor:pointer;display:flex;gap:10px;transition:background 0.15s;" onmouseover="this.style.background=\\'#FAFAF9\\'" onmouseout="this.style.background=\\'transparent\\'">'
         + dotHTML
         + '<div style="flex:1;min-width:0;">'
@@ -5773,7 +5868,7 @@ app.get('/notifications', (c) => {
         + '<span style="font-size:16px;flex-shrink:0;margin-left:8px;">'+n.icon+'</span>'
         + '</div>'
         + '<div style="font-size:13px;color:#57534E;margin-top:4px;line-height:1.5;">'+n.content+'</div>'
-        + '<div style="font-size:12px;color:#A8A29E;margin-top:6px;">'+n.time+'</div>'
+        + '<div style="font-size:12px;color:#A8A29E;margin-top:6px;">'+timeDisplay+'</div>'
         + '</div>'
         + '</div>';
     });
@@ -5784,26 +5879,24 @@ app.get('/notifications', (c) => {
       item.addEventListener('click', function(){
         var nid = item.getAttribute('data-id');
         var link = item.getAttribute('data-link');
-        // Mark as read
+        // Mark as read in the full allNotifs array
+        allNotifs.forEach(function(n){ if(n.id === nid) n.read = true; });
+        // Also mark in filtered view
         notifs.forEach(function(n){ if(n.id === nid) n.read = true; });
-        localStorage.setItem(NOTIFS_KEY, JSON.stringify(notifs));
-        updateUnreadState();
+        localStorage.setItem(NOTIFS_KEY, JSON.stringify(allNotifs));
         if(link) window.location.href = link;
         else renderList();
       });
     });
   }
 
-  function updateUnreadState(){
-    var hasUnread = notifs.some(function(n){ return !n.read; });
-    localStorage.setItem(UNREAD_KEY, hasUnread ? 'true' : 'false');
-  }
-
   // Mark all read
   markAllBtn.addEventListener('click', function(){
-    notifs.forEach(function(n){ n.read = true; });
-    localStorage.setItem(NOTIFS_KEY, JSON.stringify(notifs));
-    localStorage.setItem(UNREAD_KEY, 'false');
+    // Mark all MY visible notifs as read
+    var myIds = {};
+    notifs.forEach(function(n){ myIds[n.id] = true; n.read = true; });
+    allNotifs.forEach(function(n){ if(myIds[n.id]) n.read = true; });
+    localStorage.setItem(NOTIFS_KEY, JSON.stringify(allNotifs));
     renderList();
     showToast('已全部标为已读');
   });

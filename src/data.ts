@@ -1588,19 +1588,189 @@ export interface Referral {
   projectName: string
   requesterId: string
   requesterName: string
-  requesterClassName: string
-  initiatorId: string
-  initiatorName: string
-  initiatorClassName: string
+  requesterClass: string
   teacherId: string
   teacherName: string
   message: string
-  status: 'pending' | 'connected' | 'declined'
-  requestedAt: string
-  connectedAt: string | null
+  status: 'pending' | 'completed' | 'connected' | 'declined'
+  createdAt: string
+  completedAt: string | null
+  completedNote: string | null
+  // legacy fields for backward compat
+  requesterClassName?: string
+  initiatorId?: string
+  initiatorName?: string
+  initiatorClassName?: string
+  requestedAt?: string
+  connectedAt?: string | null
 }
 
-export const mockReferrals: Referral[] = []
+export const mockReferrals: Referral[] = [
+  {
+    id: 'ref-001', projectId: 'p-007', projectName: '精酿啤酒产能扩建',
+    requesterId: 'm-011', requesterName: '吴铭哲', requesterClass: '第14期',
+    teacherId: 't-002', teacherName: '陈敏芝',
+    message: '陈老师好，我对唐颖同学的精酿啤酒项目很感兴趣，我们铭哲新材料也在给食品设备做配件，想了解一下合作可能性，麻烦帮忙引荐。',
+    status: 'completed', createdAt: '2025-08-12', completedAt: '2025-08-14',
+    completedNote: '已拉微信群，双方约了下周三下午茶'
+  },
+  {
+    id: 'ref-002', projectId: 'p-009', projectName: '智慧停车平台城市扩张',
+    requesterId: 'm-015', requesterName: '陈浩然', requesterClass: '第18期',
+    teacherId: 't-004', teacherName: '王丽华',
+    message: '王老师，邱晓明同学的智慧停车项目跟我们新能源充电桩业务有协同空间，希望能认识一下，聊聊合作。',
+    status: 'completed', createdAt: '2025-09-05', completedAt: '2025-09-07',
+    completedNote: '已安排线下咖啡会面，双方达成初步合作意向'
+  },
+  {
+    id: 'ref-003', projectId: 'p-011', projectName: '光伏组件东南亚产能',
+    requesterId: 'm-018', requesterName: '何晓琳', requesterClass: '第18期',
+    teacherId: 't-003', teacherName: '张文博',
+    message: '张老师好，陈浩然同学的光伏越南工厂项目我很有兴趣，我们在东南亚有成熟的物流和渠道资源，想先见面聊聊。',
+    status: 'completed', createdAt: '2025-10-08', completedAt: '2025-10-10',
+    completedNote: '已拉三方群，何晓琳当天就决定参与投资'
+  },
+  {
+    id: 'ref-004', projectId: 'p-016', projectName: '工业物联网平台扩容',
+    requesterId: 'm-003', requesterName: '王建国', requesterClass: '第14期',
+    teacherId: 't-005', teacherName: '李国栋',
+    message: '李老师，冯子轩同学的物联网平台跟我们智能制造业务高度相关，我们工厂正好需要设备监控方案，希望能对接一下。',
+    status: 'pending', createdAt: '2025-11-15', completedAt: null, completedNote: null
+  },
+  {
+    id: 'ref-005', projectId: 'p-018', projectName: '女装品牌数字化转型',
+    requesterId: 'm-007', requesterName: '孙丽娜', requesterClass: '第16期',
+    teacherId: 't-005', teacherName: '李国栋',
+    message: '李老师好，曹美玲同学的女装数字化项目和我们美妆品牌的私域运营逻辑很像，想交流一下经验，也考虑参与投资。',
+    status: 'pending', createdAt: '2025-11-18', completedAt: null, completedNote: null
+  },
+  {
+    id: 'ref-006', projectId: 'p-022', projectName: '冷链物流华南网络',
+    requesterId: 'm-010', requesterName: '林晓婷', requesterClass: '第12期',
+    teacherId: 't-001', teacherName: '刘海涛',
+    message: '刘老师，段鹏飞同学的冷链物流网络跟我们母婴连锁的配送需求完全匹配，想先聊聊业务合作再考虑投资。',
+    status: 'pending', createdAt: '2025-11-20', completedAt: null, completedNote: null
+  },
+  {
+    id: 'ref-007', projectId: 'p-029', projectName: '互联网家装平台升级',
+    requesterId: 'm-016', requesterName: '刘雨桐', requesterClass: '第18期',
+    teacherId: 't-005', teacherName: '李国栋',
+    message: '李老师好，范文杰同学的家装平台AI报价功能很有意思，我们家居品牌「木与光」想探讨入驻合作。',
+    status: 'pending', createdAt: '2025-11-22', completedAt: null, completedNote: null
+  },
+  {
+    id: 'ref-008', projectId: 'p-023', projectName: '中式烘焙品牌出海',
+    requesterId: 'm-034', requesterName: '姜海波', requesterClass: '第18期',
+    teacherId: 't-001', teacherName: '刘海涛',
+    message: '刘老师，蔡小凤同学的烘焙出海项目，我们在东南亚有水产出口渠道，物流可以共享，想认识一下。',
+    status: 'completed', createdAt: '2025-06-01', completedAt: '2025-06-03',
+    completedNote: '已电话介绍，双方加了微信深聊中'
+  }
+]
+
+// ── 分享记录 ────────────────────────────────────────────
+export interface ShareLog {
+  id: string
+  projectId: string
+  sharerId: string
+  shareType: string
+  createdAt: string
+}
+
+export const mockShareLogs: ShareLog[] = [
+  { id:'sl-001', projectId:'p-001', sharerId:'m-001', shareType:'text_copy', createdAt:'2025-03-10' },
+  { id:'sl-002', projectId:'p-001', sharerId:'m-001', shareType:'card_save', createdAt:'2025-03-10' },
+  { id:'sl-003', projectId:'p-007', sharerId:'m-030', shareType:'text_copy', createdAt:'2025-08-12' },
+  { id:'sl-004', projectId:'p-007', sharerId:'m-030', shareType:'code_copy', createdAt:'2025-08-12' },
+  { id:'sl-005', projectId:'p-007', sharerId:'m-030', shareType:'text_copy', createdAt:'2025-08-15' },
+  { id:'sl-006', projectId:'p-009', sharerId:'m-035', shareType:'text_copy', createdAt:'2025-09-02' },
+  { id:'sl-007', projectId:'p-009', sharerId:'m-035', shareType:'card_save', createdAt:'2025-09-02' },
+  { id:'sl-008', projectId:'p-009', sharerId:'m-035', shareType:'link_copy', createdAt:'2025-09-05' },
+  { id:'sl-009', projectId:'p-011', sharerId:'m-015', shareType:'text_copy', createdAt:'2025-10-06' },
+  { id:'sl-010', projectId:'p-011', sharerId:'m-015', shareType:'text_copy', createdAt:'2025-10-08' },
+  { id:'sl-011', projectId:'p-016', sharerId:'m-023', shareType:'code_copy', createdAt:'2025-10-16' },
+  { id:'sl-012', projectId:'p-016', sharerId:'m-023', shareType:'text_copy', createdAt:'2025-10-18' },
+  { id:'sl-013', projectId:'p-018', sharerId:'m-024', shareType:'text_copy', createdAt:'2025-09-21' },
+  { id:'sl-014', projectId:'p-018', sharerId:'m-024', shareType:'card_save', createdAt:'2025-09-22' },
+  { id:'sl-015', projectId:'p-020', sharerId:'m-041', shareType:'text_copy', createdAt:'2025-10-02' },
+  { id:'sl-016', projectId:'p-022', sharerId:'m-037', shareType:'text_copy', createdAt:'2025-09-16' },
+  { id:'sl-017', projectId:'p-022', sharerId:'m-037', shareType:'link_copy', createdAt:'2025-09-18' },
+  { id:'sl-018', projectId:'p-023', sharerId:'m-026', shareType:'text_copy', createdAt:'2025-05-16' },
+  { id:'sl-019', projectId:'p-023', sharerId:'m-026', shareType:'text_copy', createdAt:'2025-05-20' },
+  { id:'sl-020', projectId:'p-029', sharerId:'m-042', shareType:'code_copy', createdAt:'2025-11-02' }
+]
+
+// ── 通知数据 ────────────────────────────────────────────
+export interface Notification {
+  id: string
+  type: string
+  title: string
+  content: string
+  time: string
+  read: boolean
+  icon: string
+  link: string | null
+  targetRole: string | null
+  targetId: string | null
+}
+
+export const mockNotifications: Notification[] = [
+  // ====== 全局通知 ======
+  { id:'n-001', type:'system', title:'平台公告', content:'中流通平台 V1.0 正式上线，欢迎各位学员体验！点击右上角「📖 演示」查看完整功能指南。', time:'2025-08-01', read:true, icon:'📢', link:null, targetRole:null, targetId:null },
+  { id:'n-002', type:'system', title:'新功能上线', content:'项目分享卡片全新升级，高端深色设计，支持一键复制文字版到微信群，快去试试吧！', time:'2025-10-15', read:true, icon:'✨', link:null, targetRole:null, targetId:null },
+
+  // ====== 学员 m-001 张明远的通知 ======
+  { id:'n-010', type:'participation', title:'新投资参与', content:'李芳华（第12期）参与了您发起的项目「华南餐饮连锁联营」，投资金额 ¥10万', time:'2025-03-15', read:true, icon:'💰', link:'/projects/p-001', targetRole:'member', targetId:'m-001' },
+  { id:'n-011', type:'participation', title:'新投资参与', content:'蔡小凤（第12期）参与了您发起的项目「中式烘焙品牌出海」，投资金额 ¥20万', time:'2025-05-20', read:true, icon:'💰', link:'/projects/p-023', targetRole:'member', targetId:'m-001' },
+  { id:'n-012', type:'repayment', title:'回款到账', content:'项目「中式烘焙品牌出海」第7期回款已分配，您收到 ¥0.72万', time:'2025-12-18', read:false, icon:'📈', link:'/repayments', targetRole:'member', targetId:'m-001' },
+
+  // ====== 学员 m-002 李芳华的通知 ======
+  { id:'n-020', type:'repayment', title:'回款到账', content:'项目「有机蔬菜基地二期」第8期回款已分配，您收到 ¥0.44万', time:'2025-12-18', read:false, icon:'📈', link:'/repayments', targetRole:'member', targetId:'m-002' },
+  { id:'n-021', type:'repayment', title:'回款到账', content:'项目「华南社区团购联营试点」已完成全部回款，累计回收 ¥11.73万，恭喜！', time:'2025-11-18', read:true, icon:'🎉', link:'/investments/c-006', targetRole:'member', targetId:'m-002' },
+  { id:'n-022', type:'system', title:'项目状态更新', content:'您参与的项目「冷链物流华南网络」已获得新的投资参与，目前募集进度 12.9%', time:'2025-09-22', read:true, icon:'📋', link:'/projects/p-022', targetRole:'member', targetId:'m-002' },
+
+  // ====== 学员 m-003 王建国的通知 ======
+  { id:'n-030', type:'referral', title:'引荐进行中', content:'您请李国栋老师引荐的「工业物联网平台扩容」项目，老师已收到请求，请耐心等待', time:'2025-11-15', read:false, icon:'🤝', link:'/projects/p-016', targetRole:'member', targetId:'m-003' },
+  { id:'n-031', type:'repayment', title:'回款到账', content:'项目「短视频MCN机构内容升级」已完成全部回款，累计回收 ¥15.29万，投资回报率 142%！', time:'2025-08-18', read:true, icon:'🎉', link:'/investments/c-044', targetRole:'member', targetId:'m-003' },
+
+  // ====== 老师 t-001 刘海涛的通知 ======
+  { id:'n-040', type:'referral', title:'新引荐请求', content:'林晓婷（第12期）希望您引荐认识段鹏飞，了解「冷链物流华南网络」项目的业务合作机会', time:'2025-11-20', read:false, icon:'🤝', link:'/teacher', targetRole:'teacher', targetId:'t-001' },
+  { id:'n-041', type:'referral', title:'引荐完成', content:'姜海波与蔡小凤的引荐已完成，双方就「中式烘焙品牌出海」达成了物流合作意向', time:'2025-06-03', read:true, icon:'✅', link:'/teacher', targetRole:'teacher', targetId:'t-001' },
+  { id:'n-042', type:'system', title:'班级动态', content:'您负责的第12期本月有2位学员发起新项目，3位参与投资，班级活跃度排名第2', time:'2025-11-01', read:true, icon:'📊', link:'/teacher', targetRole:'teacher', targetId:'t-001' },
+
+  // ====== 老师 t-005 李国栋的通知 ======
+  { id:'n-050', type:'referral', title:'新引荐请求', content:'王建国（第14期）希望您引荐认识冯子轩，了解「工业物联网平台扩容」项目', time:'2025-11-15', read:false, icon:'🤝', link:'/teacher', targetRole:'teacher', targetId:'t-005' },
+  { id:'n-051', type:'referral', title:'新引荐请求', content:'孙丽娜（第16期）希望您引荐认识曹美玲，了解「女装品牌数字化转型」项目', time:'2025-11-18', read:false, icon:'🤝', link:'/teacher', targetRole:'teacher', targetId:'t-005' },
+  { id:'n-052', type:'referral', title:'新引荐请求', content:'刘雨桐（第18期）希望您引荐认识范文杰，探讨「互联网家装平台升级」的入驻合作', time:'2025-11-22', read:false, icon:'🤝', link:'/teacher', targetRole:'teacher', targetId:'t-005' },
+  { id:'n-053', type:'system', title:'班级动态', content:'您负责的第22期本月新增3个项目，5位学员参与投资，班级活跃度排名第1！', time:'2025-11-01', read:true, icon:'📊', link:'/teacher', targetRole:'teacher', targetId:'t-005' },
+
+  // ====== 管理员通知 ======
+  { id:'n-060', type:'system', title:'平台周报', content:'本周新增项目3个，新增投资参与8笔，累计回款 ¥12.5万，平台运营正常', time:'2025-11-17', read:false, icon:'📊', link:'/admin', targetRole:'admin', targetId:'m-admin' },
+  { id:'n-061', type:'system', title:'学员注册提醒', content:'第22期新增注册学员3人（夏天宇、方雨欣、崔明浩），请关注新学员的首次活跃情况', time:'2025-11-10', read:true, icon:'🎓', link:'/admin#members', targetRole:'admin', targetId:'m-admin' },
+  { id:'n-062', type:'system', title:'项目终止通知', content:'项目「共享办公空间运营」已终止，发起人梁俊豪已启动清算流程，请持续关注', time:'2025-09-15', read:true, icon:'⚠️', link:'/admin#projects', targetRole:'admin', targetId:'m-admin' },
+  { id:'n-063', type:'system', title:'回款里程碑', content:'项目「短视频MCN机构内容升级」已完成全部回款，回报率142%，为平台第4个成功案例', time:'2025-08-18', read:true, icon:'🏆', link:'/admin#projects', targetRole:'admin', targetId:'m-admin' }
+]
+
+// ── 数据初始化函数（供前端使用） ─────────────────────────
+// 这个函数会在 index.tsx 中被导出为 JSON 注入前端
+export function getInitDataScript(): string {
+  return `
+(function(){
+  // 初始化引荐数据
+  if(!localStorage.getItem('zlc_referrals')){
+    localStorage.setItem('zlc_referrals', ${JSON.stringify(JSON.stringify(mockReferrals))});
+  }
+  // 初始化分享记录
+  if(!localStorage.getItem('zlc_share_logs')){
+    localStorage.setItem('zlc_share_logs', ${JSON.stringify(JSON.stringify(mockShareLogs))});
+  }
+  // 初始化通知数据
+  if(!localStorage.getItem('zlc_notifications')){
+    localStorage.setItem('zlc_notifications', ${JSON.stringify(JSON.stringify(mockNotifications))});
+  }
+})();
+`
+}
 
 // Demo 验证码
 export const DEMO_VERIFY_CODE = '888888'
