@@ -1435,6 +1435,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
             var sp = document.getElementById('splash-screen');
             var pw = document.getElementById('zlc-page-wrap');
             if(!sp) { if(pw) pw.classList.add('sp-visible'); return; }
+            if(sessionStorage.getItem('zlc_splash_done')){
+              sp.style.display='none';
+              if(pw) pw.classList.add('sp-visible');
+              return;
+            }
+            sessionStorage.setItem('zlc_splash_done','1');
             setTimeout(function(){
               sp.classList.add('sp-dots-hide');
               setTimeout(function(){
