@@ -116,10 +116,32 @@ function initProgressBars() {
   });
 }
 
+// ── Help Icon Toggle ──
+function initHelpIcons() {
+  document.querySelectorAll('.help-icon').forEach(function(icon) {
+    icon.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var helpEl = icon.nextElementSibling;
+      if (!helpEl || !helpEl.classList.contains('help-text')) return;
+      if (helpEl.classList.contains('expanded')) {
+        helpEl.classList.remove('expanded');
+      } else {
+        document.querySelectorAll('.help-text.expanded').forEach(function(el) { el.classList.remove('expanded'); });
+        helpEl.classList.add('expanded');
+      }
+    });
+  });
+  // Close on outside click
+  document.addEventListener('click', function() {
+    document.querySelectorAll('.help-text.expanded').forEach(function(el) { el.classList.remove('expanded'); });
+  });
+}
+
 // Init on page load
 document.addEventListener('DOMContentLoaded', function(){
   initReveal();
   initProgressBars();
+  initHelpIcons();
 });
 `}} />
 )
@@ -1009,7 +1031,7 @@ app.get('/projects/:id', (c) => {
         </div>
 
         {/* 2. RBF Terms Card */}
-        <div class="terms-card shadow-card mb-4">
+        <div class="terms-card shadow-card mb-3">
           <div class="px-5 py-4" style="border-bottom:1px solid #F5F5F4;">
             <h3 class="font-semibold text-text-title" style="font-size:16px;">
               <i class="fas fa-file-contract text-brand mr-2" style="font-size:14px;" />
@@ -1018,27 +1040,51 @@ app.get('/projects/:id', (c) => {
           </div>
           <div class="terms-grid">
             <div class="terms-cell">
-              <div class="terms-label">融资总额</div>
+              <div class="flex items-center gap-1">
+                <span class="terms-label" style="margin-bottom:0;">融资总额</span>
+                <span class="help-icon" data-help-id="totalAmount">?</span>
+              </div>
+              <div class="help-text">这个项目总共需要多少资金。所有参与人的投资加起来等于这个数。</div>
               <div class="terms-value">¥{proj.targetAmount}<span class="text-text-tertiary" style="font-size:13px;font-weight:400;">万</span></div>
             </div>
             <div class="terms-cell">
-              <div class="terms-label">分成比例</div>
+              <div class="flex items-center gap-1">
+                <span class="terms-label" style="margin-bottom:0;">分成比例</span>
+                <span class="help-icon" data-help-id="revenueShareRatio">?</span>
+              </div>
+              <div class="help-text">发起人愿意把项目月收入的多少拿出来分给参与人。比例越高，参与人回款越快，但发起人让出的越多。同类项目一般在8%-20%。</div>
               <div class="terms-value">{proj.revenueShareRate}<span class="text-text-tertiary" style="font-size:13px;font-weight:400;">%</span></div>
             </div>
             <div class="terms-cell">
-              <div class="terms-label">联营期限</div>
+              <div class="flex items-center gap-1">
+                <span class="terms-label" style="margin-bottom:0;">联营期限</span>
+                <span class="help-icon" data-help-id="cooperationTerm">?</span>
+              </div>
+              <div class="help-text">合作持续多长时间。到期后无论是否收回投资，合同自动结束。</div>
               <div class="terms-value">{proj.duration}<span class="text-text-tertiary" style="font-size:13px;font-weight:400;">月</span></div>
             </div>
             <div class="terms-cell">
-              <div class="terms-label">回收倍数</div>
+              <div class="flex items-center gap-1">
+                <span class="terms-label" style="margin-bottom:0;">回收倍数</span>
+                <span class="help-icon" data-help-id="recoveryMultiple">?</span>
+              </div>
+              <div class="help-text">参与人最多能拿回投资额的多少倍。1.5倍意味着投10万最多拿回15万。达到上限后合同自动结束。</div>
               <div class="terms-value">{proj.recoveryMultiple}<span class="text-text-tertiary" style="font-size:13px;font-weight:400;">x</span></div>
             </div>
             <div class="terms-cell">
-              <div class="terms-label">回收上限</div>
+              <div class="flex items-center gap-1">
+                <span class="terms-label" style="margin-bottom:0;">回收上限</span>
+                <span class="help-icon" data-help-id="recoveryCap">?</span>
+              </div>
+              <div class="help-text">你最多能拿回的总金额 = 投资额 × 回收倍数。</div>
               <div class="terms-value">¥{rbf.recoveryCap}<span class="text-text-tertiary" style="font-size:13px;font-weight:400;">万</span></div>
             </div>
             <div class="terms-cell">
-              <div class="terms-label">预估月收入</div>
+              <div class="flex items-center gap-1">
+                <span class="terms-label" style="margin-bottom:0;">预估月收入</span>
+                <span class="help-icon" data-help-id="estimatedMonthlyRevenue">?</span>
+              </div>
+              <div class="help-text">发起人对项目月度收入的预估。这只是预估，实际回款取决于真实经营情况。</div>
               <div class="terms-value">¥{proj.estimatedMonthlyRevenue}<span class="text-text-tertiary" style="font-size:13px;font-weight:400;">万</span></div>
             </div>
           </div>
@@ -1053,6 +1099,9 @@ app.get('/projects/:id', (c) => {
             </div>
           </div>
         </div>
+
+        {/* 2.5 Plain Language Block */}
+        <div class="plain-lang-block mb-4" id="plain-lang-detail" />
 
         {/* 3. Fundraising Progress */}
         <div class="bg-white rounded-2xl shadow-card p-5 mb-4">
@@ -1087,7 +1136,7 @@ app.get('/projects/:id', (c) => {
               <span class="text-text-tertiary" style="font-size:15px;">=</span>
               <span id="share-amount" class="font-bold text-text-title" style="font-size:22px;">¥{proj.sharePrice}万</span>
             </div>
-            <div class="grid grid-cols-3 gap-3 mb-5 p-3 rounded-xl" style="background:#FAFAF9;">
+            <div class="grid grid-cols-3 gap-3 mb-3 p-3 rounded-xl" style="background:#FAFAF9;">
               <div class="text-center">
                 <div class="text-text-tertiary" style="font-size:11px;">月回款预估</div>
                 <div id="calc-monthly" class="font-bold text-text-title" style="font-size:15px;">—</div>
@@ -1101,6 +1150,8 @@ app.get('/projects/:id', (c) => {
                 <div id="calc-months" class="font-bold text-text-title" style="font-size:15px;">—</div>
               </div>
             </div>
+            {/* Calculator plain-language hint */}
+            <div id="calc-plain-hint" style="font-size:12px;line-height:1.6;color:#78716C;margin-bottom:16px;" />
             <button id="participate-btn" class="btn-gold" style="font-size:16px;">
               确认参与 ¥{proj.sharePrice}万
             </button>
@@ -1351,8 +1402,35 @@ app.get('/projects/:id', (c) => {
     if(calcC) calcC.textContent = '¥' + cap.toFixed(1) + '万';
     if(calcMo) calcMo.textContent = '约' + months + '月';
     if(partBtn && partBtn.style.display !== 'none') partBtn.textContent = '确认参与 ¥' + cost + '万';
+    // Update calculator plain-language hint
+    var hintEl = document.getElementById('calc-plain-hint');
+    if(hintEl && monthly > 0){
+      hintEl.innerHTML = '\\uD83D\\uDCA1 你投入 ' + cost + ' 万参与这个项目。按预估，你每月大约拿到 ' + monthly.toFixed(2) + ' 万。约 ' + months + ' 个月收回本金，最多拿回 ' + cap.toFixed(2) + ' 万。';
+    }
   }
   if(sel) { sel.addEventListener('change', updateCalc); updateCalc(); }
+
+  // Render plain-language block for project detail page
+  (function(){
+    var plEl = document.getElementById('plain-lang-detail');
+    if(!plEl) return;
+    var totalAmount = PROJ.targetAmount;
+    var ratio = PROJ.revenueShareRate;
+    var estRevenue = PROJ.estimatedMonthlyRevenue;
+    var multiple = PROJ.recoveryMultiple;
+    var minPart = PROJ.sharePrice;
+    var monthlyShare = estRevenue * ratio / 100;
+    var perShareMonthly = monthlyShare * (minPart / totalAmount);
+    var paybackMonths = perShareMonthly > 0 ? Math.ceil(minPart / perShareMonthly) : 0;
+    var perShareCap = minPart * multiple;
+
+    plEl.innerHTML = '<div class="plain-lang-title">\\uD83D\\uDCAC 简单来说</div>'
+      + '<div class="plain-lang-body">'
+      + '这个项目总共需要 ' + totalAmount + ' 万资金。发起人承诺把项目每月收入的 ' + ratio + '% 分给所有参与人。按目前预估每月收入 ' + estRevenue + ' 万计算，每月总共分出约 ' + monthlyShare.toFixed(2) + ' 万。'
+      + '<br/><br/>如果你参与 ' + minPart + ' 万（1份），你每月大约能拿到 ' + perShareMonthly.toFixed(2) + ' 万，大概 ' + paybackMonths + ' 个月收回本金，最多能拿回 ' + perShareCap.toFixed(2) + ' 万（投资额的 ' + multiple + ' 倍）。'
+      + '<br/><br/><span class="plain-lang-warning">\\u26A0\\uFE0F 以上基于预估收入，实际回款取决于项目真实经营情况。</span>'
+      + '</div>';
+  })();
 
   // Participate with confirm modal
   function doParticipate(){
@@ -1744,6 +1822,43 @@ app.get('/create', (c) => {
 
         {/* Step 2: Terms */}
         <div id="step-2" class="step-panel" style="display:none;">
+          {/* Reference Cases Card */}
+          <div class="case-toggle-card" id="case-toggle">
+            <div class="case-toggle-header">
+              <i class="fas fa-lightbulb" style="color:#F59E0B;font-size:14px;flex-shrink:0;" />
+              <span style="flex:1;font-size:13px;color:#78716C;">不确定怎么填？查看同行案例参考</span>
+              <i class="fas fa-chevron-down case-toggle-arrow" id="case-arrow" style="font-size:12px;" />
+            </div>
+            <div id="case-content">
+              <div style="padding-top:12px;">
+                <div style="font-size:14px;font-weight:600;color:#1C1917;margin-bottom:12px;">📊 同行案例参考</div>
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                  <div class="case-item" style="border-left:4px solid #DC2626;">
+                    <div style="font-size:12px;font-weight:600;color:#1C1917;">餐饮连锁</div>
+                    <div style="font-size:11px;color:#78716C;">融资 200-500万 · 分成 10-15% · 期限 24-36月 · 倍数 1.5x</div>
+                  </div>
+                  <div class="case-item" style="border-left:4px solid #3B82F6;">
+                    <div style="font-size:12px;font-weight:600;color:#1C1917;">智能制造</div>
+                    <div style="font-size:11px;color:#78716C;">融资 300-800万 · 分成 12-18% · 期限 36-48月 · 倍数 1.5x</div>
+                  </div>
+                  <div class="case-item" style="border-left:4px solid #16A34A;">
+                    <div style="font-size:12px;font-weight:600;color:#1C1917;">教育培训</div>
+                    <div style="font-size:11px;color:#78716C;">融资 100-300万 · 分成 8-12% · 期限 18-24月 · 倍数 1.5x</div>
+                  </div>
+                  <div class="case-item" style="border-left:4px solid #8B5CF6;">
+                    <div style="font-size:12px;font-weight:600;color:#1C1917;">美容健康</div>
+                    <div style="font-size:11px;color:#78716C;">融资 100-300万 · 分成 10-15% · 期限 18-30月 · 倍数 1.5x</div>
+                  </div>
+                  <div class="case-item" style="border-left:4px solid #F59E0B;">
+                    <div style="font-size:12px;font-weight:600;color:#1C1917;">物流供应链</div>
+                    <div style="font-size:11px;color:#78716C;">融资 500-1000万 · 分成 15-20% · 期限 36-48月 · 倍数 1.5x</div>
+                  </div>
+                </div>
+                <div style="font-size:11px;color:#A8A29E;margin-top:8px;">ℹ️ 以上为平台典型案例范围，仅供参考</div>
+              </div>
+            </div>
+          </div>
+
           <div class="bg-white rounded-2xl shadow-card p-5">
             <h3 class="font-semibold text-text-title mb-4" style="font-size:17px;font-family:'Noto Sans SC',sans-serif;">
               <i class="fas fa-file-contract text-brand mr-2" style="font-size:14px;" />条款设定
@@ -1751,14 +1866,20 @@ app.get('/create', (c) => {
 
             <div class="grid grid-cols-2 gap-3 mb-3">
               <div>
-                <label class="form-label">融资总额 <span class="req">*</span></label>
+                <label class="form-label" style="display:flex;align-items:center;gap:4px;">融资总额 <span class="req">*</span>
+                  <span class="help-icon" data-help-id="totalAmount">?</span>
+                </label>
+                <div class="help-text">这个项目总共需要多少资金。所有参与人的投资加起来等于这个数。</div>
                 <div class="input-unit-wrap">
                   <input id="f-amount" type="number" class="form-input" placeholder="如 200" min={1} />
                   <span class="input-unit">万元</span>
                 </div>
               </div>
               <div>
-                <label class="form-label">分成比例 <span class="req">*</span></label>
+                <label class="form-label" style="display:flex;align-items:center;gap:4px;">分成比例 <span class="req">*</span>
+                  <span class="help-icon" data-help-id="revenueShareRatio">?</span>
+                </label>
+                <div class="help-text">发起人愿意把项目月收入的多少拿出来分给参与人。比例越高，参与人回款越快，但发起人让出的越多。同类项目一般在8%-20%。</div>
                 <div class="input-unit-wrap">
                   <input id="f-rate" type="number" class="form-input" placeholder="如 12" min={0.1} max={100} step={0.1} />
                   <span class="input-unit">%</span>
@@ -1768,14 +1889,20 @@ app.get('/create', (c) => {
 
             <div class="grid grid-cols-2 gap-3 mb-3">
               <div>
-                <label class="form-label">联营期限 <span class="req">*</span></label>
+                <label class="form-label" style="display:flex;align-items:center;gap:4px;">联营期限 <span class="req">*</span>
+                  <span class="help-icon" data-help-id="cooperationTerm">?</span>
+                </label>
+                <div class="help-text">合作持续多长时间。到期后无论是否收回投资，合同自动结束。</div>
                 <div class="input-unit-wrap">
                   <input id="f-duration" type="number" class="form-input" placeholder="如 24" min={1} />
                   <span class="input-unit">个月</span>
                 </div>
               </div>
               <div>
-                <label class="form-label">最低参与额 <span class="req">*</span></label>
+                <label class="form-label" style="display:flex;align-items:center;gap:4px;">最低参与额 <span class="req">*</span>
+                  <span class="help-icon" data-help-id="minParticipation">?</span>
+                </label>
+                <div class="help-text">每个参与人最少要投多少钱。这个金额除以融资总额就是一份的比例。</div>
                 <div class="input-unit-wrap">
                   <input id="f-minamt" type="number" class="form-input" placeholder="如 10" min={1} />
                   <span class="input-unit">万/份</span>
@@ -1785,14 +1912,20 @@ app.get('/create', (c) => {
 
             <div class="grid grid-cols-2 gap-3 mb-3">
               <div>
-                <label class="form-label">预估月收入 <span class="req">*</span></label>
+                <label class="form-label" style="display:flex;align-items:center;gap:4px;">预估月收入 <span class="req">*</span>
+                  <span class="help-icon" data-help-id="estimatedMonthlyRevenue">?</span>
+                </label>
+                <div class="help-text">发起人对项目月度收入的预估。这只是预估，实际回款取决于真实经营情况。</div>
                 <div class="input-unit-wrap">
                   <input id="f-revenue" type="number" class="form-input" placeholder="如 30" min={0} step={0.1} />
                   <span class="input-unit">万元</span>
                 </div>
               </div>
               <div>
-                <label class="form-label">回收倍数</label>
+                <label class="form-label" style="display:flex;align-items:center;gap:4px;">回收倍数
+                  <span class="help-icon" data-help-id="recoveryMultiple">?</span>
+                </label>
+                <div class="help-text">参与人最多能拿回投资额的多少倍。1.5倍意味着投10万最多拿回15万。达到上限后合同自动结束。</div>
                 <div class="input-unit-wrap">
                   <input id="f-multiple" type="number" class="form-input" placeholder="1.5" min={1} max={10} step={0.1} value="1.5" />
                   <span class="input-unit">x</span>
@@ -1801,7 +1934,10 @@ app.get('/create', (c) => {
             </div>
 
             <div class="mb-4">
-              <label class="form-label">上报频率</label>
+              <label class="form-label" style="display:flex;align-items:center;gap:4px;">上报频率
+                <span class="help-icon" data-help-id="reportFrequency">?</span>
+              </label>
+              <div class="help-text">你多久向参与人汇报一次项目收入。月报适合大部分项目，日报适合零售等每日有流水的项目。</div>
               <select id="f-freq" class="form-select">
                 <option value="月报">月报</option>
                 <option value="日报">日报</option>
@@ -1840,6 +1976,9 @@ app.get('/create', (c) => {
             <i class="fas fa-lightbulb mr-1" style="color:#D4A853;" />
             <span id="example-text">填写条款后，此处会显示参与举例说明</span>
           </div>
+
+          {/* Plain language block for create page */}
+          <div id="create-plain-lang" class="plain-lang-block mt-3" style="display:none;" />
 
           <div class="btn-row">
             <button class="btn-secondary" id="btn-prev-2"><i class="fas fa-arrow-left mr-1" style="font-size:12px;" /> 上一步</button>
@@ -1968,6 +2107,20 @@ app.get('/create', (c) => {
     goStep(2, 'right');
   });
 
+  // Reference cases toggle
+  var caseToggle = document.getElementById('case-toggle');
+  var caseContent = document.getElementById('case-content');
+  var caseArrow = document.getElementById('case-arrow');
+  if(caseToggle && caseContent && caseArrow){
+    caseToggle.addEventListener('click', function(){
+      caseContent.classList.toggle('expanded');
+      caseArrow.classList.toggle('rotate-180');
+    });
+  }
+
+  // Re-init help icons for step 2 (created dynamically)
+  if(typeof initHelpIcons === 'function') initHelpIcons();
+
   // Step 2 auto-calc
   var calcFields = [fAmount, fRate, fDuration, fMinamt, fRevenue, fMultiple];
   function updateAutoCalc(){
@@ -1995,6 +2148,26 @@ app.get('/create', (c) => {
       exampleEl.textContent = '如果参与 ¥' + minamt + '万，预估每月回款 ¥' + perShareMonthly.toFixed(2) + '万，约' + perSharePayback + '个月收回本金';
     } else {
       exampleEl.textContent = '填写条款后，此处会显示参与举例说明';
+    }
+
+    // Plain language block for create page
+    var plEl = document.getElementById('create-plain-lang');
+    if(plEl){
+      if(amount > 0 && rate > 0 && revenue > 0 && minamt > 0){
+        var monthlyShareAll = revenue * (rate / 100);
+        var perShareM = monthlyShareAll * (minamt / amount);
+        var perSharePB = perShareM > 0 ? Math.ceil(minamt / perShareM) : 0;
+        var perShareCap = minamt * multiple;
+        plEl.style.display = 'block';
+        plEl.innerHTML = '<div class="plain-lang-title">\\uD83D\\uDCAC 简单来说</div>'
+          + '<div class="plain-lang-body">'
+          + '这个项目总共需要 ' + amount + ' 万资金。你承诺把项目每月收入的 ' + rate + '% 分给所有参与人。按预估每月收入 ' + revenue + ' 万计算，每月总共分出约 ' + monthlyShareAll.toFixed(2) + ' 万。'
+          + '<br/><br/>如果有人参与 ' + minamt + ' 万（1份），他每月大约能拿到 ' + perShareM.toFixed(2) + ' 万，大概 ' + perSharePB + ' 个月收回本金，最多能拿回 ' + perShareCap.toFixed(2) + ' 万（投资额的 ' + multiple + ' 倍）。'
+          + '<br/><br/><span class="plain-lang-warning">\\u26A0\\uFE0F 以上基于预估收入，实际回款取决于项目真实经营情况。</span>'
+          + '</div>';
+      } else {
+        plEl.style.display = 'none';
+      }
     }
   }
   calcFields.forEach(function(f){ f.addEventListener('input', updateAutoCalc); });
@@ -2156,6 +2329,9 @@ app.get('/contracts/:id/sign', (c) => {
           </div>
         </div>
 
+        {/* Plain Language Block for contract */}
+        <div id="contract-plain-lang" class="plain-lang-block mb-4" style="display:none;" />
+
         {/* Sign Area */}
         <div class="sign-area mb-4" id="sign-area">
           <h4 class="font-semibold text-text-title mb-4" style="font-size:16px;">
@@ -2267,6 +2443,28 @@ app.get('/contracts/:id/sign', (c) => {
   html += '</div>';
 
   document.getElementById('contract-content').innerHTML = html;
+
+  // Render plain-language block for contract
+  (function(){
+    var plEl = document.getElementById('contract-plain-lang');
+    if(!plEl || !proj) return;
+    var amount = contract.amount;
+    var ratio = proj.revenueShareRate;
+    var estRevenue = proj.estimatedMonthlyRevenue;
+    var multiple = proj.recoveryMultiple;
+    var totalAmount = proj.targetAmount;
+    var monthlyShare = estRevenue * ratio / 100;
+    var myMonthly = monthlyShare * (amount / totalAmount);
+    var myMonths = myMonthly > 0 ? Math.ceil(amount / myMonthly) : 0;
+    var myCap = amount * multiple;
+
+    plEl.style.display = 'block';
+    plEl.innerHTML = '<div class="plain-lang-title">\\uD83D\\uDCAC 简单来说</div>'
+      + '<div class="plain-lang-body">'
+      + '你将投入 ' + amount + ' 万参与"' + proj.name + '"项目。项目每月收入的 ' + ratio + '% 按你的份额比例分给你。按预估，你每月约拿到 ' + myMonthly.toFixed(2) + ' 万，约 ' + myMonths + ' 个月收回本金，最多拿回 ' + myCap.toFixed(2) + ' 万。'
+      + '<br/><br/><span class="plain-lang-warning">\\u26A0\\uFE0F 以上基于预估收入，实际回款取决于项目真实经营情况。</span>'
+      + '</div>';
+  })();
 
   // Check if already signed
   if(contract.status === 'active'){

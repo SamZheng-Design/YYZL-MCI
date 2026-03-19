@@ -749,6 +749,62 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
 .admin-invite-btn:hover { background: #991B1B; }
 
 /* ══════════════════════════════════════════════════
+   Help Icon ⓘ + Plain-language Block
+   ══════════════════════════════════════════════════ */
+.help-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: #F5F5F4; color: #78716C;
+  font-size: 9px; font-weight: 600; font-style: normal;
+  cursor: pointer; flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+  user-select: none; line-height: 1;
+}
+.help-icon:hover { background: #E7E5E4; color: #57534E; }
+.help-text {
+  max-height: 0; opacity: 0; overflow: hidden;
+  transition: max-height 200ms ease, opacity 200ms ease, margin 200ms ease;
+  margin-top: 0;
+  font-size: 12px; line-height: 1.5; color: #78716C;
+  background: #FAFAF9; border-radius: 8px; padding: 0 12px;
+}
+.help-text.expanded {
+  max-height: 200px; opacity: 1; padding: 10px 12px; margin-top: 6px;
+}
+.plain-lang-block {
+  background: #FFFBEB; border: 1px solid #FDE68A;
+  border-radius: 12px; padding: 16px; margin-top: 12px;
+}
+.plain-lang-title {
+  font-size: 14px; font-weight: 600; color: #92400E; margin-bottom: 8px;
+}
+.plain-lang-body {
+  font-size: 13px; line-height: 1.7; color: #78716C;
+}
+.plain-lang-warning { color: #DC2626; }
+
+/* Reference cases card */
+.case-toggle-card {
+  background: #fff; border-radius: 12px;
+  border: 1px solid rgba(0,0,0,0.06);
+  padding: 12px 16px; cursor: pointer;
+  margin-bottom: 16px;
+}
+.case-toggle-header {
+  display: flex; align-items: center; gap: 8px;
+}
+.case-toggle-arrow { transition: transform 280ms ease; color: #A8A29E; }
+.case-toggle-arrow.rotate-180 { transform: rotate(180deg); }
+#case-content {
+  max-height: 0; opacity: 0; overflow: hidden;
+  transition: max-height 280ms ease, opacity 280ms ease;
+}
+#case-content.expanded { max-height: 600px; opacity: 1; }
+.case-item {
+  background: #FAFAF9; border-radius: 8px; padding: 10px 12px;
+}
+
+/* ══════════════════════════════════════════════════
    Responsive
    ══════════════════════════════════════════════════ */
 @media (max-width: 640px) {
