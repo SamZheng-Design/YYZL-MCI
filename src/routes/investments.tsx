@@ -2,6 +2,7 @@
 import { Hono } from 'hono'
 import {
   mockMembers, mockContracts, mockRepaymentRecords,
+  mockProjects, generateContractHTML,
 } from '../data'
 import type { Member, Project, Contract, RepaymentRecord } from '../data'
 import {
@@ -11,6 +12,16 @@ import {
 export function registerInvestmentsRoute(app: Hono) {
 app.get('/investments/:contractId', (c) => {
   const contractId = c.req.param('contractId')
+
+  // Pre-generate contract HTML map for all known contracts (server-side)
+  const contractHTMLMap: Record<string, string> = {}
+  for (const ct of mockContracts) {
+    const proj = mockProjects.find(p => p.id === ct.projectId)
+    if (!proj) continue
+    const initiator = mockMembers.find(m => m.id === ct.initiatorId) || null
+    const participant = mockMembers.find(m => m.id === ct.participantId) || null
+    contractHTMLMap[ct.id] = generateContractHTML(ct, proj, participant, initiator)
+  }
 
   return c.render(
     <div class="app-container">
@@ -31,6 +42,22 @@ app.get('/investments/:contractId', (c) => {
         </div>
       </main>
 
+      {/* Contract Full-text Modal (slide up from bottom) */}
+      <div id="contract-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;">
+        <div id="contract-modal-mask" style="position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);opacity:0;transition:opacity 0.3s ease;" />
+        <div id="contract-modal-sheet" style="position:absolute;bottom:0;left:0;right:0;max-height:92vh;background:#fff;border-radius:24px 24px 0 0;overflow-y:auto;transform:translateY(100%);transition:transform 0.35s cubic-bezier(0.32,0.72,0,1);">
+          {/* Modal header */}
+          <div style="position:sticky;top:0;background:#fff;z-index:1;padding:20px 20px 12px;border-bottom:1px solid #F5F5F4;display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:17px;font-weight:600;color:#1C1917;">合同详情</span>
+            <button id="contract-modal-close" style="width:32px;height:32px;border-radius:50%;background:#F5F5F4;border:none;cursor:pointer;font-size:16px;color:#78716C;display:flex;align-items:center;justify-content:center;">×</button>
+          </div>
+          {/* Modal body */}
+          <div id="contract-modal-body" style="padding:20px;" />
+          {/* Modal footer — status label */}
+          <div id="contract-modal-footer" style="padding:12px 20px 32px;text-align:center;" />
+        </div>
+      </div>
+
       <script dangerouslySetInnerHTML={{ __html: `
 (function(){
   var u = null;
@@ -41,6 +68,7 @@ app.get('/investments/:contractId', (c) => {
   var CONTRACTS = ${JSON.stringify(mockContracts)};
   var REP_RECORDS = ${JSON.stringify(mockRepaymentRecords)};
   var MEMBERS = ${JSON.stringify(mockMembers.map(m => ({ id:m.id, name:m.name, company:m.company })))};
+  var CONTRACT_HTML_MAP = ${JSON.stringify(contractHTMLMap)};
 
   // Merge localStorage data
   var lsContracts = [];
@@ -177,13 +205,54 @@ app.get('/investments/:contractId', (c) => {
   });
   html += '</div>';
 
-  // 6. View contract button
-  var contractPage = '/contracts/' + contract.id + '/sign';
-  html += '<div style="text-align:center;margin-top:16px;">';
-  html += '<a href="' + contractPage + '" style="display:inline-flex;align-items:center;gap:6px;padding:10px 24px;border-radius:10px;background:#F5F5F4;color:#78716C;font-size:14px;font-weight:600;text-decoration:none;"><i class="fas fa-file-contract" style="font-size:13px;"></i> 查看合同</a>';
-  html += '</div>';
+  // 6. View contract button — now opens modal instead of navigating
+  html += '<button id="view-contract-btn" style="width:100%;background:#fff;border:1px solid #E7E5E4;border-radius:14px;padding:14px;font-size:15px;color:#44403C;font-weight:500;text-align:center;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:16px;transition:background 0.2s;" onmouseover="this.style.background=\\'#FAFAF9\\'" onmouseout="this.style.background=\\'#fff\\'">';
+  html += '\\uD83D\\uDCC4 查看合同';
+  html += '</button>';
 
   el.innerHTML = html;
+
+  // ── Contract Modal Logic ──
+  var modal = document.getElementById('contract-modal');
+  var mask = document.getElementById('contract-modal-mask');
+  var sheet = document.getElementById('contract-modal-sheet');
+  var closeBtn = document.getElementById('contract-modal-close');
+  var modalBody = document.getElementById('contract-modal-body');
+  var modalFooter = document.getElementById('contract-modal-footer');
+
+  function openContractModal() {
+    // Fill contract content
+    var contractHTML = CONTRACT_HTML_MAP[CONTRACT_ID] || '';
+    modalBody.innerHTML = contractHTML || '<p style="text-align:center;color:#A8A29E;">合同内容不可用</p>';
+
+    // Fill status footer
+    var footerHTML = '';
+    if (contract.status === 'active' || contract.status === 'signed' || contract.status === 'completed') {
+      footerHTML = '<div style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;background:#F0FDF4;color:#16A34A;font-size:13px;font-weight:600;">\\u2705 已签署 · ' + (contract.signedAt || '') + '</div>';
+    } else if (contract.status === 'terminated') {
+      footerHTML = '<div style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;background:#FEF2F2;color:#DC2626;font-size:13px;font-weight:600;">\\u26A0\\uFE0F 已终止</div>';
+    }
+    modalFooter.innerHTML = footerHTML;
+
+    // Show modal with animation
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    requestAnimationFrame(function(){
+      mask.style.opacity = '1';
+      sheet.style.transform = 'translateY(0)';
+    });
+  }
+
+  function closeContractModal() {
+    mask.style.opacity = '0';
+    sheet.style.transform = 'translateY(100%)';
+    document.body.style.overflow = '';
+    setTimeout(function(){ modal.style.display = 'none'; }, 350);
+  }
+
+  document.getElementById('view-contract-btn').addEventListener('click', openContractModal);
+  closeBtn.addEventListener('click', closeContractModal);
+  mask.addEventListener('click', closeContractModal);
 })();
 `}} />
     </div>,

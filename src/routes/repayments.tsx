@@ -2,6 +2,7 @@
 import { Hono } from 'hono'
 import {
   mockMembers, mockProjects, mockContracts, mockRevenueReports, mockRepaymentRecords,
+  generateContractHTML,
 } from '../data'
 import type { Member, Project, Contract, RevenueReport, RepaymentRecord } from '../data'
 import {
@@ -10,6 +11,16 @@ import {
 
 export function registerRepaymentsRoute(app: Hono) {
 app.get('/repayments', (c) => {
+  // Pre-generate contract HTML map for all known contracts (server-side)
+  const contractHTMLMap: Record<string, string> = {}
+  for (const ct of mockContracts) {
+    const proj = mockProjects.find(p => p.id === ct.projectId)
+    if (!proj) continue
+    const initiator = mockMembers.find(m => m.id === ct.initiatorId) || null
+    const participant = mockMembers.find(m => m.id === ct.participantId) || null
+    contractHTMLMap[ct.id] = generateContractHTML(ct, proj, participant, initiator)
+  }
+
   return c.render(
     <div class="app-container has-tabbar">
       <AuthCheckScript />
@@ -40,6 +51,19 @@ app.get('/repayments', (c) => {
         <div id="panel-initiate" class="px-4 pt-4 pb-4" style="display:none;" />
       </main>
 
+      {/* Contract Full-text Modal for repayments page */}
+      <div id="rep-contract-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;">
+        <div id="rep-contract-modal-mask" style="position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);opacity:0;transition:opacity 0.3s ease;" />
+        <div id="rep-contract-modal-sheet" style="position:absolute;bottom:0;left:0;right:0;max-height:92vh;background:#fff;border-radius:24px 24px 0 0;overflow-y:auto;transform:translateY(100%);transition:transform 0.35s cubic-bezier(0.32,0.72,0,1);">
+          <div style="position:sticky;top:0;background:#fff;z-index:1;padding:20px 20px 12px;border-bottom:1px solid #F5F5F4;display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:17px;font-weight:600;color:#1C1917;">合同详情</span>
+            <button id="rep-contract-modal-close" style="width:32px;height:32px;border-radius:50%;background:#F5F5F4;border:none;cursor:pointer;font-size:16px;color:#78716C;display:flex;align-items:center;justify-content:center;">×</button>
+          </div>
+          <div id="rep-contract-modal-body" style="padding:20px;" />
+          <div id="rep-contract-modal-footer" style="padding:12px 20px 32px;text-align:center;" />
+        </div>
+      </div>
+
       <TabBar active="repayments" />
 
       {/* Client-side logic */}
@@ -54,6 +78,7 @@ app.get('/repayments', (c) => {
   var MEMBERS = ${JSON.stringify(mockMembers.map(m => ({ id:m.id, name:m.name, company:m.company })))};
   var REP_RECORDS = ${JSON.stringify(mockRepaymentRecords)};
   var REV_REPORTS = ${JSON.stringify(mockRevenueReports)};
+  var CONTRACT_HTML_MAP = ${JSON.stringify(contractHTMLMap)};
 
   // Also merge localStorage contracts
   var lsContracts = [];
@@ -175,6 +200,10 @@ app.get('/repayments', (c) => {
         var dateStr = lastRec.date.slice(5).replace('-','/');
         investHTML += '<div style="font-size:12px;color:#16A34A;">最近回款: ' + dateStr + ' +\\u00A5' + lastRec.shareAmount.toFixed(2) + '\\u4E07</div>';
       }
+      // View contract button (inline)
+      investHTML += '<div style="display:flex;justify-content:flex-end;margin-top:8px;">';
+      investHTML += '<span class="rep-view-contract-btn" data-cid="' + c.id + '" data-status="' + c.status + '" data-signed="' + (c.signedAt || '') + '" style="font-size:12px;color:#B91C1C;cursor:pointer;font-weight:500;display:inline-flex;align-items:center;gap:4px;" onclick="event.preventDefault();event.stopPropagation();window.__openRepContractModal(this.dataset.cid,this.dataset.status,this.dataset.signed);">\\uD83D\\uDCC4 查看合同</span>';
+      investHTML += '</div>';
       investHTML += '</a>';
     });
     investHTML += '</div>';
@@ -284,6 +313,43 @@ app.get('/repayments', (c) => {
   setTimeout(function(){
     showCoachMark('#repayment-tabs', '左边看你投出去的钱的回款，右边管理你自己发起的项目', 'bottom', 'repay-tabs');
   }, 800);
+
+  // ── Contract Modal Logic (repayments page) ──
+  var repModal = document.getElementById('rep-contract-modal');
+  var repMask = document.getElementById('rep-contract-modal-mask');
+  var repSheet = document.getElementById('rep-contract-modal-sheet');
+  var repCloseBtn = document.getElementById('rep-contract-modal-close');
+  var repModalBody = document.getElementById('rep-contract-modal-body');
+  var repModalFooter = document.getElementById('rep-contract-modal-footer');
+
+  window.__openRepContractModal = function(contractId, status, signedAt) {
+    var contractHTML = CONTRACT_HTML_MAP[contractId] || '';
+    repModalBody.innerHTML = contractHTML || '<p style="text-align:center;color:#A8A29E;">合同内容不可用</p>';
+
+    var footerHTML = '';
+    if (status === 'active' || status === 'signed' || status === 'completed') {
+      footerHTML = '<div style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;background:#F0FDF4;color:#16A34A;font-size:13px;font-weight:600;">\\u2705 已签署 · ' + (signedAt || '') + '</div>';
+    } else if (status === 'terminated') {
+      footerHTML = '<div style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;background:#FEF2F2;color:#DC2626;font-size:13px;font-weight:600;">\\u26A0\\uFE0F 已终止</div>';
+    }
+    repModalFooter.innerHTML = footerHTML;
+
+    repModal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    requestAnimationFrame(function(){
+      repMask.style.opacity = '1';
+      repSheet.style.transform = 'translateY(0)';
+    });
+  };
+
+  function closeRepContractModal() {
+    repMask.style.opacity = '0';
+    repSheet.style.transform = 'translateY(100%)';
+    document.body.style.overflow = '';
+    setTimeout(function(){ repModal.style.display = 'none'; }, 350);
+  }
+  repCloseBtn.addEventListener('click', closeRepContractModal);
+  repMask.addEventListener('click', closeRepContractModal);
 })();
 `}} />
     </div>,

@@ -2,12 +2,25 @@
 import { Hono } from 'hono'
 import type { Project, Contract } from '../data'
 import {
+  mockMembers, mockProjects, mockContracts, generateContractHTML,
+} from '../data'
+import {
   GlobalScripts, Navbar, AuthCheckScript,
 } from '../components'
 
 export function registerContractSignRoute(app: Hono) {
 app.get('/contracts/:id/sign', (c) => {
   const contractId = c.req.param('id')
+
+  // Pre-generate contract HTML map for all known contracts (server-side)
+  const contractHTMLMap: Record<string, string> = {}
+  for (const ct of mockContracts) {
+    const proj = mockProjects.find(p => p.id === ct.projectId)
+    if (!proj) continue
+    const initiator = mockMembers.find(m => m.id === ct.initiatorId) || null
+    const participant = mockMembers.find(m => m.id === ct.participantId) || null
+    contractHTMLMap[ct.id] = generateContractHTML(ct, proj, participant, initiator)
+  }
 
   return c.render(
     <div class="app-container">
@@ -20,12 +33,14 @@ app.get('/contracts/:id/sign', (c) => {
           <i class="fas fa-arrow-left" style="font-size:13px;" /> 返回
         </a>
 
-        {/* Contract Content */}
-        <div class="contract-card mb-4" id="contract-body-card">
-          <div class="contract-title">收入分成合作协议</div>
-          <div class="contract-no" id="contract-no">协议编号：—</div>
-
-          <div class="contract-body" id="contract-content">
+        {/* Contract Content — scrollable full contract */}
+        <div id="contract-body-card" style="background:#fff;border-radius:16px;border:1px solid #E7E5E4;margin-bottom:16px;overflow:hidden;">
+          {/* Scroll hint */}
+          <div id="contract-scroll-hint" style="background:#FEF3C7;border-radius:8px;padding:8px 12px;font-size:12px;color:#92400E;margin:16px 16px 0 16px;">
+            ⚠️ 请仔细阅读以下协议条款，滑动至底部后方可签署
+          </div>
+          {/* Scrollable contract text */}
+          <div id="contract-content" style="max-height:60vh;overflow-y:auto;padding:20px;">
             <p style="text-align:center;color:#A8A29E;">加载中...</p>
           </div>
         </div>
@@ -39,19 +54,26 @@ app.get('/contracts/:id/sign', (c) => {
             <i class="fas fa-pen-nib mr-2" style="color:#D4A853;font-size:14px;" />签署确认
           </h4>
 
-          <div class="checkbox-row mb-3">
-            <input type="checkbox" id="agree-check" />
-            <label for="agree-check">我已阅读并同意以上合同条款</label>
-          </div>
-
-          <div class="verify-row">
-            <input type="text" class="verify-input" id="verify-code" placeholder="请输入验证码" maxlength={6} />
-            <button class="verify-send-btn" id="verify-send">发送验证码</button>
-          </div>
-
-          <button class="btn-gold mt-4" id="sign-btn" disabled={true} style="opacity:0.5;">
-            <i class="fas fa-signature mr-2" />确认签署
+          {/* Scroll-gated sign button */}
+          <button class="mt-0 mb-3" id="sign-scroll-btn" disabled={true} style="width:100%;padding:14px;border-radius:14px;font-size:15px;font-weight:600;border:none;cursor:not-allowed;background:#E7E5E4;color:#A8A29E;transition:all 0.3s ease;">
+            <i class="fas fa-signature mr-2" />请先阅读完整合同
           </button>
+
+          <div id="sign-form-area" style="display:none;">
+            <div class="checkbox-row mb-3">
+              <input type="checkbox" id="agree-check" />
+              <label for="agree-check">我已阅读并同意以上合同条款</label>
+            </div>
+
+            <div class="verify-row">
+              <input type="text" class="verify-input" id="verify-code" placeholder="请输入验证码" maxlength={6} />
+              <button class="verify-send-btn" id="verify-send">发送验证码</button>
+            </div>
+
+            <button class="btn-gold mt-4" id="sign-btn" disabled={true} style="opacity:0.5;">
+              <i class="fas fa-signature mr-2" />确认签署
+            </button>
+          </div>
 
           {/* Sign Status */}
           <div class="sign-status" id="sign-status">
@@ -99,6 +121,9 @@ app.get('/contracts/:id/sign', (c) => {
 
   var CONTRACT_ID = '${contractId}';
 
+  // Pre-rendered contract HTML from server (keyed by contract id)
+  var CONTRACT_HTML_MAP = ${JSON.stringify(contractHTMLMap)};
+
   // Load contract data from localStorage
   var contracts = [];
   try { contracts = JSON.parse(localStorage.getItem('zlc_contracts') || '[]'); } catch(e){}
@@ -114,46 +139,32 @@ app.get('/contracts/:id/sign', (c) => {
   var proj = contract.project;
   var ownerName = contract.ownerName || '发起人';
 
-  // Set contract number
-  document.getElementById('contract-no').textContent = '协议编号：ZLC-' + proj.id + '-' + CONTRACT_ID;
+  // ── Render full contract HTML ──
+  var fullContractHTML = CONTRACT_HTML_MAP[CONTRACT_ID];
+  if (!fullContractHTML) {
+    // Fallback: generate client-side for user-created contracts
+    fullContractHTML = window.__generateContractHTMLClient ? window.__generateContractHTMLClient(contract) : '';
+  }
 
-  // Build contract body
-  var html = '';
-  html += '<div class="contract-party"><div class="contract-party-label">甲方（项目发起方）</div>';
-  html += '<div class="contract-party-name">' + ownerName + '</div></div>';
-  html += '<div class="contract-party"><div class="contract-party-label">乙方（投资参与方）</div>';
-  html += '<div class="contract-party-name">' + u.name + '</div></div>';
-
-  html += '<h4>第一条 项目基本信息</h4>';
-  html += '<p class="indent">项目名称：<b>' + proj.name + '</b></p>';
-  html += '<p class="indent">所属行业：' + proj.industry + '</p>';
-  html += '<p class="indent">项目简介：' + proj.description + '</p>';
-
-  html += '<h4>第二条 投资条款</h4>';
-  html += '<p class="indent">乙方同意向甲方项目投入资金 <b>¥' + contract.amount + '万元</b>（共 ' + contract.shares + ' 份，每份 ¥' + proj.sharePrice + '万元）。</p>';
-  html += '<p class="indent">收入分成比例：甲方同意将项目收入的 <b>' + proj.revenueShareRate + '%</b> 按投资占比分配给全体投资人。</p>';
-  html += '<p class="indent">联营期限：自合同生效之日起 <b>' + proj.duration + ' 个月</b>。</p>';
-
-  html += '<h4>第三条 回收上限</h4>';
-  html += '<p class="indent">乙方投资回收上限为投资金额的 <b>' + proj.recoveryMultiple + '</b> 倍，即 <b>¥' + (contract.amount * proj.recoveryMultiple).toFixed(1) + '万元</b>。达到回收上限后，分成自动停止。</p>';
-
-  html += '<h4>第四条 收入确认与分成计算</h4>';
-  html += '<p class="indent">甲方按' + (proj.reportFrequency || '月报') + '频率向平台提交经营收入数据。</p>';
-  html += '<p class="indent">分成计算公式：<b>月分成 = 当月确认收入 × ' + proj.revenueShareRate + '% × (乙方投资额 ÷ 融资总额)</b></p>';
-
-  html += '<h4>第五条 风险提示</h4>';
-  html += '<p class="indent">本项目为收入分成模式（RBF），非固定回报承诺。实际回款取决于项目经营情况，投资人需自行承担经营风险。</p>';
-
-  html += '<h4>第六条 其他约定</h4>';
-  html += '<p class="indent">本协议一式两份，甲乙双方各执一份（电子版），经双方签署后生效。</p>';
-  html += '<p class="indent">本协议由「中流通」平台提供电子签署服务，具有同等法律效力。</p>';
-
-  html += '<div style="margin-top:24px;display:flex;gap:20px;">';
-  html += '<div style="flex:1;"><div style="font-size:12px;color:#78716C;margin-bottom:4px;">甲方签署</div><div style="font-size:14px;font-weight:600;color:#1C1917;">' + ownerName + '</div></div>';
-  html += '<div style="flex:1;"><div style="font-size:12px;color:#78716C;margin-bottom:4px;">乙方签署</div><div style="font-size:14px;font-weight:600;color:#1C1917;">' + u.name + '</div></div>';
-  html += '</div>';
-
-  document.getElementById('contract-content').innerHTML = html;
+  if (fullContractHTML) {
+    document.getElementById('contract-content').innerHTML = fullContractHTML;
+  } else {
+    // Ultimate fallback — old-style rendering
+    var html = '';
+    html += '<div style="text-align:center;padding-bottom:24px;border-bottom:2px solid #B91C1C;">';
+    html += '<div style="font-size:11px;color:#A8A29E;letter-spacing:2px;">合同编号：' + CONTRACT_ID + '</div>';
+    html += '<div style="font-size:22px;font-weight:800;color:#B91C1C;margin-top:12px;letter-spacing:4px;">联合经营协议</div>';
+    html += '</div>';
+    html += '<div style="margin-top:24px;font-size:13px;color:#57534E;">';
+    html += '<p>甲方（项目发起方）：<b>' + ownerName + '</b></p>';
+    html += '<p>乙方（投资参与方）：<b>' + u.name + '</b></p>';
+    html += '<p style="margin-top:12px;">项目名称：<b>' + proj.name + '</b></p>';
+    html += '<p>投资金额：<b>¥' + contract.amount + '万元</b></p>';
+    html += '<p>分成比例：<b>' + proj.revenueShareRate + '%</b></p>';
+    html += '<p>联营期限：<b>' + proj.duration + ' 个月</b></p>';
+    html += '</div>';
+    document.getElementById('contract-content').innerHTML = html;
+  }
 
   // Render plain-language block for contract
   (function(){
@@ -177,8 +188,49 @@ app.get('/contracts/:id/sign', (c) => {
       + '</div>';
   })();
 
+  // ── Scroll-to-bottom detection ──
+  var scrollContainer = document.getElementById('contract-content');
+  var scrollBtn = document.getElementById('sign-scroll-btn');
+  var signFormArea = document.getElementById('sign-form-area');
+  var hasScrolledToBottom = false;
+
+  function checkScrollBottom() {
+    if (hasScrolledToBottom) return;
+    var el = scrollContainer;
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 20) {
+      hasScrolledToBottom = true;
+      scrollBtn.style.background = 'linear-gradient(135deg, #B91C1C, #991B1B)';
+      scrollBtn.style.color = '#fff';
+      scrollBtn.style.cursor = 'pointer';
+      scrollBtn.disabled = false;
+      scrollBtn.innerHTML = '<i class="fas fa-signature" style="margin-right:8px;"></i>我已阅读完毕，开始签署';
+    }
+  }
+  scrollContainer.addEventListener('scroll', checkScrollBottom);
+  // Also check if content is short enough to not need scrolling
+  setTimeout(function(){
+    if (scrollContainer.scrollHeight <= scrollContainer.clientHeight + 20) {
+      hasScrolledToBottom = true;
+      scrollBtn.style.background = 'linear-gradient(135deg, #B91C1C, #991B1B)';
+      scrollBtn.style.color = '#fff';
+      scrollBtn.style.cursor = 'pointer';
+      scrollBtn.disabled = false;
+      scrollBtn.innerHTML = '<i class="fas fa-signature" style="margin-right:8px;"></i>我已阅读完毕，开始签署';
+    }
+  }, 300);
+
+  scrollBtn.addEventListener('click', function(){
+    if (!hasScrolledToBottom) return;
+    scrollBtn.style.display = 'none';
+    signFormArea.style.display = 'block';
+    document.getElementById('contract-scroll-hint').style.display = 'none';
+  });
+
   // Check if already signed
   if(contract.status === 'active'){
+    document.getElementById('contract-scroll-hint').style.display = 'none';
+    scrollBtn.style.display = 'none';
+    signFormArea.style.display = 'none';
     document.getElementById('sign-area').innerHTML = '<div style="text-align:center;padding:20px;"><div style="width:56px;height:56px;border-radius:50%;background:#16a34a;color:#fff;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 12px;"><i class="fas fa-check"></i></div><p style="font-size:16px;font-weight:600;color:#16a34a;">合同已签署生效</p></div>';
     return;
   }

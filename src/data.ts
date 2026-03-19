@@ -1772,5 +1772,155 @@ export function getInitDataScript(): string {
 `
 }
 
+// ── 合同全文 HTML 生成函数 ─────────────────────────────────
+export function generateContractHTML(
+  contract: Contract,
+  project: Project,
+  participant: Member | null,
+  initiator: Member | null,
+): string {
+  const cId = contract.id || ''
+  const investmentAmount = contract.amount || 0
+  const sharePercentage = contract.revenueShareRatio || 0
+  const recoveryCap = contract.recoveryCap || 0
+  const signedAt = contract.signedAt || '—'
+  const pName = project.name || ''
+  const pDesc = project.description || ''
+  const revenueShareRate = project.revenueShareRate || 0
+  const termMonths = project.duration || 0
+  const returnMultiple = project.recoveryMultiple || 0
+  const descTruncated = pDesc.length > 100 ? pDesc.substring(0, 100) + '...' : pDesc
+  const iName = initiator ? initiator.name : (contract.initiatorName || '发起人')
+  const iCompany = initiator ? (initiator.company || '一亿中流学员') : (contract.initiatorCompany || '一亿中流学员')
+  const iClassName = initiator ? (initiator.className || '') : ''
+  const pName2 = participant ? participant.name : (contract.participantName || '参与人')
+  const pCompany = participant ? (participant.company || '一亿中流学员') : '一亿中流学员'
+  const pClassName = participant ? (participant.className || '') : ''
+
+  return `<div style="font-family:'SimSun','Songti SC',serif;color:#1C1917;line-height:1.8;font-size:14px;">
+  <div style="text-align:center;padding-bottom:24px;border-bottom:2px solid #B91C1C;">
+    <div style="font-size:11px;color:#A8A29E;letter-spacing:2px;">合同编号：${cId}</div>
+    <div style="font-size:22px;font-weight:800;color:#B91C1C;margin-top:12px;letter-spacing:4px;">联合经营协议</div>
+    <div style="font-size:12px;color:#78716C;margin-top:6px;">（收入分成模式 · 简化版）</div>
+  </div>
+  <div style="margin-top:24px;">
+    <div style="font-size:15px;font-weight:700;color:#1C1917;margin-bottom:12px;">签署各方</div>
+    <div style="background:#FAFAF9;border-radius:10px;padding:16px;margin-bottom:10px;">
+      <div style="font-size:12px;color:#B91C1C;font-weight:600;">甲方（项目发起人）</div>
+      <div style="font-size:14px;font-weight:600;margin-top:6px;">${iName}</div>
+      <div style="font-size:12px;color:#78716C;margin-top:2px;">${iCompany} · ${iClassName}</div>
+    </div>
+    <div style="background:#FAFAF9;border-radius:10px;padding:16px;margin-bottom:10px;">
+      <div style="font-size:12px;color:#3B82F6;font-weight:600;">乙方（投资参与人）</div>
+      <div style="font-size:14px;font-weight:600;margin-top:6px;">${pName2}</div>
+      <div style="font-size:12px;color:#78716C;margin-top:2px;">${pCompany} · ${pClassName}</div>
+    </div>
+    <div style="background:#FAFAF9;border-radius:10px;padding:16px;">
+      <div style="font-size:12px;color:#D4A853;font-weight:600;">平台见证方</div>
+      <div style="font-size:14px;font-weight:600;margin-top:6px;">中流通平台</div>
+      <div style="font-size:12px;color:#78716C;margin-top:2px;">滴灌通 × 一亿中流 · 联合出品</div>
+    </div>
+  </div>
+  <div style="margin-top:24px;">
+    <div style="font-size:15px;font-weight:700;color:#1C1917;margin-bottom:8px;">鉴于</div>
+    <div style="font-size:13px;color:#57534E;">甲方经营${pName}相关业务，乙方拟通过收入分成的联合经营方式参与该项目。各方经友好协商，根据中国相关法律法规，就联营合作达成一致，特订立如下条款。</div>
+  </div>
+  <div style="margin-top:24px;">
+    <div style="font-size:15px;font-weight:700;color:#B91C1C;margin-bottom:12px;">第一条 联营合作商业安排</div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <tr style="border-bottom:1px solid #E7E5E4;"><td style="padding:10px 0;color:#78716C;width:35%;">项目名称</td><td style="padding:10px 0;font-weight:600;">${pName}</td></tr>
+      <tr style="border-bottom:1px solid #E7E5E4;"><td style="padding:10px 0;color:#78716C;">联营资金金额</td><td style="padding:10px 0;font-weight:600;color:#B91C1C;">人民币 ${investmentAmount} 万元整</td></tr>
+      <tr style="border-bottom:1px solid #E7E5E4;"><td style="padding:10px 0;color:#78716C;">乙方占比份额</td><td style="padding:10px 0;font-weight:600;">${sharePercentage}%</td></tr>
+      <tr style="border-bottom:1px solid #E7E5E4;"><td style="padding:10px 0;color:#78716C;">收入分成比例</td><td style="padding:10px 0;font-weight:600;">${revenueShareRate}%</td></tr>
+      <tr style="border-bottom:1px solid #E7E5E4;"><td style="padding:10px 0;color:#78716C;">联营期限</td><td style="padding:10px 0;font-weight:600;">${termMonths} 个月</td></tr>
+      <tr style="border-bottom:1px solid #E7E5E4;"><td style="padding:10px 0;color:#78716C;">回收上限倍数</td><td style="padding:10px 0;font-weight:600;">${returnMultiple} 倍</td></tr>
+      <tr style="border-bottom:1px solid #E7E5E4;"><td style="padding:10px 0;color:#78716C;">回收上限金额</td><td style="padding:10px 0;font-weight:600;color:#B91C1C;">人民币 ${recoveryCap} 万元整</td></tr>
+      <tr><td style="padding:10px 0;color:#78716C;">联营资金用途</td><td style="padding:10px 0;">${descTruncated}</td></tr>
+    </table>
+  </div>
+  <div style="margin-top:24px;">
+    <div style="font-size:15px;font-weight:700;color:#B91C1C;margin-bottom:12px;">第二条 收入分成及回款安排</div>
+    <div style="font-size:13px;color:#57534E;">
+      <p style="margin-bottom:8px;"><strong>2.1 分成起始日：</strong>自本协议签署之日（${signedAt}）起计算。</p>
+      <p style="margin-bottom:8px;"><strong>2.2 分成方式：</strong>甲方应按月向平台上报项目营业收入，平台根据乙方投资占比（${sharePercentage}%）自动计算乙方应得的分成金额，并进行分配。</p>
+      <p style="margin-bottom:8px;"><strong>2.3 分成付款频率：</strong>每自然月结算一次，甲方应在每月 18 日前完成上月收入上报。</p>
+      <p style="margin-bottom:8px;"><strong>2.4 分成终止：</strong>当乙方累计实际取得的分成金额达到回收上限金额（人民币 ${recoveryCap} 万元）时，收入分成自动终止。</p>
+      <p style="margin-bottom:8px;"><strong>2.5 联营方收入定义：</strong>指甲方就本项目扣除所有税项及费用前的全部营业收入（包含主营业务收入及其他业务收入）。</p>
+    </div>
+  </div>
+  <div style="margin-top:24px;">
+    <div style="font-size:15px;font-weight:700;color:#B91C1C;margin-bottom:12px;">第三条 各方权利义务</div>
+    <div style="font-size:13px;color:#57534E;">
+      <p style="margin-bottom:8px;"><strong>3.1 甲方义务：</strong>（1）按时、如实上报项目营业收入；（2）确保收入数据真实、准确、完整；（3）不得挪用联营资金；（4）如发生影响项目运营的重大事项，应在 5 个自然日内书面通知平台及乙方。</p>
+      <p style="margin-bottom:8px;"><strong>3.2 乙方义务：</strong>（1）按本协议约定支付联营资金；（2）配合完成电子签署流程；（3）理解并接受收入分成模式的风险特征。</p>
+      <p style="margin-bottom:8px;"><strong>3.3 平台义务：</strong>（1）提供合同生成与电子签署服务；（2）提供收入上报与回款分配的技术支持；（3）提供项目全生命周期的数据追踪服务；（4）合同文件托管与存证。</p>
+      <p style="margin-bottom:8px;"><strong>3.4 经营独立性：</strong>甲方负责项目的日常经营并以自身名义对外经营，乙方不参与甲方的日常经营决策。本协议不构成各方之间的合伙、合资、代理或借贷关系。</p>
+    </div>
+  </div>
+  <div style="margin-top:24px;">
+    <div style="font-size:15px;font-weight:700;color:#B91C1C;margin-bottom:12px;">第四条 陈述、保证与承诺</div>
+    <div style="font-size:13px;color:#57534E;">
+      <p style="margin-bottom:8px;"><strong>4.1</strong> 各方均具有适当的法律资格和法律能力签署、交付并履行本协议。</p>
+      <p style="margin-bottom:8px;"><strong>4.2</strong> 甲方保证其合法合规经营，已取得经营业务所需的全部批准、许可及政府授权。</p>
+      <p style="margin-bottom:8px;"><strong>4.3</strong> 甲方保证向平台及乙方提供的所有信息真实、准确、完整，不存在重大遗漏或隐瞒。</p>
+      <p style="margin-bottom:8px;"><strong>4.4</strong> 甲方保证不存在与本协议项下联营合作相冲突的其他安排。</p>
+    </div>
+  </div>
+  <div style="margin-top:24px;">
+    <div style="font-size:15px;font-weight:700;color:#B91C1C;margin-bottom:12px;">第五条 违约责任与协议终止</div>
+    <div style="font-size:13px;color:#57534E;">
+      <p style="margin-bottom:8px;"><strong>5.1 违约责任：</strong>任何一方违反本协议约定的，违约方应承担损失赔偿责任。</p>
+      <p style="margin-bottom:8px;"><strong>5.2 严重违约：</strong>如甲方出现挪用资金、虚报收入、擅自终止经营等严重违约情形，乙方有权要求退还全部联营资金，并要求支付联营资金 20% 的违约金。</p>
+      <p style="margin-bottom:8px;"><strong>5.3 提前终止：</strong>任何一方需提前终止本协议的，应提前 7 个自然日书面通知另一方，并按约定支付相应补偿金。</p>
+      <p style="margin-bottom:8px;"><strong>5.4 自动终止：</strong>当乙方累计回款达到回收上限金额，或联营期限届满（以先到者为准），本协议自动终止。</p>
+    </div>
+  </div>
+  <div style="margin-top:24px;">
+    <div style="font-size:15px;font-weight:700;color:#B91C1C;margin-bottom:12px;">第六条 其他条款</div>
+    <div style="font-size:13px;color:#57534E;">
+      <p style="margin-bottom:8px;"><strong>6.1 保密：</strong>未经披露方书面同意，任何一方不得向第三方披露本协议内容及因履行本协议而获知的商业信息。</p>
+      <p style="margin-bottom:8px;"><strong>6.2 争议解决：</strong>因本协议引起的争议，各方应友好协商解决；协商不成的，提交深圳国际仲裁院仲裁。</p>
+      <p style="margin-bottom:8px;"><strong>6.3 协议效力：</strong>本协议自各方电子签署后生效，具有同等法律效力。</p>
+    </div>
+  </div>
+  <div style="margin-top:32px;border-top:1px solid #E7E5E4;padding-top:24px;">
+    <div style="font-size:15px;font-weight:700;color:#1C1917;margin-bottom:16px;">签署确认</div>
+    <div style="display:flex;gap:16px;">
+      <div style="flex:1;background:#FAFAF9;border-radius:10px;padding:16px;">
+        <div style="font-size:12px;color:#78716C;">甲方（项目发起人）</div>
+        <div style="font-size:14px;font-weight:600;margin-top:8px;">${iName}</div>
+        <div style="font-size:12px;color:#78716C;margin-top:4px;">${iCompany}</div>
+        <div style="margin-top:12px;border-bottom:1px solid #D6D3D1;padding-bottom:4px;">
+          <span style="font-size:11px;color:#A8A29E;">签字：</span>
+          <span style="font-size:14px;font-weight:600;color:#B91C1C;font-style:italic;">${iName}</span>
+        </div>
+        <div style="font-size:11px;color:#A8A29E;margin-top:6px;">签署日期：${signedAt}</div>
+      </div>
+      <div style="flex:1;background:#FAFAF9;border-radius:10px;padding:16px;">
+        <div style="font-size:12px;color:#78716C;">乙方（投资参与人）</div>
+        <div style="font-size:14px;font-weight:600;margin-top:8px;">${pName2}</div>
+        <div style="font-size:12px;color:#78716C;margin-top:4px;">${pCompany}</div>
+        <div style="margin-top:12px;border-bottom:1px solid #D6D3D1;padding-bottom:4px;">
+          <span style="font-size:11px;color:#A8A29E;">签字：</span>
+          <span style="font-size:14px;font-weight:600;color:#3B82F6;font-style:italic;">${pName2}</span>
+        </div>
+        <div style="font-size:11px;color:#A8A29E;margin-top:6px;">签署日期：${signedAt}</div>
+      </div>
+    </div>
+    <div style="margin-top:12px;background:#FAFAF9;border-radius:10px;padding:16px;text-align:center;">
+      <div style="font-size:12px;color:#78716C;">平台见证</div>
+      <div style="font-size:14px;font-weight:600;margin-top:4px;">中流通平台 · 滴灌通 × 一亿中流</div>
+      <div style="margin-top:8px;">
+        <span style="display:inline-block;width:48px;height:48px;border-radius:50%;border:2px solid #B91C1C;line-height:48px;text-align:center;font-size:11px;color:#B91C1C;font-weight:700;">见证章</span>
+      </div>
+    </div>
+  </div>
+  <div style="margin-top:24px;text-align:center;font-size:11px;color:#A8A29E;">
+    <div>本协议一式两份，甲乙双方各执一份，具有同等法律效力</div>
+    <div style="margin-top:4px;">中流通平台提供电子签署与合同托管服务</div>
+  </div>
+</div>`
+}
+
 // Demo 验证码
 export const DEMO_VERIFY_CODE = '888888'
