@@ -78,14 +78,14 @@ export const mockProjects: Project[] = [
     investors: ['m-002', 'm-004', 'm-005'],
   },
   {
-    id: 'p-002', name: '新锐智造产线升级项目', ownerId: 'm-002',
+    id: 'p-002', name: '工业视觉检测新产线', ownerId: 'm-002',
     industry: '智能制造',
     description: '引进第四代柔性产线，提升产能40%，降低人工成本30%。已与德国设备商签订采购意向书，预计产线3个月内投产。',
-    targetAmount: 800, raisedAmount: 800, revenueShareRate: 7.0, duration: 48,
+    targetAmount: 150, raisedAmount: 150, revenueShareRate: 15.0, duration: 36,
     recoveryMultiple: 1.5, estimatedMonthlyRevenue: 320,
-    totalShares: 40, raisedShares: 40, sharePrice: 20, minShares: 1,
-    status: 'funded', createdAt: '2026-02-18',
-    investors: ['m-001', 'm-003', 'm-004', 'm-005'],
+    totalShares: 6, raisedShares: 6, sharePrice: 25, minShares: 1,
+    status: 'active', createdAt: '2026-01-15',
+    investors: ['m-001', 'm-004', 'm-005'],
   },
   {
     id: 'p-003', name: '优学AI双师课堂全国推广', ownerId: 'm-003',
@@ -108,18 +108,18 @@ export const mockProjects: Project[] = [
     investors: ['m-001', 'm-002', 'm-005'],
   },
   {
-    id: 'p-005', name: '芙蓉美业旗舰店升级计划', ownerId: 'm-005',
-    industry: '美容健康',
-    description: '一线城市10家门店升级为旗舰体验中心，客单价提升60%。首批3家已完成改造，业绩提升显著。',
-    targetAmount: 400, raisedAmount: 400, revenueShareRate: 9.0, duration: 30,
-    recoveryMultiple: 1.5, estimatedMonthlyRevenue: 150,
-    totalShares: 40, raisedShares: 40, sharePrice: 10, minShares: 1,
-    status: 'active', createdAt: '2026-01-20',
-    investors: ['m-001', 'm-002', 'm-003'],
+    id: 'p-005', name: 'AI英语口语APP开发', ownerId: 'm-003',
+    industry: '教育培训',
+    description: '基于大模型的英语口语练习APP，目标覆盖K12和成人学习群体。已完成MVP开发，用户增长迅速。',
+    targetAmount: 25, raisedAmount: 25, revenueShareRate: 8.0, duration: 24,
+    recoveryMultiple: 1.5, estimatedMonthlyRevenue: 12,
+    totalShares: 5, raisedShares: 5, sharePrice: 5, minShares: 1,
+    status: 'active', createdAt: '2026-02-10',
+    investors: ['m-001', 'm-004'],
   },
 ]
 
-// ── 回款记录类型 ──────────────────────────────────────────
+// ── 回款记录类型（首页动态用） ─────────────────────────────
 export interface Repayment {
   id: string
   projectId: string
@@ -131,16 +131,178 @@ export interface Repayment {
 
 export const mockRepayments: Repayment[] = [
   { id: 'r-001', projectId: 'p-005', projectName: '芙蓉美业旗舰店升级计划', amount: 3.60, date: '2026-03-18', investorId: 'm-001' },
-  { id: 'r-002', projectId: 'p-002', projectName: '新锐智造产线升级项目', amount: 5.60, date: '2026-03-17', investorId: 'm-001' },
+  { id: 'r-002', projectId: 'p-002', projectName: '工业视觉检测新产线', amount: 5.60, date: '2026-03-17', investorId: 'm-001' },
   { id: 'r-003', projectId: 'p-005', projectName: '芙蓉美业旗舰店升级计划', amount: 3.60, date: '2026-03-16', investorId: 'm-002' },
-  { id: 'r-004', projectId: 'p-002', projectName: '新锐智造产线升级项目', amount: 5.60, date: '2026-03-15', investorId: 'm-003' },
+  { id: 'r-004', projectId: 'p-002', projectName: '工业视觉检测新产线', amount: 5.60, date: '2026-03-15', investorId: 'm-003' },
   { id: 'r-005', projectId: 'p-005', projectName: '芙蓉美业旗舰店升级计划', amount: 3.60, date: '2026-03-14', investorId: 'm-003' },
-  { id: 'r-006', projectId: 'p-002', projectName: '新锐智造产线升级项目', amount: 5.60, date: '2026-03-13', investorId: 'm-004' },
+  { id: 'r-006', projectId: 'p-002', projectName: '工业视觉检测新产线', amount: 5.60, date: '2026-03-13', investorId: 'm-004' },
   { id: 'r-007', projectId: 'p-005', projectName: '芙蓉美业旗舰店升级计划', amount: 2.40, date: '2026-03-12', investorId: 'm-005' },
-  { id: 'r-008', projectId: 'p-002', projectName: '新锐智造产线升级项目', amount: 5.60, date: '2026-03-11', investorId: 'm-005' },
+  { id: 'r-008', projectId: 'p-002', projectName: '工业视觉检测新产线', amount: 5.60, date: '2026-03-11', investorId: 'm-005' },
   { id: 'r-009', projectId: 'p-005', projectName: '芙蓉美业旗舰店升级计划', amount: 3.20, date: '2026-03-10', investorId: 'm-001' },
-  { id: 'r-010', projectId: 'p-002', projectName: '新锐智造产线升级项目', amount: 4.80, date: '2026-03-08', investorId: 'm-001' },
+  { id: 'r-010', projectId: 'p-002', projectName: '工业视觉检测新产线', amount: 4.80, date: '2026-03-08', investorId: 'm-001' },
 ]
+
+// ── 合同类型 ──────────────────────────────────────────────
+export interface Contract {
+  id: string
+  projectId: string
+  projectName: string
+  initiatorId: string
+  initiatorName: string
+  initiatorCompany?: string
+  participantId: string
+  participantName: string
+  amount: number
+  shares: number
+  revenueShareRatio: number
+  cooperationTerm: number
+  recoveryCap: number
+  signedByInitiator: boolean
+  signedByParticipant: boolean
+  signedAt: string
+  totalRepaid: number
+  status: 'pending' | 'active' | 'completed'
+}
+
+export const mockContracts: Contract[] = [
+  {
+    id: 'c-001', projectId: 'p-002', projectName: '工业视觉检测新产线',
+    initiatorId: 'm-002', initiatorName: '李明远', initiatorCompany: '新锐智造科技',
+    participantId: 'm-004', participantName: '陈伟强',
+    amount: 50, shares: 2, revenueShareRatio: 15, cooperationTerm: 36,
+    recoveryCap: 75, signedByInitiator: true, signedByParticipant: true,
+    signedAt: '2026-02-01', totalRepaid: 2.85, status: 'active',
+  },
+  {
+    id: 'c-002', projectId: 'p-002', projectName: '工业视觉检测新产线',
+    initiatorId: 'm-002', initiatorName: '李明远', initiatorCompany: '新锐智造科技',
+    participantId: 'm-005', participantName: '赵丽华',
+    amount: 25, shares: 1, revenueShareRatio: 15, cooperationTerm: 36,
+    recoveryCap: 37.5, signedByInitiator: true, signedByParticipant: true,
+    signedAt: '2026-02-01', totalRepaid: 1.425, status: 'active',
+  },
+  {
+    id: 'c-003', projectId: 'p-002', projectName: '工业视觉检测新产线',
+    initiatorId: 'm-002', initiatorName: '李明远', initiatorCompany: '新锐智造科技',
+    participantId: 'm-001', participantName: '张建国',
+    amount: 75, shares: 3, revenueShareRatio: 15, cooperationTerm: 36,
+    recoveryCap: 112.5, signedByInitiator: true, signedByParticipant: true,
+    signedAt: '2026-02-01', totalRepaid: 4.275, status: 'active',
+  },
+  {
+    id: 'c-004', projectId: 'p-005', projectName: 'AI英语口语APP开发',
+    initiatorId: 'm-003', initiatorName: '王晓薇', initiatorCompany: '优学教育科技',
+    participantId: 'm-001', participantName: '张建国',
+    amount: 10, shares: 2, revenueShareRatio: 8, cooperationTerm: 24,
+    recoveryCap: 15, signedByInitiator: true, signedByParticipant: true,
+    signedAt: '2026-02-20', totalRepaid: 0.192, status: 'active',
+  },
+  {
+    id: 'c-005', projectId: 'p-005', projectName: 'AI英语口语APP开发',
+    initiatorId: 'm-003', initiatorName: '王晓薇', initiatorCompany: '优学教育科技',
+    participantId: 'm-004', participantName: '陈伟强',
+    amount: 15, shares: 3, revenueShareRatio: 8, cooperationTerm: 24,
+    recoveryCap: 22.5, signedByInitiator: true, signedByParticipant: true,
+    signedAt: '2026-02-20', totalRepaid: 0.288, status: 'active',
+  },
+]
+
+// ── 收入上报记录 ──────────────────────────────────────────
+export interface RevenueReport {
+  id: string
+  projectId: string
+  reportedBy: string
+  period: string
+  periodType: 'monthly' | 'daily'
+  totalRevenue: number
+  totalShareAmount: number
+  reportedAt: string
+  note?: string
+}
+
+export const mockRevenueReports: RevenueReport[] = [
+  { id: 'rr-001', projectId: 'p-002', reportedBy: 'm-002', period: '2025-12', periodType: 'monthly', totalRevenue: 32, totalShareAmount: 4.8, reportedAt: '2025-12-31' },
+  { id: 'rr-002', projectId: 'p-002', reportedBy: 'm-002', period: '2026-01', periodType: 'monthly', totalRevenue: 48, totalShareAmount: 7.2, reportedAt: '2026-01-31' },
+  { id: 'rr-003', projectId: 'p-002', reportedBy: 'm-002', period: '2026-02', periodType: 'monthly', totalRevenue: 52, totalShareAmount: 7.8, reportedAt: '2026-02-28' },
+  { id: 'rr-004', projectId: 'p-002', reportedBy: 'm-002', period: '2026-03', periodType: 'monthly', totalRevenue: 58, totalShareAmount: 8.7, reportedAt: '2026-03-15' },
+  { id: 'rr-005', projectId: 'p-005', reportedBy: 'm-003', period: '2026-03', periodType: 'monthly', totalRevenue: 12, totalShareAmount: 0.96, reportedAt: '2026-03-15' },
+]
+
+// ── 回款明细记录 ──────────────────────────────────────────
+export interface RepaymentRecord {
+  id: string
+  contractId: string
+  revenueReportId: string
+  participantId: string
+  projectName: string
+  date: string
+  projectRevenue: number
+  shareAmount: number
+  cumulativeShare: number
+  recoveryProgress: number
+}
+
+export const mockRepaymentRecords: RepaymentRecord[] = [
+  // m-004 在 p-002 的回款 (50万/150万 = 1/3 of 15% share)
+  { id: 'rep-001', contractId: 'c-001', revenueReportId: 'rr-001', participantId: 'm-004', projectName: '工业视觉检测新产线', date: '2025-12-31', projectRevenue: 32, shareAmount: 1.60, cumulativeShare: 1.60, recoveryProgress: 2.13 },
+  { id: 'rep-002', contractId: 'c-001', revenueReportId: 'rr-002', participantId: 'm-004', projectName: '工业视觉检测新产线', date: '2026-01-31', projectRevenue: 48, shareAmount: 2.40, cumulativeShare: 4.00, recoveryProgress: 5.33 },
+  { id: 'rep-003', contractId: 'c-001', revenueReportId: 'rr-003', participantId: 'm-004', projectName: '工业视觉检测新产线', date: '2026-02-28', projectRevenue: 52, shareAmount: 2.60, cumulativeShare: 6.60, recoveryProgress: 8.80 },
+  { id: 'rep-004', contractId: 'c-001', revenueReportId: 'rr-004', participantId: 'm-004', projectName: '工业视觉检测新产线', date: '2026-03-15', projectRevenue: 58, shareAmount: 2.90, cumulativeShare: 9.50, recoveryProgress: 12.67 },
+  // m-005 在 p-002 的回款 (25万/150万 = 1/6)
+  { id: 'rep-005', contractId: 'c-002', revenueReportId: 'rr-001', participantId: 'm-005', projectName: '工业视觉检测新产线', date: '2025-12-31', projectRevenue: 32, shareAmount: 0.80, cumulativeShare: 0.80, recoveryProgress: 2.13 },
+  { id: 'rep-006', contractId: 'c-002', revenueReportId: 'rr-002', participantId: 'm-005', projectName: '工业视觉检测新产线', date: '2026-01-31', projectRevenue: 48, shareAmount: 1.20, cumulativeShare: 2.00, recoveryProgress: 5.33 },
+  { id: 'rep-007', contractId: 'c-002', revenueReportId: 'rr-003', participantId: 'm-005', projectName: '工业视觉检测新产线', date: '2026-02-28', projectRevenue: 52, shareAmount: 1.30, cumulativeShare: 3.30, recoveryProgress: 8.80 },
+  { id: 'rep-008', contractId: 'c-002', revenueReportId: 'rr-004', participantId: 'm-005', projectName: '工业视觉检测新产线', date: '2026-03-15', projectRevenue: 58, shareAmount: 1.45, cumulativeShare: 4.75, recoveryProgress: 12.67 },
+  // m-001 在 p-002 的回款 (75万/150万 = 1/2)
+  { id: 'rep-009', contractId: 'c-003', revenueReportId: 'rr-001', participantId: 'm-001', projectName: '工业视觉检测新产线', date: '2025-12-31', projectRevenue: 32, shareAmount: 2.40, cumulativeShare: 2.40, recoveryProgress: 2.13 },
+  { id: 'rep-010', contractId: 'c-003', revenueReportId: 'rr-002', participantId: 'm-001', projectName: '工业视觉检测新产线', date: '2026-01-31', projectRevenue: 48, shareAmount: 3.60, cumulativeShare: 6.00, recoveryProgress: 5.33 },
+  { id: 'rep-011', contractId: 'c-003', revenueReportId: 'rr-003', participantId: 'm-001', projectName: '工业视觉检测新产线', date: '2026-02-28', projectRevenue: 52, shareAmount: 3.90, cumulativeShare: 9.90, recoveryProgress: 8.80 },
+  { id: 'rep-012', contractId: 'c-003', revenueReportId: 'rr-004', participantId: 'm-001', projectName: '工业视觉检测新产线', date: '2026-03-15', projectRevenue: 58, shareAmount: 4.35, cumulativeShare: 14.25, recoveryProgress: 12.67 },
+  // m-001 在 p-005 的回款 (10万/25万 = 2/5)
+  { id: 'rep-013', contractId: 'c-004', revenueReportId: 'rr-005', participantId: 'm-001', projectName: 'AI英语口语APP开发', date: '2026-03-15', projectRevenue: 12, shareAmount: 0.384, cumulativeShare: 0.384, recoveryProgress: 2.56 },
+  // m-004 在 p-005 的回款 (15万/25万 = 3/5)
+  { id: 'rep-014', contractId: 'c-005', revenueReportId: 'rr-005', participantId: 'm-004', projectName: 'AI英语口语APP开发', date: '2026-03-15', projectRevenue: 12, shareAmount: 0.576, cumulativeShare: 0.576, recoveryProgress: 2.56 },
+]
+
+// ── 回款分配计算 ─────────────────────────────────────────
+export interface DistributionResult {
+  contractId: string
+  participantId: string
+  participantName: string
+  investAmount: number
+  shareAmount: number
+  newCumulative: number
+  recoveryProgress: number
+  isCompleted: boolean
+}
+
+export function distributeRevenue(
+  projectRevenue: number,
+  revenueShareRatio: number,
+  contracts: Contract[]
+): DistributionResult[] {
+  const totalShareAmount = projectRevenue * (revenueShareRatio / 100)
+  const totalInvested = contracts.reduce((s, c) => s + c.amount, 0)
+  return contracts.map(c => {
+    const ratio = c.amount / totalInvested
+    let share = +(totalShareAmount * ratio).toFixed(4)
+    const newCumulative = +(c.totalRepaid + share).toFixed(4)
+    if (newCumulative > c.recoveryCap) {
+      share = +(c.recoveryCap - c.totalRepaid).toFixed(4)
+      if (share < 0) share = 0
+    }
+    return {
+      contractId: c.id,
+      participantId: c.participantId,
+      participantName: c.participantName,
+      investAmount: c.amount,
+      shareAmount: share,
+      newCumulative: +(c.totalRepaid + share).toFixed(4),
+      recoveryProgress: +((c.totalRepaid + share) / c.recoveryCap * 100).toFixed(2),
+      isCompleted: (c.totalRepaid + share) >= c.recoveryCap,
+    }
+  })
+}
 
 // ── RBF 计算函数 ─────────────────────────────────────────
 export interface RBFResult {

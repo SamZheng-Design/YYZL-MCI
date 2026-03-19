@@ -5,9 +5,11 @@ import { Hono } from 'hono'
 import { renderer } from './renderer'
 import {
   mockMembers, mockProjects, mockRepayments,
-  getUserStats, getProjectStats, calculateRBF, DEMO_VERIFY_CODE,
+  mockContracts, mockRevenueReports, mockRepaymentRecords,
+  getUserStats, getProjectStats, calculateRBF, distributeRevenue,
+  DEMO_VERIFY_CODE,
 } from './data'
-import type { Member, Project } from './data'
+import type { Member, Project, Contract, RevenueReport, RepaymentRecord, DistributionResult } from './data'
 
 const app = new Hono()
 
@@ -1797,10 +1799,744 @@ app.get('/contracts/:id/sign', (c) => {
   )
 })
 
-// ── Repayments (placeholder for now) ─────────────────────
-app.get('/repayments', (c) => c.render(
-  <PlaceholderPage tabKey="repayments" title="回款管理" icon="fa-coins" desc="查看回款记录与收益详情" />,
-  { title: '回款管理 — 中流通' }
-))
+// ══════════════════════════════════════════════════════════
+// Repayments Center  (/repayments)
+// ══════════════════════════════════════════════════════════
+app.get('/repayments', (c) => {
+  return c.render(
+    <div class="has-tabbar">
+      <AuthCheckScript />
+      <Navbar />
+
+      <main class="max-w-lg mx-auto">
+        {/* Title */}
+        <section class="px-4 pt-4 pb-0">
+          <h1 class="font-bold text-text-title" style="font-size:22px;font-weight:700;color:#1C1917;font-family:'Noto Sans SC',sans-serif;">回款中心</h1>
+        </section>
+
+        {/* Tab switcher */}
+        <div class="rep-tab-bar" style="background:#fff;border-bottom:1px solid rgba(0,0,0,0.06);display:flex;margin-top:12px;">
+          <button id="tab-invest" class="rep-tab rep-tab-active" style="flex:1;padding:12px 0;font-size:15px;font-weight:600;background:none;border:none;cursor:pointer;position:relative;color:#B91C1C;">
+            我的投资
+            <span class="rep-tab-line" style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:48px;height:3px;background:#B91C1C;border-radius:2px;" />
+          </button>
+          <button id="tab-initiate" class="rep-tab" style="flex:1;padding:12px 0;font-size:15px;font-weight:600;background:none;border:none;cursor:pointer;position:relative;color:#78716C;">
+            我的发起
+          </button>
+        </div>
+
+        {/* 我的投资 Content */}
+        <div id="panel-invest" class="px-4 pt-4 pb-4" />
+
+        {/* 我的发起 Content */}
+        <div id="panel-initiate" class="px-4 pt-4 pb-4" style="display:none;" />
+      </main>
+
+      <TabBar active="repayments" />
+
+      {/* Client-side logic */}
+      <script dangerouslySetInnerHTML={{ __html: `
+(function(){
+  var u = null;
+  try { u = JSON.parse(localStorage.getItem('zlc_user')); } catch(e){}
+  if (!u) return;
+
+  var CONTRACTS = ${JSON.stringify(mockContracts)};
+  var PROJECTS = ${JSON.stringify(mockProjects)};
+  var MEMBERS = ${JSON.stringify(mockMembers.map(m => ({ id:m.id, name:m.name, company:m.company })))};
+  var REP_RECORDS = ${JSON.stringify(mockRepaymentRecords)};
+  var REV_REPORTS = ${JSON.stringify(mockRevenueReports)};
+
+  // Also merge localStorage contracts
+  var lsContracts = [];
+  try { lsContracts = JSON.parse(localStorage.getItem('zlc_contracts') || '[]'); } catch(e){}
+  // Also merge localStorage projects
+  var lsProjects = [];
+  try { lsProjects = JSON.parse(localStorage.getItem('zlc_user_projects') || '[]'); } catch(e){}
+  // Also merge localStorage revenue reports & repayment records
+  var lsReports = [];
+  try { lsReports = JSON.parse(localStorage.getItem('zlc_revenue_reports') || '[]'); } catch(e){}
+  var lsRepRecords = [];
+  try { lsRepRecords = JSON.parse(localStorage.getItem('zlc_repayment_records') || '[]'); } catch(e){}
+
+  // Merge all data
+  lsContracts.forEach(function(c){ if(!CONTRACTS.find(function(x){return x.id===c.id;})) CONTRACTS.push(c); });
+  lsProjects.forEach(function(p){ if(!PROJECTS.find(function(x){return x.id===p.id;})) PROJECTS.push(p); });
+  lsReports.forEach(function(r){ if(!REV_REPORTS.find(function(x){return x.id===r.id;})) REV_REPORTS.push(r); });
+  lsRepRecords.forEach(function(r){ if(!REP_RECORDS.find(function(x){return x.id===r.id;})) REP_RECORDS.push(r); });
+
+  // Tabs
+  var tabInvest = document.getElementById('tab-invest');
+  var tabInitiate = document.getElementById('tab-initiate');
+  var panelInvest = document.getElementById('panel-invest');
+  var panelInitiate = document.getElementById('panel-initiate');
+
+  function setTab(which){
+    if(which === 'invest'){
+      tabInvest.style.color = '#B91C1C';
+      tabInvest.innerHTML = '我的投资<span style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:48px;height:3px;background:#B91C1C;border-radius:2px;"></span>';
+      tabInitiate.style.color = '#78716C';
+      tabInitiate.innerHTML = '我的发起';
+      panelInvest.style.display = 'block';
+      panelInitiate.style.display = 'none';
+    } else {
+      tabInitiate.style.color = '#B91C1C';
+      tabInitiate.innerHTML = '我的发起<span style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:48px;height:3px;background:#B91C1C;border-radius:2px;"></span>';
+      tabInvest.style.color = '#78716C';
+      tabInvest.innerHTML = '我的投资';
+      panelInvest.style.display = 'none';
+      panelInitiate.style.display = 'block';
+    }
+  }
+  tabInvest.addEventListener('click', function(){ setTab('invest'); });
+  tabInitiate.addEventListener('click', function(){ setTab('initiate'); });
+
+  // ── 我的投资 ──
+  var myContracts = CONTRACTS.filter(function(c){ return c.participantId === u.id && c.status === 'active'; });
+
+  // Summary
+  var totalInvested = 0, totalRepaid = 0, activeCount = 0, completedCount = 0;
+  myContracts.forEach(function(c){
+    totalInvested += c.amount;
+    // Calculate repaid from records
+    var recs = REP_RECORDS.filter(function(r){ return r.contractId === c.id; });
+    var repaid = recs.length > 0 ? recs[recs.length-1].cumulativeShare : (c.totalRepaid || 0);
+    totalRepaid += repaid;
+    if(c.status === 'active') activeCount++;
+    if(c.status === 'completed') completedCount++;
+  });
+  var recoveryPct = totalInvested > 0 ? (totalRepaid / totalInvested * 100).toFixed(1) : '0.0';
+
+  var investHTML = '';
+
+  if(myContracts.length === 0){
+    // Empty state
+    investHTML += '<div style="text-align:center;padding:48px 0;">';
+    investHTML += '<div style="width:64px;height:64px;border-radius:50%;background:#FEE2E2;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;"><i class="fas fa-wallet" style="font-size:28px;color:#B91C1C;"></i></div>';
+    investHTML += '<p style="font-size:16px;font-weight:600;color:#292524;margin-bottom:4px;">还没有参与任何项目</p>';
+    investHTML += '<p style="font-size:14px;color:#78716C;margin-bottom:20px;">去项目大厅发现优质项目吧</p>';
+    investHTML += '<a href="/projects" style="display:inline-flex;align-items:center;gap:6px;padding:10px 24px;background:#B91C1C;color:#fff;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none;">去项目大厅看看 <i class="fas fa-arrow-right" style="font-size:12px;"></i></a>';
+    investHTML += '</div>';
+  } else {
+    // Summary card
+    investHTML += '<div style="background:linear-gradient(135deg,#B91C1C,#7F1D1D);border-radius:20px;padding:24px;color:#fff;margin-bottom:16px;">';
+    investHTML += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;">';
+    investHTML += '<div><div style="font-size:28px;font-weight:800;font-family:Montserrat,sans-serif;">\\u00A5' + totalInvested + '\\u4E07</div><div style="font-size:12px;opacity:0.7;margin-top:2px;">总投资</div></div>';
+    investHTML += '<div><div style="font-size:28px;font-weight:800;font-family:Montserrat,sans-serif;">\\u00A5' + totalRepaid.toFixed(1) + '\\u4E07</div><div style="font-size:12px;opacity:0.7;margin-top:2px;">总回款</div></div>';
+    investHTML += '<div><div style="font-size:28px;font-weight:800;font-family:Montserrat,sans-serif;">' + recoveryPct + '%</div><div style="font-size:12px;opacity:0.7;margin-top:2px;">综合回收</div></div>';
+    investHTML += '</div>';
+    investHTML += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
+    investHTML += '<div><span style="font-size:14px;opacity:0.8;">在投项目</span> <span style="font-size:16px;font-weight:700;">' + activeCount + '个</span></div>';
+    investHTML += '<div><span style="font-size:14px;opacity:0.8;">已完成</span> <span style="font-size:16px;font-weight:700;">' + completedCount + '个</span></div>';
+    investHTML += '</div></div>';
+
+    // Project cards
+    investHTML += '<div style="display:flex;flex-direction:column;gap:12px;">';
+    myContracts.forEach(function(c){
+      var recs = REP_RECORDS.filter(function(r){ return r.contractId === c.id; });
+      var repaid = recs.length > 0 ? recs[recs.length-1].cumulativeShare : (c.totalRepaid || 0);
+      var lastRec = recs.length > 0 ? recs[recs.length-1] : null;
+      var monthlyAvg = recs.length > 0 ? (repaid / recs.length) : 0;
+      var progressPct = c.recoveryCap > 0 ? (repaid / c.recoveryCap * 100).toFixed(1) : '0.0';
+      var statusBadge = c.status === 'active' ? '<span style="background:#F0FDF4;color:#16a34a;border:1px solid #BBF7D0;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">运营中</span>' : '<span style="background:#F5F5F4;color:#78716C;border:1px solid #E7E5E4;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">已完成</span>';
+      var initiator = MEMBERS.find(function(m){ return m.id === c.initiatorId; });
+      var initName = c.initiatorName || (initiator ? initiator.name : '');
+      var initComp = c.initiatorCompany || (initiator ? initiator.company : '');
+
+      investHTML += '<a href="/investments/' + c.id + '" style="display:block;text-decoration:none;color:inherit;background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,0.04),0 2px 8px rgba(0,0,0,0.03);padding:16px;transition:transform 0.2s,box-shadow 0.2s;" onmouseover="this.style.transform=\\'translateY(-2px)\\';this.style.boxShadow=\\'0 4px 16px rgba(0,0,0,0.08)\\';" onmouseout="this.style.transform=\\'none\\';this.style.boxShadow=\\'0 1px 3px rgba(0,0,0,0.04),0 2px 8px rgba(0,0,0,0.03)\\';">';
+      investHTML += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">';
+      investHTML += '<span style="font-size:16px;font-weight:600;color:#1C1917;">' + c.projectName + '</span>';
+      investHTML += statusBadge;
+      investHTML += '</div>';
+      investHTML += '<div style="font-size:13px;color:#78716C;margin-bottom:10px;">' + initName + ' \\u00B7 ' + initComp + '</div>';
+      investHTML += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;">';
+      investHTML += '<div><div style="font-size:16px;font-weight:700;color:#1C1917;">\\u00A5' + c.amount + '\\u4E07</div><div style="font-size:11px;color:#A8A29E;">我的投资</div></div>';
+      investHTML += '<div><div style="font-size:16px;font-weight:700;color:#1C1917;">\\u00A5' + repaid.toFixed(2) + '\\u4E07</div><div style="font-size:11px;color:#A8A29E;">已回款</div></div>';
+      investHTML += '<div><div style="font-size:16px;font-weight:700;color:#1C1917;">\\u00A5' + monthlyAvg.toFixed(2) + '\\u4E07</div><div style="font-size:11px;color:#A8A29E;">月回</div></div>';
+      investHTML += '</div>';
+      // Progress bar
+      investHTML += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">';
+      investHTML += '<div style="flex:1;height:6px;border-radius:3px;background:#F5F5F4;overflow:hidden;"><div style="height:100%;border-radius:3px;background:linear-gradient(90deg,#D4A853,#B8860B);width:' + Math.min(parseFloat(progressPct), 100) + '%;transition:width 0.6s;"></div></div>';
+      investHTML += '<span style="font-size:12px;color:#D4A853;font-weight:600;">' + progressPct + '%</span>';
+      investHTML += '</div>';
+      // Last repayment
+      if(lastRec){
+        var dateStr = lastRec.date.slice(5).replace('-','/');
+        investHTML += '<div style="font-size:12px;color:#16A34A;">最近回款: ' + dateStr + ' +\\u00A5' + lastRec.shareAmount.toFixed(2) + '\\u4E07</div>';
+      }
+      investHTML += '</a>';
+    });
+    investHTML += '</div>';
+  }
+  panelInvest.innerHTML = investHTML;
+
+  // ── 我的发起 ──
+  var myProjects = PROJECTS.filter(function(p){ return p.ownerId === u.id; });
+
+  var initiateHTML = '';
+
+  if(myProjects.length === 0){
+    initiateHTML += '<div style="text-align:center;padding:48px 0;">';
+    initiateHTML += '<div style="width:64px;height:64px;border-radius:50%;background:#FEE2E2;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;"><i class="fas fa-rocket" style="font-size:28px;color:#B91C1C;"></i></div>';
+    initiateHTML += '<p style="font-size:16px;font-weight:600;color:#292524;margin-bottom:4px;">还没有发起过项目</p>';
+    initiateHTML += '<p style="font-size:14px;color:#78716C;margin-bottom:20px;">发起你的第一个项目吧</p>';
+    initiateHTML += '<a href="/create" style="display:inline-flex;align-items:center;gap:6px;padding:10px 24px;background:#B91C1C;color:#fff;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none;">发起第一个项目 <i class="fas fa-plus" style="font-size:12px;"></i></a>';
+    initiateHTML += '</div>';
+  } else {
+    initiateHTML += '<div style="display:flex;flex-direction:column;gap:12px;">';
+    myProjects.forEach(function(p){
+      var statusMap = {open:'募集中',funded:'已满额',active:'运营中',completed:'已完成',draft:'草稿'};
+      var statusLabel = statusMap[p.status] || p.status;
+      var badgeStyle = '';
+      if(p.status==='open') badgeStyle = 'background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;';
+      else if(p.status==='active') badgeStyle = 'background:#F0FDF4;color:#16a34a;border:1px solid #BBF7D0;';
+      else if(p.status==='completed') badgeStyle = 'background:#F5F5F4;color:#78716C;border:1px solid #E7E5E4;';
+      else if(p.status==='draft') badgeStyle = 'background:#F5F5F4;color:#78716C;border:1px solid #E7E5E4;';
+      else badgeStyle = 'background:#F0FDF4;color:#16a34a;border:1px solid #BBF7D0;';
+
+      // Count participants from contracts
+      var projContracts = CONTRACTS.filter(function(c){ return c.projectId === p.id && c.status === 'active'; });
+      var participantCount = projContracts.length || p.investors.length;
+
+      initiateHTML += '<div style="background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,0.04),0 2px 8px rgba(0,0,0,0.03);padding:16px;">';
+      initiateHTML += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">';
+      initiateHTML += '<span style="font-size:16px;font-weight:600;color:#1C1917;">' + p.name + '</span>';
+      initiateHTML += '<span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;' + badgeStyle + '">' + statusLabel + '</span>';
+      initiateHTML += '</div>';
+      initiateHTML += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">';
+      initiateHTML += '<span style="background:#FEE2E2;color:#B91C1C;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">' + p.industry + '</span>';
+      initiateHTML += '<span style="font-size:13px;color:#78716C;">' + participantCount + '位同学参与</span>';
+      initiateHTML += '</div>';
+
+      // Row 3: depends on status
+      if(p.status === 'open'){
+        var pct = p.targetAmount > 0 ? Math.round(p.raisedAmount / p.targetAmount * 100) : 0;
+        initiateHTML += '<div style="margin-bottom:10px;">';
+        initiateHTML += '<div style="height:6px;border-radius:3px;background:#F5F5F4;overflow:hidden;margin-bottom:4px;"><div style="height:100%;border-radius:3px;background:linear-gradient(90deg,#D4A853,#B8860B);width:' + pct + '%;"></div></div>';
+        initiateHTML += '<div style="font-size:13px;color:#78716C;">已募 \\u00A5' + p.raisedAmount + '/' + p.targetAmount + '\\u4E07 (' + pct + '%)</div>';
+        initiateHTML += '</div>';
+      } else if(p.status === 'active'){
+        var projReports = REV_REPORTS.filter(function(r){ return r.projectId === p.id; });
+        var totalRepaidProj = projReports.reduce(function(s,r){ return s + r.totalShareAmount; }, 0);
+        var lastReport = projReports.length > 0 ? projReports[projReports.length-1] : null;
+        initiateHTML += '<div style="display:flex;align-items:center;gap:16px;margin-bottom:10px;font-size:13px;color:#78716C;">';
+        initiateHTML += '<span>累计回款 <b style="color:#1C1917;">\\u00A5' + totalRepaidProj.toFixed(1) + '\\u4E07</b></span>';
+        if(lastReport) initiateHTML += '<span>最近上报 <b style="color:#1C1917;">' + lastReport.period + '</b></span>';
+        initiateHTML += '</div>';
+      }
+
+      // Row 4: action buttons
+      initiateHTML += '<div style="display:flex;gap:8px;">';
+      if(p.status === 'open'){
+        initiateHTML += '<a href="/projects/' + p.id + '" style="flex:1;text-align:center;padding:8px 0;border-radius:8px;background:#F5F5F4;color:#78716C;font-size:13px;font-weight:600;text-decoration:none;">管理项目</a>';
+      } else if(p.status === 'active'){
+        initiateHTML += '<a href="/initiated/' + p.id + '/report" style="flex:1;text-align:center;padding:8px 0;border-radius:8px;background:#B91C1C;color:#fff;font-size:13px;font-weight:600;text-decoration:none;">上报收入</a>';
+        initiateHTML += '<a href="/projects/' + p.id + '" style="flex:1;text-align:center;padding:8px 0;border-radius:8px;background:#F5F5F4;color:#78716C;font-size:13px;font-weight:600;text-decoration:none;">查看详情</a>';
+      } else if(p.status === 'draft'){
+        initiateHTML += '<a href="/create" style="flex:1;text-align:center;padding:8px 0;border-radius:8px;background:#B91C1C;color:#fff;font-size:13px;font-weight:600;text-decoration:none;">继续编辑</a>';
+        initiateHTML += '<button onclick="deleteDraft(\\'' + p.id + '\\')" style="flex:1;padding:8px 0;border-radius:8px;background:#F5F5F4;color:#DC2626;font-size:13px;font-weight:600;border:none;cursor:pointer;">删除</button>';
+      }
+      initiateHTML += '</div>';
+      initiateHTML += '</div>';
+    });
+    initiateHTML += '</div>';
+  }
+  panelInitiate.innerHTML = initiateHTML;
+
+  // Delete draft
+  window.deleteDraft = function(pid){
+    var ups = [];
+    try { ups = JSON.parse(localStorage.getItem('zlc_user_projects') || '[]'); } catch(e){}
+    ups = ups.filter(function(p){ return p.id !== pid; });
+    localStorage.setItem('zlc_user_projects', JSON.stringify(ups));
+    window.location.reload();
+  };
+})();
+`}} />
+    </div>,
+    { title: '回款中心 — 中流通' }
+  )
+})
+
+// ══════════════════════════════════════════════════════════
+// Investment Detail  (/investments/:contractId)
+// ══════════════════════════════════════════════════════════
+app.get('/investments/:contractId', (c) => {
+  const contractId = c.req.param('contractId')
+
+  return c.render(
+    <div>
+      <AuthCheckScript />
+      <Navbar />
+
+      <main class="max-w-lg mx-auto px-4 pt-3 pb-8">
+        <a href="/repayments" class="back-link mb-4 inline-flex">
+          <i class="fas fa-arrow-left" style="font-size:13px;" /> 返回回款中心
+        </a>
+
+        <div id="invest-detail-content">
+          <div class="text-center py-12">
+            <div class="spinner" style="border-color:rgba(185,28,28,0.2);border-top-color:#B91C1C;width:32px;height:32px;" />
+            <p class="text-text-secondary mt-3" style="font-size:14px;">加载中...</p>
+          </div>
+        </div>
+      </main>
+
+      <script dangerouslySetInnerHTML={{ __html: `
+(function(){
+  var u = null;
+  try { u = JSON.parse(localStorage.getItem('zlc_user')); } catch(e){}
+  if (!u) return;
+
+  var CONTRACT_ID = '${contractId}';
+  var CONTRACTS = ${JSON.stringify(mockContracts)};
+  var REP_RECORDS = ${JSON.stringify(mockRepaymentRecords)};
+  var MEMBERS = ${JSON.stringify(mockMembers.map(m => ({ id:m.id, name:m.name, company:m.company })))};
+
+  // Merge localStorage data
+  var lsContracts = [];
+  try { lsContracts = JSON.parse(localStorage.getItem('zlc_contracts') || '[]'); } catch(e){}
+  lsContracts.forEach(function(c){ if(!CONTRACTS.find(function(x){return x.id===c.id;})) CONTRACTS.push(c); });
+  var lsRepRecords = [];
+  try { lsRepRecords = JSON.parse(localStorage.getItem('zlc_repayment_records') || '[]'); } catch(e){}
+  lsRepRecords.forEach(function(r){ if(!REP_RECORDS.find(function(x){return x.id===r.id;})) REP_RECORDS.push(r); });
+
+  var contract = CONTRACTS.find(function(c){ return c.id === CONTRACT_ID; });
+  var el = document.getElementById('invest-detail-content');
+
+  if(!contract){
+    el.innerHTML = '<div style="text-align:center;padding:40px 0;"><div style="width:56px;height:56px;border-radius:50%;background:#FEE2E2;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;"><i class="fas fa-circle-xmark" style="font-size:24px;color:#DC2626;"></i></div><p style="font-size:16px;font-weight:600;color:#292524;">合同未找到</p></div>';
+    return;
+  }
+
+  var recs = REP_RECORDS.filter(function(r){ return r.contractId === contract.id; });
+  recs.sort(function(a,b){ return a.date.localeCompare(b.date); });
+
+  var repaid = recs.length > 0 ? recs[recs.length-1].cumulativeShare : (contract.totalRepaid || 0);
+  var progressPct = contract.recoveryCap > 0 ? (repaid / contract.recoveryCap * 100) : 0;
+  var monthlyAvg = recs.length > 0 ? (repaid / recs.length) : 0;
+  var remaining = monthlyAvg > 0 ? Math.ceil((contract.recoveryCap - repaid) / monthlyAvg) : 0;
+
+  var initiator = MEMBERS.find(function(m){ return m.id === contract.initiatorId; });
+  var initName = contract.initiatorName || (initiator ? initiator.name : '');
+  var initComp = contract.initiatorCompany || (initiator ? initiator.company : '');
+
+  var statusBadge = contract.status === 'active'
+    ? '<span style="background:#F0FDF4;color:#16a34a;border:1px solid #BBF7D0;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">运营中</span>'
+    : '<span style="background:#F5F5F4;color:#78716C;border:1px solid #E7E5E4;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">已完成</span>';
+
+  var html = '';
+
+  // 1. Project info
+  html += '<div style="background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,0.04),0 2px 8px rgba(0,0,0,0.03);padding:16px;margin-bottom:12px;">';
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">';
+  html += '<span style="font-size:18px;font-weight:600;color:#1C1917;">' + contract.projectName + '</span>';
+  html += statusBadge;
+  html += '</div>';
+  html += '<div style="font-size:14px;color:#78716C;">发起人: ' + initName + ' \\u00B7 ' + initComp + '</div>';
+  html += '</div>';
+
+  // 2. Investment info
+  html += '<div style="background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,0.04),0 2px 8px rgba(0,0,0,0.03);padding:20px;margin-bottom:12px;">';
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">';
+  html += '<div><div style="font-size:22px;font-weight:800;color:#1C1917;font-family:Montserrat,sans-serif;">\\u00A5' + contract.amount + '\\u4E07</div><div style="font-size:12px;color:#78716C;margin-top:2px;">我的投资</div></div>';
+  html += '<div><div style="font-size:22px;font-weight:800;color:#1C1917;font-family:Montserrat,sans-serif;">' + contract.revenueShareRatio + '%</div><div style="font-size:12px;color:#78716C;margin-top:2px;">分成比例</div></div>';
+  html += '<div><div style="font-size:22px;font-weight:800;color:#1C1917;font-family:Montserrat,sans-serif;">\\u00A5' + contract.recoveryCap + '\\u4E07</div><div style="font-size:12px;color:#78716C;margin-top:2px;">回收上限</div></div>';
+  html += '</div></div>';
+
+  // 3. Recovery ring progress
+  var circumference = 2 * Math.PI * 68; // 427.26
+  var dashOffset = circumference * (1 - progressPct / 100);
+
+  html += '<div style="background:#fff;border-radius:20px;box-shadow:0 1px 3px rgba(0,0,0,0.04),0 2px 8px rgba(0,0,0,0.03);padding:32px;margin-bottom:12px;text-align:center;">';
+  html += '<svg width="160" height="160" viewBox="0 0 160 160" style="margin:0 auto;display:block;">';
+  html += '<defs><linearGradient id="ring-grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#D4A853"/><stop offset="100%" stop-color="#B8860B"/></linearGradient></defs>';
+  html += '<circle cx="80" cy="80" r="68" fill="none" stroke="#F5F5F4" stroke-width="12"/>';
+  html += '<circle cx="80" cy="80" r="68" fill="none" stroke="url(#ring-grad)" stroke-width="12" stroke-dasharray="' + circumference.toFixed(2) + '" stroke-dashoffset="' + dashOffset.toFixed(2) + '" stroke-linecap="round" transform="rotate(-90 80 80)" style="transition:stroke-dashoffset 1s ease;"/>';
+  html += '<text x="80" y="72" text-anchor="middle" fill="#D4A853" font-size="32" font-weight="800" font-family="Montserrat,sans-serif">' + progressPct.toFixed(1) + '%</text>';
+  html += '<text x="80" y="96" text-anchor="middle" fill="#78716C" font-size="12">回收进度</text>';
+  html += '</svg>';
+  html += '<div style="margin-top:16px;font-size:15px;color:#292524;">已回款 \\u00A5' + repaid.toFixed(2) + '\\u4E07 / \\u00A5' + contract.recoveryCap + '\\u4E07</div>';
+  if(remaining > 0) html += '<div style="margin-top:4px;font-size:13px;color:#78716C;">预计还需约 ' + remaining + ' 个月</div>';
+  html += '</div>';
+
+  // 4. Bar chart (pure CSS)
+  if(recs.length > 0){
+    var maxShare = Math.max.apply(null, recs.map(function(r){ return r.shareAmount; }));
+
+    html += '<div style="background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,0.04),0 2px 8px rgba(0,0,0,0.03);padding:20px;margin-bottom:12px;">';
+    html += '<div style="font-size:16px;font-weight:600;color:#292524;margin-bottom:16px;">回款趋势</div>';
+    html += '<div style="display:flex;align-items:flex-end;gap:16px;height:200px;padding:20px 0 0;">';
+    recs.forEach(function(r){
+      var pctH = maxShare > 0 ? (r.shareAmount / maxShare * 100) : 0;
+      var dateLabel = r.date.slice(5,7) + '月';
+      html += '<div style="flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end;">';
+      html += '<div style="font-size:11px;color:#78716C;margin-bottom:4px;">\\u00A5' + r.shareAmount.toFixed(2) + '\\u4E07</div>';
+      html += '<div style="width:40px;border-radius:4px 4px 0 0;background:linear-gradient(180deg,#D4A853,#B8860B);height:' + Math.max(pctH, 5) + '%;transition:height 0.6s ease;"></div>';
+      html += '<div style="font-size:12px;color:#78716C;margin-top:6px;">' + dateLabel + '</div>';
+      html += '</div>';
+    });
+    html += '</div></div>';
+  }
+
+  // 5. Repayment detail list
+  html += '<div style="background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,0.04),0 2px 8px rgba(0,0,0,0.03);padding:20px;margin-bottom:12px;">';
+  html += '<div style="font-size:16px;font-weight:600;color:#292524;margin-bottom:12px;">回款明细</div>';
+  // Header
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:4px;padding-bottom:8px;border-bottom:1px solid #F5F5F4;">';
+  html += '<div style="font-size:12px;color:#78716C;">日期</div>';
+  html += '<div style="font-size:12px;color:#78716C;">项目收入</div>';
+  html += '<div style="font-size:12px;color:#78716C;">我的分成</div>';
+  html += '<div style="font-size:12px;color:#78716C;">累计回款</div>';
+  html += '</div>';
+  // Rows (reverse order — latest first)
+  var recsReversed = recs.slice().reverse();
+  recsReversed.forEach(function(r){
+    var dateStr = r.date.slice(5).replace('-','/');
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:4px;padding:12px 0;border-bottom:1px solid #F5F5F4;">';
+    html += '<div style="font-size:14px;color:#292524;">' + dateStr + '</div>';
+    html += '<div style="font-size:14px;color:#292524;">\\u00A5' + r.projectRevenue + '\\u4E07</div>';
+    html += '<div style="font-size:14px;color:#16A34A;font-weight:600;">+\\u00A5' + r.shareAmount.toFixed(2) + '\\u4E07</div>';
+    html += '<div style="font-size:14px;color:#292524;">\\u00A5' + r.cumulativeShare.toFixed(2) + '\\u4E07</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+
+  // 6. View contract button
+  var contractPage = '/contracts/' + contract.id + '/sign';
+  html += '<div style="text-align:center;margin-top:16px;">';
+  html += '<a href="' + contractPage + '" style="display:inline-flex;align-items:center;gap:6px;padding:10px 24px;border-radius:10px;background:#F5F5F4;color:#78716C;font-size:14px;font-weight:600;text-decoration:none;"><i class="fas fa-file-contract" style="font-size:13px;"></i> 查看合同</a>';
+  html += '</div>';
+
+  el.innerHTML = html;
+})();
+`}} />
+    </div>,
+    { title: '投资详情 — 中流通' }
+  )
+})
+
+// ══════════════════════════════════════════════════════════
+// Revenue Report  (/initiated/:projectId/report)
+// ══════════════════════════════════════════════════════════
+app.get('/initiated/:projectId/report', (c) => {
+  const projectId = c.req.param('projectId')
+
+  return c.render(
+    <div>
+      <AuthCheckScript />
+      <Navbar />
+
+      <main class="max-w-lg mx-auto px-4 pt-3 pb-8">
+        <a href="/repayments" class="back-link mb-4 inline-flex">
+          <i class="fas fa-arrow-left" style="font-size:13px;" /> 返回回款中心
+        </a>
+
+        <div id="report-content">
+          <div class="text-center py-12">
+            <div class="spinner" style="border-color:rgba(185,28,28,0.2);border-top-color:#B91C1C;width:32px;height:32px;" />
+            <p class="text-text-secondary mt-3" style="font-size:14px;">加载中...</p>
+          </div>
+        </div>
+      </main>
+
+      {/* Success overlay */}
+      <div class="sign-success-overlay" id="report-success-overlay">
+        <div class="sign-success-icon">
+          <i class="fas fa-check text-white" style="font-size:36px;" />
+        </div>
+        <div class="sign-success-text">上报成功</div>
+        <div class="sign-success-sub">收入已记录，分成已自动分配</div>
+      </div>
+
+      <div id="toast" class="toast" />
+
+      <script dangerouslySetInnerHTML={{ __html: `
+(function(){
+  var u = null;
+  try { u = JSON.parse(localStorage.getItem('zlc_user')); } catch(e){}
+  if (!u) return;
+
+  var PROJECT_ID = '${projectId}';
+  var CONTRACTS = ${JSON.stringify(mockContracts)};
+  var PROJECTS = ${JSON.stringify(mockProjects)};
+  var REV_REPORTS = ${JSON.stringify(mockRevenueReports)};
+  var REP_RECORDS = ${JSON.stringify(mockRepaymentRecords)};
+  var MEMBERS = ${JSON.stringify(mockMembers.map(m => ({ id:m.id, name:m.name, company:m.company })))};
+
+  // Merge localStorage
+  var lsContracts = [];
+  try { lsContracts = JSON.parse(localStorage.getItem('zlc_contracts') || '[]'); } catch(e){}
+  lsContracts.forEach(function(c){ if(!CONTRACTS.find(function(x){return x.id===c.id;})) CONTRACTS.push(c); });
+  var lsProjects = [];
+  try { lsProjects = JSON.parse(localStorage.getItem('zlc_user_projects') || '[]'); } catch(e){}
+  lsProjects.forEach(function(p){ if(!PROJECTS.find(function(x){return x.id===p.id;})) PROJECTS.push(p); });
+  var lsReports = [];
+  try { lsReports = JSON.parse(localStorage.getItem('zlc_revenue_reports') || '[]'); } catch(e){}
+  lsReports.forEach(function(r){ if(!REV_REPORTS.find(function(x){return x.id===r.id;})) REV_REPORTS.push(r); });
+  var lsRepRecords = [];
+  try { lsRepRecords = JSON.parse(localStorage.getItem('zlc_repayment_records') || '[]'); } catch(e){}
+  lsRepRecords.forEach(function(r){ if(!REP_RECORDS.find(function(x){return x.id===r.id;})) REP_RECORDS.push(r); });
+
+  // Toast
+  var toastEl = document.getElementById('toast');
+  var toastTimer = null;
+  function showToast(m,t){
+    if(!toastEl) return;
+    clearTimeout(toastTimer);toastEl.textContent=m;toastEl.className='toast toast-'+(t||'error');
+    requestAnimationFrame(function(){toastEl.classList.add('show');});
+    toastTimer=setTimeout(function(){toastEl.classList.remove('show');},3000);
+  }
+
+  var proj = PROJECTS.find(function(p){ return p.id === PROJECT_ID; });
+  var el = document.getElementById('report-content');
+
+  if(!proj){
+    el.innerHTML = '<div style="text-align:center;padding:40px 0;"><div style="width:56px;height:56px;border-radius:50%;background:#FEE2E2;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;"><i class="fas fa-circle-xmark" style="font-size:24px;color:#DC2626;"></i></div><p style="font-size:16px;font-weight:600;color:#292524;">项目未找到</p></div>';
+    return;
+  }
+
+  var projContracts = CONTRACTS.filter(function(c){ return c.projectId === proj.id && c.status === 'active'; });
+  var projReports = REV_REPORTS.filter(function(r){ return r.projectId === proj.id; });
+  var shareRatio = proj.revenueShareRate || (projContracts.length > 0 ? projContracts[0].revenueShareRatio : 0);
+
+  // Generate month options (from a reasonable start to current month)
+  var now = new Date();
+  var months = [];
+  // Start from 2025-12 or project active date, go to current month
+  var startYear = 2025, startMonth = 12;
+  for(var y = startYear; y <= now.getFullYear(); y++){
+    var mStart = (y === startYear) ? startMonth : 1;
+    var mEnd = (y === now.getFullYear()) ? (now.getMonth() + 1) : 12;
+    for(var m = mStart; m <= mEnd; m++){
+      var key = y + '-' + String(m).padStart(2, '0');
+      months.push({ key: key, label: y + '年' + m + '月' });
+    }
+  }
+  months.reverse(); // Latest first
+
+  function render(){
+    // Reload merged data
+    var allReports = REV_REPORTS.filter(function(r){ return r.projectId === proj.id; });
+    allReports.sort(function(a,b){ return b.period.localeCompare(a.period); });
+
+    var html = '';
+
+    // 1. Project info
+    html += '<div style="background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,0.04),0 2px 8px rgba(0,0,0,0.03);padding:16px;margin-bottom:12px;">';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">';
+    html += '<span style="font-size:18px;font-weight:600;color:#1C1917;">' + proj.name + '</span>';
+    html += '<span style="background:#F0FDF4;color:#16a34a;border:1px solid #BBF7D0;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">运营中</span>';
+    html += '</div>';
+    html += '<div style="font-size:13px;color:#78716C;">参与人 ' + projContracts.length + ' 位 | 分成比例 ' + shareRatio + '%</div>';
+    html += '</div>';
+
+    // 2. Report form
+    html += '<div style="background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,0.04),0 2px 8px rgba(0,0,0,0.03);padding:24px;margin-bottom:12px;border-top:3px solid #B91C1C;">';
+    html += '<div style="font-size:18px;font-weight:600;color:#292524;margin-bottom:16px;">上报本期收入</div>';
+
+    // Period select
+    html += '<div style="margin-bottom:16px;">';
+    html += '<label style="font-size:14px;font-weight:500;color:#292524;margin-bottom:6px;display:block;">报告期间</label>';
+    html += '<select id="rpt-period" style="width:100%;background:#fff;appearance:none;-webkit-appearance:none;background-image:url(&quot;data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'10\\' height=\\'6\\'%3E%3Cpath d=\\'M0 0l5 6 5-6z\\' fill=\\'%2378716C\\'/%3E%3C/svg%3E&quot;);background-repeat:no-repeat;background-position:right 14px center;border:1px solid rgba(0,0,0,0.12);border-radius:12px;padding:14px 36px 14px 16px;font-size:15px;color:#1C1917;outline:none;cursor:pointer;font-family:inherit;">';
+    months.forEach(function(m,i){
+      var reported = allReports.find(function(r){ return r.period === m.key; });
+      html += '<option value="' + m.key + '"' + (i===0?' selected':'') + '>' + m.label + (reported ? ' (已上报)' : '') + '</option>';
+    });
+    html += '</select></div>';
+
+    // Revenue input
+    html += '<div style="margin-bottom:16px;">';
+    html += '<label style="font-size:14px;font-weight:500;color:#292524;margin-bottom:6px;display:block;">本期总收入</label>';
+    html += '<div style="position:relative;">';
+    html += '<input id="rpt-revenue" type="number" step="0.01" min="0" placeholder="请输入本期项目总收入" style="width:100%;background:#fff;border:1px solid rgba(0,0,0,0.12);border-radius:12px;padding:14px 52px 14px 16px;font-size:15px;color:#1C1917;outline:none;font-family:inherit;box-sizing:border-box;" />';
+    html += '<span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:13px;color:#78716C;pointer-events:none;">万元</span>';
+    html += '</div></div>';
+
+    // Note
+    html += '<div style="margin-bottom:16px;">';
+    html += '<label style="font-size:14px;font-weight:500;color:#292524;margin-bottom:6px;display:block;">备注 <span style="font-size:12px;color:#A8A29E;">（选填）</span></label>';
+    html += '<input id="rpt-note" type="text" placeholder="如有说明请填写" style="width:100%;background:#fff;border:1px solid rgba(0,0,0,0.12);border-radius:12px;padding:14px 16px;font-size:15px;color:#1C1917;outline:none;font-family:inherit;box-sizing:border-box;" />';
+    html += '</div>';
+
+    // Auto-calc area
+    html += '<div id="rpt-calc" style="background:#FEF2F2;border-radius:12px;padding:16px;margin-top:16px;">';
+    html += '<div style="font-size:15px;color:#B91C1C;font-weight:600;">本期分成总额: <span id="rpt-share-total">—</span></div>';
+    html += '<div style="font-size:13px;color:#78716C;margin-top:4px;">将分配给 ' + projContracts.length + ' 位参与人</div>';
+    html += '</div>';
+
+    // Submit button
+    html += '<button id="rpt-submit-btn" style="width:100%;height:48px;background:linear-gradient(135deg,#DC2626,#B91C1C);color:#fff;font-weight:700;font-size:16px;border:none;border-radius:12px;cursor:pointer;margin-top:16px;transition:transform 0.15s,box-shadow 0.25s;" onmouseover="this.style.transform=\\'translateY(-1px)\\';this.style.boxShadow=\\'0 6px 24px rgba(185,28,28,0.35)\\';" onmouseout="this.style.transform=\\'none\\';this.style.boxShadow=\\'none\\';">提交收入上报</button>';
+    html += '</div>';
+
+    // 3. History
+    html += '<div style="background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,0.04),0 2px 8px rgba(0,0,0,0.03);padding:20px;margin-bottom:12px;">';
+    html += '<div style="font-size:16px;font-weight:600;color:#292524;margin-bottom:12px;">历史上报</div>';
+    if(allReports.length === 0){
+      html += '<div style="text-align:center;padding:16px;color:#78716C;font-size:14px;">暂无上报记录</div>';
+    } else {
+      allReports.forEach(function(r){
+        var yM = r.period.split('-');
+        var label = yM[0] + '年' + parseInt(yM[1]) + '月';
+        html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid #F5F5F4;">';
+        html += '<span style="font-size:14px;color:#292524;">' + label + '</span>';
+        html += '<span style="font-size:14px;font-weight:600;color:#292524;">收入 \\u00A5' + r.totalRevenue + '\\u4E07</span>';
+        html += '<span style="font-size:14px;color:#D4A853;font-weight:600;">分成 \\u00A5' + r.totalShareAmount.toFixed(1) + '\\u4E07</span>';
+        html += '</div>';
+      });
+    }
+    html += '</div>';
+
+    // 4. Distribution details (latest report)
+    if(allReports.length > 0){
+      var latestReport = allReports[0];
+      var totalInvested = projContracts.reduce(function(s,c){ return s + c.amount; }, 0);
+      var latestShareTotal = latestReport.totalRevenue * (shareRatio / 100);
+
+      html += '<div style="background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,0.04),0 2px 8px rgba(0,0,0,0.03);padding:20px;margin-bottom:12px;">';
+      html += '<div style="font-size:16px;font-weight:600;color:#292524;margin-bottom:12px;">本期分配明细</div>';
+      projContracts.forEach(function(c){
+        var ratio = totalInvested > 0 ? c.amount / totalInvested : 0;
+        var share = latestShareTotal * ratio;
+        var mem = MEMBERS.find(function(m){ return m.id === c.participantId; });
+        var mName = c.participantName || (mem ? mem.name : '');
+        var mComp = mem ? mem.company : '';
+
+        html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #F5F5F4;">';
+        html += '<div style="display:flex;align-items:center;gap:10px;">';
+        html += '<div style="width:36px;height:36px;border-radius:50%;background:#B91C1C;color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;">' + mName.charAt(0) + '</div>';
+        html += '<div><div style="font-size:14px;font-weight:600;color:#1C1917;">' + mName + '</div><div style="font-size:12px;color:#78716C;">' + mComp + '</div></div>';
+        html += '</div>';
+        html += '<div style="text-align:right;">';
+        html += '<div style="font-size:12px;color:#78716C;">投资 \\u00A5' + c.amount + '\\u4E07</div>';
+        html += '<div style="font-size:14px;font-weight:600;color:#D4A853;">本期 \\u00A5' + share.toFixed(2) + '\\u4E07</div>';
+        html += '</div>';
+        html += '</div>';
+      });
+      html += '</div>';
+    }
+
+    el.innerHTML = html;
+
+    // Wire up events
+    var revenueInput = document.getElementById('rpt-revenue');
+    var shareTotalEl = document.getElementById('rpt-share-total');
+
+    if(revenueInput){
+      revenueInput.addEventListener('input', function(){
+        var rev = parseFloat(revenueInput.value) || 0;
+        var share = rev * (shareRatio / 100);
+        shareTotalEl.textContent = share > 0 ? '\\u00A5' + share.toFixed(2) + '\\u4E07' : '\\u2014';
+      });
+    }
+
+    var submitBtn = document.getElementById('rpt-submit-btn');
+    if(submitBtn){
+      submitBtn.addEventListener('click', function(){
+        var period = document.getElementById('rpt-period').value;
+        var revenue = parseFloat(document.getElementById('rpt-revenue').value);
+        var note = document.getElementById('rpt-note').value.trim();
+
+        if(!revenue || revenue <= 0){
+          showToast('请输入本期收入', 'error');
+          return;
+        }
+
+        // Check if already reported this period
+        var existing = allReports.find(function(r){ return r.period === period; });
+        if(existing){
+          showToast('该期已上报过，请选择其他月份', 'error');
+          return;
+        }
+
+        // Create RevenueReport
+        var reportId = 'rr-' + Date.now().toString(36);
+        var shareTotal = revenue * (shareRatio / 100);
+        var newReport = {
+          id: reportId,
+          projectId: proj.id,
+          reportedBy: u.id,
+          period: period,
+          periodType: 'monthly',
+          totalRevenue: revenue,
+          totalShareAmount: +shareTotal.toFixed(4),
+          reportedAt: new Date().toISOString().slice(0, 10),
+          note: note
+        };
+
+        // Save to localStorage
+        var savedReports = [];
+        try { savedReports = JSON.parse(localStorage.getItem('zlc_revenue_reports') || '[]'); } catch(e){}
+        savedReports.push(newReport);
+        localStorage.setItem('zlc_revenue_reports', JSON.stringify(savedReports));
+        REV_REPORTS.push(newReport);
+
+        // Auto-distribute to participants
+        var totalInvested = projContracts.reduce(function(s,c){ return s + c.amount; }, 0);
+        var savedRepRecords = [];
+        try { savedRepRecords = JSON.parse(localStorage.getItem('zlc_repayment_records') || '[]'); } catch(e){}
+
+        projContracts.forEach(function(c){
+          var ratio = totalInvested > 0 ? c.amount / totalInvested : 0;
+          var share = +(shareTotal * ratio).toFixed(4);
+          var prevRecs = REP_RECORDS.filter(function(r){ return r.contractId === c.id; });
+          var prevCumulative = prevRecs.length > 0 ? prevRecs[prevRecs.length-1].cumulativeShare : (c.totalRepaid || 0);
+          var newCumulative = +(prevCumulative + share).toFixed(4);
+
+          // Cap check
+          if(newCumulative > c.recoveryCap){
+            share = +(c.recoveryCap - prevCumulative).toFixed(4);
+            if(share < 0) share = 0;
+            newCumulative = +(prevCumulative + share).toFixed(4);
+          }
+
+          var recId = 'rep-' + Date.now().toString(36) + '-' + c.id;
+          var newRec = {
+            id: recId,
+            contractId: c.id,
+            revenueReportId: reportId,
+            participantId: c.participantId,
+            projectName: proj.name,
+            date: new Date().toISOString().slice(0, 10),
+            projectRevenue: revenue,
+            shareAmount: share,
+            cumulativeShare: newCumulative,
+            recoveryProgress: +(newCumulative / c.recoveryCap * 100).toFixed(2)
+          };
+          savedRepRecords.push(newRec);
+          REP_RECORDS.push(newRec);
+
+          // Update contract totalRepaid
+          c.totalRepaid = newCumulative;
+        });
+        localStorage.setItem('zlc_repayment_records', JSON.stringify(savedRepRecords));
+
+        // Update contracts in localStorage
+        var allLsContracts = [];
+        try { allLsContracts = JSON.parse(localStorage.getItem('zlc_contracts') || '[]'); } catch(e){}
+        projContracts.forEach(function(c){
+          var idx = allLsContracts.findIndex(function(x){ return x.id === c.id; });
+          if(idx >= 0) allLsContracts[idx].totalRepaid = c.totalRepaid;
+        });
+        localStorage.setItem('zlc_contracts', JSON.stringify(allLsContracts));
+
+        // Show success
+        var overlay = document.getElementById('report-success-overlay');
+        overlay.classList.add('show');
+        setTimeout(function(){
+          overlay.classList.remove('show');
+          render(); // re-render page
+        }, 2000);
+      });
+    }
+  }
+
+  render();
+})();
+`}} />
+    </div>,
+    { title: '上报收入 — 中流通' }
+  )
+})
 
 export default app
