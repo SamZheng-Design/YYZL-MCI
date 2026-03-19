@@ -207,6 +207,139 @@ export const mockMembers: Member[] = [
     cohort: '第22期', status: 'active', joinDate: '2026-03-01',
     classId: 'class-22', className: '第22期',
   },
+  // ── 新增学员第二批（m-025 ~ m-042） ──
+  // 第12期补充
+  {
+    id: 'm-025', phone: '13800252525', name: '罗志远', company: '志远传媒集团',
+    industry: '广告传媒', title: '创始人',
+    bio: '户外广告行业15年，拥有华南地区3万+广告位资源，年营收2.1亿，正布局数字化广告',
+    cohort: '第12期', status: 'active', joinDate: '2024-03-15',
+    classId: 'class-12', className: '第12期',
+  },
+  {
+    id: 'm-026', phone: '13800262626', name: '蔡小凤', company: '小凤烘焙连锁',
+    industry: '烘焙食品', title: '创始人兼CEO',
+    bio: '「凤凰麦坊」中式烘焙品牌，全国52家门店，主打国潮糕点，年营收9500万',
+    cohort: '第12期', status: 'active', joinDate: '2024-03-15',
+    classId: 'class-12', className: '第12期',
+  },
+  // 第14期补充
+  {
+    id: 'm-027', phone: '13800272727', name: '谢文斌', company: '文斌印刷包装',
+    industry: '包装印刷', title: '总经理',
+    bio: '二代接班后推动绿色印刷转型，成为茅台、农夫山泉指定包装供应商，年产值2.8亿',
+    cohort: '第14期', status: 'active', joinDate: '2025-01-10',
+    classId: 'class-14', className: '第14期',
+  },
+  {
+    id: 'm-028', phone: '13800282828', name: '邓晓雯', company: '晓雯大药房连锁',
+    industry: '医药零售', title: '董事长',
+    bio: '华中地区连锁药房品牌，86家门店，年营收4.2亿，会员体系200万人',
+    cohort: '第14期', status: 'active', joinDate: '2025-01-10',
+    classId: 'class-14', className: '第14期',
+  },
+  {
+    id: 'm-029', phone: '13800292929', name: '韩启明', company: '启明安防科技',
+    industry: '安防科技', title: 'CEO',
+    bio: 'AI视觉安防解决方案，服务500+企业园区和200+社区，年合同额6000万，续约率95%',
+    cohort: '第14期', status: 'active', joinDate: '2025-01-10',
+    classId: 'class-14', className: '第14期',
+  },
+  // 第16期补充
+  {
+    id: 'm-030', phone: '13800303030', name: '唐颖', company: '唐颖酒业',
+    industry: '酒水饮料', title: '创始人',
+    bio: '精酿啤酒品牌「唐酿」，自建酒厂年产能5000吨，进入3000+餐饮终端，年营收8000万',
+    cohort: '第16期', status: 'active', joinDate: '2025-06-01',
+    classId: 'class-16', className: '第16期',
+  },
+  {
+    id: 'm-031', phone: '13800313131', name: '梁俊豪', company: '俊豪地产服务',
+    industry: '物业管理', title: '总经理',
+    bio: '商业物业管理公司，在管面积800万平米，服务写字楼和商场60+个，年营收1.3亿',
+    cohort: '第16期', status: 'active', joinDate: '2025-06-01',
+    classId: 'class-16', className: '第16期',
+  },
+  // 第18期补充
+  {
+    id: 'm-032', phone: '13800323232', name: '魏子涵', company: '子涵少儿编程',
+    industry: '少儿教育', title: '创始人',
+    bio: '「码上未来」少儿编程品牌，线上线下结合模式，全国15城28家校区，学员2.5万人',
+    cohort: '第18期', status: 'active', joinDate: '2025-09-01',
+    classId: 'class-18', className: '第18期',
+  },
+  {
+    id: 'm-033', phone: '13800333333', name: '沈雅婷', company: '雅婷护肤科技',
+    industry: '美妆研发', title: '创始人兼首席配方师',
+    bio: '专注功效护肤的ODM企业，为50+品牌代工，自有实验室和工厂，年产值1.4亿',
+    cohort: '第18期', status: 'active', joinDate: '2025-09-01',
+    classId: 'class-18', className: '第18期',
+  },
+  {
+    id: 'm-034', phone: '13800343434', name: '姜海波', company: '海波水产集团',
+    industry: '水产养殖', title: '董事长',
+    bio: '南美白对虾工厂化养殖，年产量6000吨，出口日韩和欧盟，年营收2.6亿',
+    cohort: '第18期', status: 'active', joinDate: '2025-09-01',
+    classId: 'class-18', className: '第18期',
+  },
+  // 第20期补充
+  {
+    id: 'm-035', phone: '13800353535', name: '邱晓明', company: '晓明智慧停车',
+    industry: '智慧城市', title: 'CEO',
+    bio: '智慧停车运营商，管理车位15万个，覆盖50+城市，年交易额3.2亿，平台抽成模式',
+    cohort: '第20期', status: 'active', joinDate: '2026-01-15',
+    classId: 'class-20', className: '第20期',
+  },
+  {
+    id: 'm-036', phone: '13800363636', name: '廖婉清', company: '婉清月子中心',
+    industry: '母婴服务', title: '创始人',
+    bio: '高端月子护理品牌「馨月湾」，华南6家直营店，客单价8-15万，年营收7500万，入住率92%',
+    cohort: '第20期', status: 'active', joinDate: '2026-01-15',
+    classId: 'class-20', className: '第20期',
+  },
+  {
+    id: 'm-037', phone: '13800373737', name: '段鹏飞', company: '鹏飞冷链物流',
+    industry: '冷链物流', title: '总经理',
+    bio: '生鲜冷链专线运输，自有冷藏车80台，冷库面积2万平米，年营收1.1亿',
+    cohort: '第20期', status: 'active', joinDate: '2026-01-15',
+    classId: 'class-20', className: '第20期',
+  },
+  // 第22期补充
+  {
+    id: 'm-038', phone: '13800383838', name: '夏天宇', company: '天宇体育文化',
+    industry: '体育产业', title: '创始人',
+    bio: '青少年体育培训连锁「天宇体育」，足球/篮球/游泳三大品类，全国40家校区，学员3万人',
+    cohort: '第22期', status: 'active', joinDate: '2026-03-01',
+    classId: 'class-22', className: '第22期',
+  },
+  {
+    id: 'm-039', phone: '13800393939', name: '方雨欣', company: '雨欣数字营销',
+    industry: '数字营销', title: 'CEO',
+    bio: '品牌全案数字营销服务商，服务客户包括安踏、波司登、蜜雪冰城，年营收6500万',
+    cohort: '第22期', status: 'active', joinDate: '2026-03-01',
+    classId: 'class-22', className: '第22期',
+  },
+  {
+    id: 'm-040', phone: '13800404040', name: '崔明浩', company: '明浩建材贸易',
+    industry: '建材贸易', title: '董事长',
+    bio: '钢材和水泥贸易商，年贸易额12亿，下游客户300+家建筑企业，净利润率3.5%',
+    cohort: '第22期', status: 'active', joinDate: '2026-03-01',
+    classId: 'class-22', className: '第22期',
+  },
+  {
+    id: 'm-041', phone: '13800414141', name: '董小燕', company: '小燕茶业',
+    industry: '茶叶', title: '创始人',
+    bio: '福建白茶品牌「燕归来」，自有茶园500亩，线上年销8000万，复购率45%',
+    cohort: '第22期', status: 'active', joinDate: '2026-03-01',
+    classId: 'class-22', className: '第22期',
+  },
+  {
+    id: 'm-042', phone: '13800424242', name: '范文杰', company: '文杰装修平台',
+    industry: '家装服务', title: 'CEO',
+    bio: '互联网家装平台「好装家」，连接2000+装修师傅和业主，年GMV 1.8亿，平台抽佣模式',
+    cohort: '第22期', status: 'active', joinDate: '2026-03-01',
+    classId: 'class-22', className: '第22期',
+  },
   // ── 管理员 ──
   {
     id: 'm-admin', phone: '18000000000', name: '管理员', company: '一亿中流',
