@@ -108,6 +108,7 @@ export interface Project {
   shareCode?: string
   initiatorClassId?: string
   initiatorClassName?: string
+  recommendedByTeacher?: string[]
 }
 
 export const mockProjects: Project[] = [
@@ -124,6 +125,7 @@ export const mockProjects: Project[] = [
   {
     id: 'p-002', name: '工业视觉检测新产线', ownerId: 'm-002',
     industry: '智能制造', shareCode: 'MF7R3B', initiatorClassId: 'class-10', initiatorClassName: '第10期',
+    recommendedByTeacher: ['t-002'],
     description: '引进第四代柔性产线，提升产能40%，降低人工成本30%。已与德国设备商签订采购意向书，预计产线3个月内投产。',
     targetAmount: 150, raisedAmount: 150, revenueShareRate: 15.0, duration: 36,
     recoveryMultiple: 1.5, estimatedMonthlyRevenue: 320,
@@ -398,6 +400,63 @@ export function getUserStats(userId: string) {
 export function findProjectByShareCode(code: string): Project | null {
   return mockProjects.find(p => p.shareCode === code.toUpperCase()) || null
 }
+
+// ── 关系标签 ────────────────────────────────────────────
+export interface RelationTag {
+  text: string
+  type: 'gold' | 'green' | 'gray'
+}
+
+export function getRelationTag(project: Project, currentUser: { classId?: string }): RelationTag {
+  const myTeacher = currentUser.classId
+    ? mockTeachers.find(t => t.classIds.includes(currentUser.classId!))
+    : null
+  // 优先级1: 老师推荐
+  if (myTeacher && project.recommendedByTeacher && project.recommendedByTeacher.includes(myTeacher.id)) {
+    return { text: '🌟 老师推荐', type: 'gold' }
+  }
+  // 优先级2: 同班同学
+  if (project.initiatorClassId && project.initiatorClassId === currentUser.classId) {
+    return { text: '同班 · ' + (project.initiatorClassName || ''), type: 'green' }
+  }
+  // 优先级3: 其他期
+  return { text: project.initiatorClassName || '', type: 'gray' }
+}
+
+// ── 智能排序 ────────────────────────────────────────────
+export function getRelevanceScore(
+  project: Project,
+  currentUser: { classId?: string },
+  myTeacher: Teacher | null
+): number {
+  let score = 0
+  if (project.initiatorClassId === currentUser.classId) score += 30
+  if (myTeacher && project.recommendedByTeacher && project.recommendedByTeacher.includes(myTeacher.id)) score += 20
+  if (project.status === 'open') score += 10
+  if (project.status === 'active') score += 5
+  return score
+}
+
+// ── 引荐数据模型 ────────────────────────────────────────
+export interface Referral {
+  id: string
+  projectId: string
+  projectName: string
+  requesterId: string
+  requesterName: string
+  requesterClassName: string
+  initiatorId: string
+  initiatorName: string
+  initiatorClassName: string
+  teacherId: string
+  teacherName: string
+  message: string
+  status: 'pending' | 'connected' | 'declined'
+  requestedAt: string
+  connectedAt: string | null
+}
+
+export const mockReferrals: Referral[] = []
 
 // Demo 验证码
 export const DEMO_VERIFY_CODE = '888888'

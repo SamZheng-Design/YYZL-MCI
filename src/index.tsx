@@ -6,11 +6,13 @@ import { renderer } from './renderer'
 import {
   mockMembers, mockProjects, mockRepayments,
   mockContracts, mockRevenueReports, mockRepaymentRecords,
-  mockTeachers, getTeacherForMember, isSameClass, findProjectByShareCode,
+  mockTeachers, mockReferrals,
+  getTeacherForMember, isSameClass, findProjectByShareCode,
+  getRelationTag, getRelevanceScore,
   getUserStats, getProjectStats, calculateRBF, distributeRevenue,
   DEMO_VERIFY_CODE,
 } from './data'
-import type { Member, Teacher, Project, Contract, RevenueReport, RepaymentRecord, DistributionResult } from './data'
+import type { Member, Teacher, Project, Contract, RevenueReport, RepaymentRecord, DistributionResult, RelationTag, Referral } from './data'
 
 const app = new Hono()
 
@@ -707,6 +709,7 @@ app.get('/projects', (c) => {
             <option value="completed">已完成</option>
           </select>
           <select id="filter-sort" class="filter-select">
+            <option value="relevant">与我相关</option>
             <option value="latest">最新发布</option>
             <option value="amount">金额最大</option>
             <option value="rate">分成最高</option>
@@ -733,8 +736,17 @@ app.get('/projects', (c) => {
       {/* Inject projects data + filter logic */}
       <script dangerouslySetInnerHTML={{ __html: `
 (function(){
-  var PROJECTS = ${JSON.stringify(mockProjects)};
-  var MEMBERS = ${JSON.stringify(mockMembers.map(m => ({ id:m.id, name:m.name, company:m.company, cohort:m.cohort })))};
+  var PROJECTS = ${JSON.stringify(mockProjects.map(p => ({
+    id:p.id, name:p.name, ownerId:p.ownerId, industry:p.industry,
+    targetAmount:p.targetAmount, raisedAmount:p.raisedAmount,
+    revenueShareRate:p.revenueShareRate, duration:p.duration,
+    totalShares:p.totalShares, raisedShares:p.raisedShares,
+    status:p.status, createdAt:p.createdAt, investors:p.investors,
+    initiatorClassId:p.initiatorClassId||'', initiatorClassName:p.initiatorClassName||'',
+    recommendedByTeacher:p.recommendedByTeacher||[],
+  })))};
+  var MEMBERS = ${JSON.stringify(mockMembers.map(m => ({ id:m.id, name:m.name, company:m.company, cohort:m.cohort, classId:m.classId||'' })))};
+  var TEACHERS = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, name:t.name, classIds:t.classIds })))};
 
   // Merge user-created projects from localStorage
   var userProjects = [];
@@ -745,10 +757,46 @@ app.get('/projects', (c) => {
     if(up.status !== 'draft'){
       PROJECTS.push(up);
       if(u && !MEMBERS.find(function(m){return m.id===u.id;})){
-        MEMBERS.push({id:u.id, name:u.name, company:u.company||'', cohort:u.cohort||''});
+        MEMBERS.push({id:u.id, name:u.name, company:u.company||'', cohort:u.cohort||'', classId:u.classId||''});
       }
     }
   });
+
+  // Find teacher for current user
+  var myClassId = (u && u.classId) ? u.classId : '';
+  var myTeacher = null;
+  if(myClassId){
+    myTeacher = TEACHERS.find(function(t){ return t.classIds.indexOf(myClassId) !== -1; }) || null;
+  }
+
+  // Relation tag function
+  function getRelationTag(p){
+    if(!myClassId) return { text: p.initiatorClassName || '', type: 'gray' };
+    if(myTeacher && p.recommendedByTeacher && p.recommendedByTeacher.indexOf(myTeacher.id) !== -1){
+      return { text: '\\u{1F31F} 老师推荐', type: 'gold' };
+    }
+    if(p.initiatorClassId && p.initiatorClassId === myClassId){
+      return { text: '同班 · ' + (p.initiatorClassName || ''), type: 'green' };
+    }
+    return { text: p.initiatorClassName || '', type: 'gray' };
+  }
+
+  // Relevance score for smart sorting
+  function getRelevanceScore(p){
+    var score = 0;
+    if(p.initiatorClassId === myClassId) score += 30;
+    if(myTeacher && p.recommendedByTeacher && p.recommendedByTeacher.indexOf(myTeacher.id) !== -1) score += 20;
+    if(p.status === 'open') score += 10;
+    if(p.status === 'active') score += 5;
+    return score;
+  }
+
+  // Tag style maps
+  var tagStyles = {
+    gold: 'background:#FFFBEB;color:#B45309;border:1px solid #FDE68A;',
+    green: 'background:#ECFDF5;color:#047857;border:1px solid #A7F3D0;',
+    gray: 'background:#F5F5F4;color:#78716C;border:1px solid #E7E5E4;'
+  };
 
   var listEl = document.getElementById('project-list');
   var emptyEl = document.getElementById('empty-state');
@@ -770,6 +818,11 @@ app.get('/projects', (c) => {
     });
     if(sort==='amount') list.sort(function(a,b){return b.targetAmount-a.targetAmount;});
     else if(sort==='rate') list.sort(function(a,b){return b.revenueShareRate-a.revenueShareRate;});
+    else if(sort==='relevant') list.sort(function(a,b){
+      var sa = getRelevanceScore(a), sb = getRelevanceScore(b);
+      if(sb !== sa) return sb - sa;
+      return b.createdAt.localeCompare(a.createdAt);
+    });
     else list.sort(function(a,b){return b.createdAt.localeCompare(a.createdAt);});
 
     if(!list.length){ listEl.innerHTML=''; emptyEl.style.display='block'; return; }
@@ -779,7 +832,10 @@ app.get('/projects', (c) => {
       var o = getMember(p.ownerId);
       var pct = Math.round(p.raisedAmount/p.targetAmount*100);
       var remain = p.totalShares - p.raisedShares;
+      var tag = getRelationTag(p);
+      var tagHTML = tag.text ? '<span style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;'+tagStyles[tag.type]+'">'+tag.text+'</span>' : '';
       return '<a href="/projects/'+p.id+'" class="bg-white rounded-2xl shadow-card shadow-card-hover p-5 block" style="text-decoration:none;color:inherit;">'
+        +(tagHTML ? '<div style="margin-bottom:8px;">'+tagHTML+'</div>' : '')
         +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">'
           +'<div style="width:36px;height:36px;border-radius:50%;background:#B91C1C;color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;">'+o.name.charAt(0)+'</div>'
           +'<div><span style="font-size:14px;font-weight:500;color:#1C1917;">'+o.name+'</span>'
@@ -925,6 +981,9 @@ app.get('/projects/:id', (c) => {
         <div id="share-from-banner" style="display:none;background:#EFF6FF;color:#2563EB;border-radius:8px;padding:8px 12px;font-size:12px;margin-bottom:12px;font-weight:500;">
           🔗 通过分享码查看
         </div>
+
+        {/* Relation Tag — rendered via client JS based on current user's classId */}
+        <div id="detail-relation-tag" style="display:none;margin-bottom:12px;" />
 
         {/* 1. Project Header Card */}
         <div class="bg-white rounded-2xl shadow-card p-5 mb-4">
@@ -1083,6 +1142,8 @@ app.get('/projects/:id', (c) => {
               <i class="fas fa-share-alt" style="font-size:13px;" /> 分享项目
             </button>
           </div>
+          {/* Referral status line — rendered via client JS */}
+          <div id="referral-status-line" style="display:none;margin-top:10px;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:500;" />
         </div>
       </main>
 
@@ -1164,6 +1225,44 @@ app.get('/projects/:id', (c) => {
         </div>
       </div>
 
+      {/* Referral Modal Overlay */}
+      <div id="referral-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.45);z-index:1100;display:none;align-items:center;justify-content:center;">
+        <div id="referral-modal" style="background:#fff;border-radius:16px;width:92%;max-width:400px;margin:auto;padding:0;overflow:hidden;transform:scale(0.95);opacity:0;transition:transform 250ms ease-out,opacity 250ms ease-out;">
+          {/* Header */}
+          <div style="background:linear-gradient(135deg,#B91C1C 0%,#991B1B 100%);padding:20px 24px;color:#fff;">
+            <div style="font-size:17px;font-weight:600;margin-bottom:4px;">请老师引荐</div>
+            <div style="font-size:12px;opacity:0.85;">请您的班主任老师帮忙引荐对接项目发起人</div>
+          </div>
+          <div style="padding:20px 24px;">
+            {/* Teacher info */}
+            <div id="ref-teacher-info" style="display:flex;align-items:center;gap:12px;padding:12px;background:#FAFAF9;border-radius:12px;margin-bottom:16px;">
+              <div style="width:44px;height:44px;border-radius:50%;background:#B91C1C;color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;">
+                <i class="fas fa-user-tie" />
+              </div>
+              <div>
+                <div id="ref-teacher-name" style="font-size:15px;font-weight:600;color:#1C1917;">老师</div>
+                <div style="font-size:12px;color:#78716C;">将帮你对接 <span id="ref-initiator-name" style="font-weight:600;">{owner.name}</span></div>
+              </div>
+            </div>
+            {/* Project info mini */}
+            <div style="padding:10px 12px;background:#FEF2F2;border-radius:8px;margin-bottom:16px;">
+              <div style="font-size:13px;font-weight:600;color:#1C1917;margin-bottom:2px;">{proj.name}</div>
+              <div style="font-size:11px;color:#78716C;">¥{proj.targetAmount}万 · {proj.revenueShareRate}% 分成 · {proj.duration}月</div>
+            </div>
+            {/* Message textarea */}
+            <div style="margin-bottom:16px;">
+              <label style="font-size:13px;font-weight:500;color:#57534E;display:block;margin-bottom:6px;">留言（选填）</label>
+              <textarea id="ref-message" placeholder="可以写上你对项目的关注点，方便老师引荐..." style="width:100%;height:72px;border:1px solid #D6D3D1;border-radius:10px;padding:10px 12px;font-size:13px;resize:none;outline:none;font-family:inherit;transition:border-color 0.2s;" onfocus="this.style.borderColor='#B91C1C'" onblur="this.style.borderColor='#D6D3D1'" />
+            </div>
+            {/* Buttons */}
+            <div style="display:flex;gap:12px;">
+              <button id="ref-cancel-btn" style="flex:1;height:44px;background:#F5F5F4;border:none;border-radius:12px;color:#78716C;font-weight:600;font-size:14px;cursor:pointer;">取消</button>
+              <button id="ref-submit-btn" style="flex:1;height:44px;background:#B91C1C;border:none;border-radius:12px;color:#fff;font-weight:600;font-size:14px;cursor:pointer;">提交引荐请求</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Toast */}
       <div id="toast" class="toast" />
 
@@ -1182,14 +1281,47 @@ app.get('/projects/:id', (c) => {
     recoveryMultiple: proj.recoveryMultiple, duration: proj.duration,
     industry: proj.industry, description: proj.description,
     shareCode: proj.shareCode || '',
+    initiatorClassId: proj.initiatorClassId || '',
+    initiatorClassName: proj.initiatorClassName || '',
+    recommendedByTeacher: proj.recommendedByTeacher || [],
   })};
-  var MEMBERS = ${JSON.stringify(mockMembers.map(m => ({ id:m.id, name:m.name })))};
+  var MEMBERS = ${JSON.stringify(mockMembers.map(m => ({ id:m.id, name:m.name, classId:m.classId||'' })))};
+  var TEACHERS = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, name:t.name, classIds:t.classIds })))};
 
   // Show from=share banner
   if(window.location.search.indexOf('from=share') !== -1){
     var banner = document.getElementById('share-from-banner');
     if(banner) banner.style.display = 'block';
   }
+
+  // Render relation tag on detail page
+  (function(){
+    var myClassId = u.classId || '';
+    var myTeacher = null;
+    if(myClassId){
+      myTeacher = TEACHERS.find(function(t){ return t.classIds.indexOf(myClassId) !== -1; }) || null;
+    }
+    var tag = null;
+    if(myTeacher && PROJ.recommendedByTeacher && PROJ.recommendedByTeacher.indexOf(myTeacher.id) !== -1){
+      tag = { text: '\\u{1F31F} 老师推荐', type: 'gold' };
+    } else if(PROJ.initiatorClassId && PROJ.initiatorClassId === myClassId){
+      tag = { text: '同班 · ' + (PROJ.initiatorClassName || ''), type: 'green' };
+    } else if(PROJ.initiatorClassName){
+      tag = { text: PROJ.initiatorClassName, type: 'gray' };
+    }
+    if(tag){
+      var styles = {
+        gold: 'background:#FFFBEB;color:#B45309;border:1px solid #FDE68A;',
+        green: 'background:#ECFDF5;color:#047857;border:1px solid #A7F3D0;',
+        gray: 'background:#F5F5F4;color:#78716C;border:1px solid #E7E5E4;'
+      };
+      var el = document.getElementById('detail-relation-tag');
+      if(el){
+        el.innerHTML = '<span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:600;' + styles[tag.type] + '">' + tag.text + '</span>';
+        el.style.display = 'block';
+      }
+    }
+  })();
 
   // Hide calculator if owner
   var ownerHint = document.getElementById('owner-hint');
@@ -1338,16 +1470,152 @@ app.get('/projects/:id', (c) => {
   if(btnShareProject){
     btnShareProject.addEventListener('click', openSharePanel);
   }
-  if(btnReferral){
-    btnReferral.addEventListener('click', function(){
-      showToast('引荐功能即将上线', 'success');
-    });
-  }
   if(shareOverlay){
     shareOverlay.addEventListener('click', function(e){
       if(e.target === shareOverlay) closeSharePanel();
     });
   }
+
+  // ── Referral Logic ──
+  var refOverlay = document.getElementById('referral-overlay');
+  var refModal = document.getElementById('referral-modal');
+  var refCancelBtn = document.getElementById('ref-cancel-btn');
+  var refSubmitBtn = document.getElementById('ref-submit-btn');
+  var refMessage = document.getElementById('ref-message');
+  var refTeacherNameEl = document.getElementById('ref-teacher-name');
+  var refStatusLine = document.getElementById('referral-status-line');
+
+  // Find teacher for current user
+  var myClassId = u.classId || '';
+  var myTeacher = null;
+  if(myClassId){
+    myTeacher = TEACHERS.find(function(t){ return t.classIds.indexOf(myClassId) !== -1; }) || null;
+  }
+
+  // Find project owner info
+  var projOwnerMember = MEMBERS.find(function(m){ return m.id === PROJ.ownerId; });
+  var isSameClassAsInitiator = myClassId && PROJ.initiatorClassId === myClassId;
+  var isOwner = u.id === PROJ.ownerId;
+
+  // Handle edge cases for referral button visibility
+  if(btnReferral){
+    if(isOwner){
+      // Hide for project initiator
+      btnReferral.style.display = 'none';
+    } else if(!myTeacher){
+      // Hide if user has no teacher
+      btnReferral.style.display = 'none';
+    } else if(isSameClassAsInitiator){
+      // Same class: change text
+      btnReferral.innerHTML = '<i class="fas fa-user-tie" style="font-size:13px;"></i> 请老师深入介绍';
+    }
+  }
+
+  // Load existing referrals from localStorage
+  var referrals = [];
+  try { referrals = JSON.parse(localStorage.getItem('zlc_referrals') || '[]'); } catch(e){}
+  var existingRef = referrals.find(function(r){ return r.projectId === PROJ.id && r.requesterId === u.id; });
+
+  function updateReferralUI(){
+    if(!btnReferral) return;
+    referrals = [];
+    try { referrals = JSON.parse(localStorage.getItem('zlc_referrals') || '[]'); } catch(e){}
+    existingRef = referrals.find(function(r){ return r.projectId === PROJ.id && r.requesterId === u.id; });
+
+    if(existingRef){
+      // Disable button
+      btnReferral.disabled = true;
+      btnReferral.style.background = '#F5F5F4';
+      btnReferral.style.borderColor = '#D6D3D1';
+      btnReferral.style.color = '#78716C';
+      btnReferral.style.cursor = 'default';
+      btnReferral.innerHTML = '<i class="fas fa-clock" style="font-size:13px;"></i> 已请求引荐';
+
+      // Show status line
+      if(refStatusLine){
+        if(existingRef.status === 'connected'){
+          refStatusLine.style.display = 'block';
+          refStatusLine.style.background = '#ECFDF5';
+          refStatusLine.style.color = '#047857';
+          refStatusLine.innerHTML = '\\u2705 ' + existingRef.teacherName + '已帮你对接 · 你可以随时参与投资';
+        } else {
+          refStatusLine.style.display = 'block';
+          refStatusLine.style.background = '#FFFBEB';
+          refStatusLine.style.color = '#92400E';
+          refStatusLine.innerHTML = '\\u23F3 已请求引荐 · 等待' + existingRef.teacherName + '对接';
+        }
+      }
+    }
+  }
+
+  function openReferralModal(){
+    if(!myTeacher) return;
+    if(refTeacherNameEl) refTeacherNameEl.textContent = myTeacher.name;
+    refOverlay.style.display = 'flex';
+    requestAnimationFrame(function(){
+      requestAnimationFrame(function(){
+        refModal.style.transform = 'scale(1)';
+        refModal.style.opacity = '1';
+      });
+    });
+  }
+  function closeReferralModal(){
+    refModal.style.transform = 'scale(0.95)';
+    refModal.style.opacity = '0';
+    setTimeout(function(){ refOverlay.style.display = 'none'; }, 250);
+  }
+
+  if(btnReferral && !isOwner && myTeacher){
+    btnReferral.addEventListener('click', function(){
+      if(existingRef){ return; }
+      openReferralModal();
+    });
+  }
+  if(refCancelBtn){
+    refCancelBtn.addEventListener('click', closeReferralModal);
+  }
+  if(refOverlay){
+    refOverlay.addEventListener('click', function(e){
+      if(e.target === refOverlay) closeReferralModal();
+    });
+  }
+
+  // Submit referral
+  if(refSubmitBtn){
+    refSubmitBtn.addEventListener('click', function(){
+      if(!myTeacher) return;
+      var msg = refMessage ? refMessage.value.trim() : '';
+      var now = new Date().toISOString();
+      var ref = {
+        id: 'ref-' + Date.now().toString(36),
+        projectId: PROJ.id,
+        projectName: PROJ.name,
+        requesterId: u.id,
+        requesterName: u.name || '',
+        requesterClassName: u.className || '',
+        initiatorId: PROJ.ownerId,
+        initiatorName: projOwnerMember ? projOwnerMember.name : '',
+        initiatorClassName: PROJ.initiatorClassName || '',
+        teacherId: myTeacher.id,
+        teacherName: myTeacher.name,
+        message: msg,
+        status: 'pending',
+        requestedAt: now,
+        connectedAt: null
+      };
+      referrals.push(ref);
+      localStorage.setItem('zlc_referrals', JSON.stringify(referrals));
+      existingRef = ref;
+      closeReferralModal();
+      setTimeout(function(){
+        showToast('引荐请求已发送给' + myTeacher.name, 'success');
+        updateReferralUI();
+      }, 300);
+    });
+  }
+
+  // Initial referral UI update
+  updateReferralUI();
 
   // Copy share code
   var btnCopyCode = document.getElementById('btn-copy-code');
