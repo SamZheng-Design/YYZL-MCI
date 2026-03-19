@@ -681,6 +681,8 @@ const Navbar = () => (
       </span>
     </a>
     <div style="display:flex;align-items:center;gap:8px;">
+      {/* Demo guide button (Task 5) */}
+      <span id="nav-demo-btn" style="font-size:12px;color:#B91C1C;background:rgba(185,28,28,0.08);border-radius:8px;padding:4px 10px;cursor:pointer;display:none;" />
       <button id="nav-bell" class="flex items-center justify-center" style="width:36px;height:36px;background:none;border:none;cursor:pointer;position:relative;" onclick="window.location.href='/notifications'">
         <i class="fas fa-bell" style="font-size:18px;color:#78716C;" />
         <span id="nav-bell-dot" style="position:absolute;top:4px;right:4px;width:8px;height:8px;background:#DC2626;border-radius:50%;border:2px solid #fff;display:none;" />
@@ -706,63 +708,95 @@ const Navbar = () => (
         </div>
       </div>
     </div>
+    {/* Demo button init script */}
+    <script dangerouslySetInnerHTML={{ __html: `
+(function(){
+  try {
+    var cu = JSON.parse(localStorage.getItem('zlc_current_user'));
+    var demoBtn = document.getElementById('nav-demo-btn');
+    if(!cu || !demoBtn) return;
+    var guideMap = { member:'/guide/member', teacher:'/guide/teacher', admin:'/guide/admin' };
+    var href = guideMap[cu.role] || '/guide/member';
+    demoBtn.textContent = '📖 演示';
+    demoBtn.style.display = 'inline-block';
+    demoBtn.addEventListener('click', function(){ window.location.href = href; });
+  } catch(e){}
+})();
+`}} />
   </nav>
 )
 
 // ── Tab Bar ───────────────────────────────────────────────
 const TabBar = ({ active }: { active: string }) => {
-  const tabs = [
-    { key: 'home', icon: 'fa-home', label: '首页', href: '/' },
-    { key: 'projects', icon: 'fa-store', label: '大厅', href: '/projects' },
-    { key: 'create', icon: 'fa-plus', label: '发起', href: '/create' },
-    { key: 'repayments', icon: 'fa-coins', label: '回款', href: '/repayments' },
-    { key: 'profile', icon: 'fa-user', label: '我的', href: '/profile' },
-  ]
   return (
-    <div class="tab-bar">
-      {tabs.map((t) => {
-        const isActive = t.key === active
-        const cls = isActive ? 'tab-active' : 'tab-inactive'
-        if (t.key === 'create') {
-          return (
-            <a href={t.href} class={cls} style="text-decoration:none;">
-              <div class="tab-center-btn">
-                <i class={`fas ${t.icon}`} />
-              </div>
-              <span class="tab-item-label" style="margin-top:2px;">{t.label}</span>
-            </a>
-          )
-        }
-        // Last tab (profile) — will be swapped to admin via client JS if role=admin
-        if (t.key === 'profile') {
-          return (
-            <a href={t.href} class={cls} style="text-decoration:none;" id="tab-profile-link" data-default-href="/profile" data-admin-href="/admin">
-              <i class={`fas ${t.icon} tab-item-icon`} id="tab-profile-icon" />
-              <span class="tab-item-label" id="tab-profile-label">{t.label}</span>
-            </a>
-          )
-        }
-        return (
-          <a href={t.href} class={cls} style="text-decoration:none;">
-            <i class={`fas ${t.icon} tab-item-icon`} />
-            <span class="tab-item-label">{t.label}</span>
-          </a>
-        )
-      })}
-      {/* Script to swap profile tab to admin for admin users */}
+    <div class="tab-bar" id="zlc-tabbar">
+      {/* TabBar content rendered dynamically via client JS based on role */}
       <script dangerouslySetInnerHTML={{ __html: `
 (function(){
-  try {
-    var cu = JSON.parse(localStorage.getItem('zlc_current_user'));
-    if(cu && cu.role === 'admin'){
-      var link = document.getElementById('tab-profile-link');
-      var icon = document.getElementById('tab-profile-icon');
-      var label = document.getElementById('tab-profile-label');
-      if(link){ link.href = '/admin'; }
-      if(icon){ icon.className = 'fas fa-shield-halved tab-item-icon'; }
-      if(label){ label.textContent = '管理'; }
+  var activeKey = '${active}';
+  var role = 'member';
+  try { var cu = JSON.parse(localStorage.getItem('zlc_current_user')); if(cu && cu.role) role = cu.role; } catch(e){}
+
+  var tabBar = document.getElementById('zlc-tabbar');
+  if(!tabBar) return;
+
+  // Define tabs per role
+  var memberTabs = [
+    { key:'home', icon:'fa-home', label:'首页', href:'/' },
+    { key:'projects', icon:'fa-store', label:'大厅', href:'/projects' },
+    { key:'create', icon:'fa-plus', label:'发起', href:'/create', isCenter:true },
+    { key:'repayments', icon:'fa-coins', label:'回款', href:'/repayments' },
+    { key:'profile', icon:'fa-user', label:'我的', href:'/profile' }
+  ];
+  var teacherTabs = [
+    { key:'teacher', svg:'class', label:'我的班级', href:'/teacher' },
+    { key:'projects', icon:'fa-store', label:'大厅', href:'/projects' },
+    { key:'create', icon:'fa-plus', label:'发起', href:'/create', isCenter:true },
+    { key:'repayments', icon:'fa-coins', label:'回款', href:'/repayments' },
+    { key:'profile', icon:'fa-user', label:'我的', href:'/profile' }
+  ];
+  var adminTabs = [
+    { key:'admin', svg:'dashboard', label:'工作台', href:'/admin' },
+    { key:'profile', svg:'gear', label:'设置', href:'/profile' }
+  ];
+
+  var tabs = role === 'admin' ? adminTabs : (role === 'teacher' ? teacherTabs : memberTabs);
+
+  // SVG icons
+  var svgIcons = {
+    'class': '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>',
+    'dashboard': '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>',
+    'gear': '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>'
+  };
+
+  // For admin: center the 2 tabs
+  if(role === 'admin'){
+    tabBar.style.justifyContent = 'center';
+    tabBar.style.gap = '60px';
+  }
+
+  var html = '';
+  tabs.forEach(function(t){
+    var isActive = t.key === activeKey;
+    var cls = isActive ? 'tab-active' : 'tab-inactive';
+    if(t.isCenter){
+      html += '<a href="'+t.href+'" class="'+cls+'" style="text-decoration:none;">';
+      html += '<div class="tab-center-btn"><i class="fas '+t.icon+'"></i></div>';
+      html += '<span class="tab-item-label" style="margin-top:2px;">'+t.label+'</span></a>';
+    } else if(t.svg && svgIcons[t.svg]){
+      html += '<a href="'+t.href+'" class="'+cls+'" style="text-decoration:none;'+(role==='admin'?'flex:none;width:80px;':'')+'">';
+      html += '<span class="tab-item-icon" style="display:inline-flex;">'+svgIcons[t.svg]+'</span>';
+      html += '<span class="tab-item-label">'+t.label+'</span></a>';
+    } else {
+      html += '<a href="'+t.href+'" class="'+cls+'" style="text-decoration:none;">';
+      html += '<i class="fas '+(t.icon||'')+' tab-item-icon"></i>';
+      html += '<span class="tab-item-label">'+t.label+'</span></a>';
     }
-  } catch(e){}
+  });
+  // Remove the script tag itself first, then set innerHTML
+  var scripts = tabBar.querySelectorAll('script');
+  scripts.forEach(function(s){ s.remove(); });
+  tabBar.innerHTML = html;
 })();
 `}} />
     </div>
@@ -1034,6 +1068,8 @@ app.get('/login', (c) => {
     // Redirect based on role
     if(acc.role === 'teacher'){
       window.location.href = '/teacher';
+    } else if(acc.role === 'admin'){
+      window.location.href = '/admin';
     } else {
       window.location.href = '/';
     }
@@ -1081,7 +1117,7 @@ app.get('/login', (c) => {
         localStorage.setItem('zlc_current_user',JSON.stringify({id:d.member.id,name:d.member.name,phone:d.member.phone,role:d.member.role||'member',classId:d.member.classId||'',className:d.member.className||''}));
         localStorage.setItem('zlc_token','demo-token-'+Date.now());
         showToast('登录成功，欢迎回来！','success');
-        setTimeout(function(){window.location.href=d.member.role==='teacher'?'/teacher':'/';},800);
+        setTimeout(function(){window.location.href=d.member.role==='teacher'?'/teacher':(d.member.role==='admin'?'/admin':'/');},800);
       }
       else{showToast(d.error||'登录失败','error');loginBtn.innerHTML='登录';loginBtn.disabled=false;isLoading=false;}
     }).catch(function(){showToast('网络错误，请重试','error');loginBtn.innerHTML='登录';loginBtn.disabled=false;isLoading=false;});
@@ -1104,6 +1140,16 @@ app.get('/', (c) => {
   return c.render(
     <div class="app-container has-tabbar">
       <AuthCheckScript />
+      {/* Role-based redirect: admin → /admin, teacher → /teacher */}
+      <script dangerouslySetInnerHTML={{ __html: `
+(function(){
+  try {
+    var cu = JSON.parse(localStorage.getItem('zlc_current_user'));
+    if(cu && cu.role === 'admin'){ window.location.replace('/admin'); return; }
+    if(cu && cu.role === 'teacher'){ window.location.replace('/teacher'); return; }
+  } catch(e){}
+})();
+`}} />
       <GlobalScripts />
       <Navbar />
 
@@ -2260,6 +2306,22 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, nam
     if (ownerHint) ownerHint.style.display = 'block';
   }
 
+  // Admin cannot invest — disable participate button (Task 4)
+  (function(){
+    try {
+      var cu = JSON.parse(localStorage.getItem('zlc_current_user'));
+      if(cu && cu.role === 'admin' && partBtn){
+        partBtn.disabled = true;
+        partBtn.style.background = '#E7E5E4';
+        partBtn.style.color = '#A8A29E';
+        partBtn.style.cursor = 'not-allowed';
+        partBtn.style.boxShadow = 'none';
+        partBtn.textContent = '管理员不可参与投资';
+        partBtn.onclick = function(e){ e.preventDefault(); e.stopPropagation(); };
+      }
+    } catch(e){}
+  })();
+
   // Share calculator
   var sel = document.getElementById('share-select');
   var amtEl = document.getElementById('share-amount');
@@ -2662,7 +2724,15 @@ app.get('/create', (c) => {
       <GlobalScripts />
       <Navbar />
 
-      <main class="max-w-lg mx-auto px-4 pt-2 pb-6 page-enter">
+      {/* Admin intercept — shown via JS if role=admin */}
+      <div id="admin-create-block" style="display:none;">
+        <div style="text-align:center;margin-top:120px;padding:0 24px;">
+          <p style="font-size:15px;color:#78716C;">管理员无法发起项目，请切换到学员或老师账号</p>
+          <a href="/admin" style="display:inline-block;margin-top:20px;padding:10px 24px;background:#B91C1C;color:#fff;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none;">返回工作台</a>
+        </div>
+      </div>
+
+      <main class="max-w-lg mx-auto px-4 pt-2 pb-6 page-enter" id="create-main">
         {/* Stepper */}
         <div class="stepper" id="stepper">
           <div class="stepper-step">
@@ -2934,6 +3004,18 @@ app.get('/create', (c) => {
       {/* Client script for create project */}
       <script dangerouslySetInnerHTML={{ __html: `
 (function(){
+  // Admin intercept check
+  try {
+    var cu = JSON.parse(localStorage.getItem('zlc_current_user'));
+    if(cu && cu.role === 'admin'){
+      var blockEl = document.getElementById('admin-create-block');
+      var mainEl = document.getElementById('create-main');
+      if(blockEl) blockEl.style.display = 'block';
+      if(mainEl) mainEl.style.display = 'none';
+      return;
+    }
+  } catch(e){}
+
   var u = null;
   try { u = JSON.parse(localStorage.getItem('zlc_user')); } catch(e){}
   if (!u) return;
@@ -4297,7 +4379,10 @@ app.get('/admin', (c) => {
           </a>
           <span style="font-size:11px;background:rgba(185,28,28,0.1);color:#B91C1C;border-radius:4px;padding:2px 8px;margin-left:8px;">管理后台</span>
         </div>
-        <div style="position:relative;" id="admin-nav-user-wrap">
+        <div style="display:flex;align-items:center;gap:8px;">
+          {/* Demo guide button for admin (Task 5) */}
+          <span onclick="window.location.href='/guide/admin'" style="font-size:12px;color:#B91C1C;background:rgba(185,28,28,0.08);border-radius:8px;padding:4px 10px;cursor:pointer;">📖 演示</span>
+          <div style="position:relative;" id="admin-nav-user-wrap">
           <button id="admin-nav-user-btn" style="width:32px;height:32px;border-radius:50%;background:#B91C1C;color:white;font-size:14px;font-weight:700;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;" />
           <div id="admin-nav-user-dropdown" style="display:none;position:absolute;right:0;top:calc(100% + 8px);background:white;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.12);min-width:200px;padding:8px 0;z-index:1000;">
             <div style="padding:16px;border-bottom:1px solid #F5F5F4;">
@@ -4308,6 +4393,7 @@ app.get('/admin', (c) => {
             <div style="border-top:1px solid #F5F5F4;margin:4px 0;" />
             <div id="admin-dd-logout" style="padding:12px 16px;font-size:14px;color:#44403C;cursor:pointer;" onmouseover="this.style.background='#FAFAF9'" onmouseout="this.style.background='transparent'">🚪 退出登录</div>
           </div>
+        </div>
         </div>
       </nav>
 
@@ -4329,7 +4415,7 @@ app.get('/admin', (c) => {
         <div id="tab-projects" class="admin-tab-panel" style="display:none;opacity:0;" />
       </main>
 
-      <TabBar active="profile" />
+      <TabBar active="admin" />
 
       {/* Batch Register Modal Overlay */}
       <div id="batch-register-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1100;align-items:center;justify-content:center;" />
@@ -4890,7 +4976,7 @@ app.get('/teacher', (c) => {
   const allMembers = mockMembers
 
   return c.render(
-    <div class="app-container">
+    <div class="app-container has-tabbar">
       <GlobalScripts />
       {/* Navbar */}
       <nav class="app-navbar">
@@ -4900,10 +4986,20 @@ app.get('/teacher', (c) => {
             中流通
           </span>
         </a>
-        <span id="teacher-nav-title" style="font-size:14px;color:#78716C;"></span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          {/* Demo guide button for teacher (Task 5) */}
+          <span onclick="window.location.href='/guide/teacher'" style="font-size:12px;color:#B91C1C;background:rgba(185,28,28,0.08);border-radius:8px;padding:4px 10px;cursor:pointer;">📖 演示</span>
+          <span id="teacher-nav-title" style="font-size:14px;color:#78716C;"></span>
+        </div>
       </nav>
 
       <main class="max-w-lg mx-auto px-4 pt-4 pb-8 page-enter">
+        {/* Welcome Card (Task 3 Enhancement 1) */}
+        <div id="teacher-welcome-card" style="padding:20px 16px;margin-bottom:12px;" />
+
+        {/* Stats Bar (Task 3 Enhancement 2) */}
+        <div id="teacher-stats-bar" style="display:flex;gap:0;background:white;border-radius:14px;margin:0 0 12px;box-shadow:0 1px 4px rgba(0,0,0,0.04);" />
+
         {/* Header */}
         <div class="teacher-header" id="teacher-header">
           <div class="teacher-header-name" id="th-name">老师</div>
@@ -4941,6 +5037,8 @@ app.get('/teacher', (c) => {
           <div class="teacher-footer-text">滴灌通 × 一亿中流 · 联合出品</div>
         </div>
       </main>
+
+      <TabBar active="teacher" />
 
       {/* Recommend Panel Overlay */}
       <div id="recommend-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);z-index:1100;">
@@ -4989,6 +5087,72 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, nam
   var classCount = myTeacher.classIds.length;
   document.getElementById('th-sub').textContent = '管理 ' + classCount + ' 个班级 · ' + myStudents.length + ' 位学员';
   document.getElementById('teacher-nav-title').textContent = u.name + '老师的工作台';
+
+  // ── Teacher Welcome Card (Task 3 Enhancement 1) ──
+  (function(){
+    var h = new Date().getHours();
+    var greeting = (h >= 6 && h < 12) ? '早上好' : (h >= 12 && h < 18) ? '下午好' : (h >= 18 && h < 24) ? '晚上好' : '夜深了';
+    var teacherName = u.name || '老师';
+    var totalStudents = myStudents.length;
+    var totalClasses = classCount;
+
+    var wcEl = document.getElementById('teacher-welcome-card');
+    if(wcEl){
+      wcEl.innerHTML = '<div style="font-size:20px;font-weight:700;color:#1C1917;">' + greeting + '，' + teacherName + '</div>'
+        + '<div style="margin-top:8px;font-size:13px;color:#78716C;">您负责 ' + totalClasses + ' 个班级，共 ' + totalStudents + ' 位学员</div>'
+        + '<div style="margin-top:12px;display:flex;gap:10px;">'
+        + '<a href="/guide/teacher" style="text-decoration:none;background:#FAFAF9;border:1px solid #E7E5E4;border-radius:10px;padding:8px 14px;font-size:13px;color:#44403C;cursor:pointer;display:inline-block;">📖 查看演示</a>'
+        + '<a href="/projects" style="text-decoration:none;background:#FAFAF9;border:1px solid #E7E5E4;border-radius:10px;padding:8px 14px;font-size:13px;color:#44403C;cursor:pointer;display:inline-block;">📊 项目大厅</a>'
+        + '</div>';
+    }
+  })();
+
+  // ── Teacher Stats Bar (Task 3 Enhancement 2) ──
+  (function(){
+    // Pending referrals for this teacher
+    var referrals = [];
+    try { referrals = JSON.parse(localStorage.getItem('zlc_referrals') || '[]'); } catch(e){}
+    var pendingCount = referrals.filter(function(r){ return r.teacherId === myTeacher.id && r.status === 'pending'; }).length;
+
+    // Recommended projects count
+    var recommendedCount = ALL_PROJECTS.filter(function(p){ return p.recommendedByTeacher && p.recommendedByTeacher.indexOf(myTeacher.id) !== -1; }).length;
+
+    // Active projects in my classes
+    var myClassIds = myTeacher.classIds || [];
+    var activeProjectCount = 0;
+    // Also check user-created projects
+    var allP = ALL_PROJECTS.slice();
+    try {
+      var up = JSON.parse(localStorage.getItem('zlc_user_projects') || '[]');
+      up.forEach(function(proj){
+        if(!allP.find(function(p){ return p.id === proj.id; })){
+          allP.push(proj);
+        }
+      });
+    } catch(e){}
+    allP.forEach(function(p){
+      if(p.status === 'open' || p.status === 'active'){
+        // Check if project owner is in one of my classes
+        var ownerMember = ALL_MEMBERS.find(function(m){ return m.id === p.ownerId; });
+        if(ownerMember && myClassIds.indexOf(ownerMember.classId) !== -1){
+          activeProjectCount++;
+        }
+      }
+    });
+
+    var statsEl = document.getElementById('teacher-stats-bar');
+    if(statsEl){
+      statsEl.innerHTML = '<div style="flex:1;text-align:center;padding:16px 8px;border-right:1px solid #F5F5F4;">'
+        + '<div style="font-size:22px;font-weight:700;color:#DC2626;">' + pendingCount + '</div>'
+        + '<div style="font-size:11px;color:#A8A29E;margin-top:2px;">待引荐</div></div>'
+        + '<div style="flex:1;text-align:center;padding:16px 8px;border-right:1px solid #F5F5F4;">'
+        + '<div style="font-size:22px;font-weight:700;color:#D4A853;">' + recommendedCount + '</div>'
+        + '<div style="font-size:11px;color:#A8A29E;margin-top:2px;">已推荐</div></div>'
+        + '<div style="flex:1;text-align:center;padding:16px 8px;">'
+        + '<div style="font-size:22px;font-weight:700;color:#3B82F6;">' + activeProjectCount + '</div>'
+        + '<div style="font-size:11px;color:#A8A29E;margin-top:2px;">进行中</div></div>';
+    }
+  })();
 
   // ── Referral Requests ──
   // Init referrals in localStorage if not exist
