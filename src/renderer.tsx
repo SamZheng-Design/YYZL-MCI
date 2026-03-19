@@ -125,6 +125,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
   0%, 100% { transform: rotate(0deg) scale(1); }
   50% { transform: rotate(3deg) scale(1.05); }
 }
+.login-bg::before { will-change: transform; }
 
 /* Glass Card */
 .glass-card {
@@ -214,15 +215,18 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
   background: rgba(0,0,0,0.5);
   display: flex; align-items: center; justify-content: center;
   opacity: 0; pointer-events: none;
-  transition: opacity 0.25s;
+  transition: opacity 0.2s;
   padding: 20px;
+  will-change: opacity;
+  contain: layout style;
 }
 .modal-overlay.show { opacity: 1; pointer-events: auto; }
 .modal-box {
   background: #fff; border-radius: 20px; padding: 28px;
   max-width: 360px; width: 100%; text-align: center;
-  transform: scale(0.9); opacity: 0;
-  transition: transform 0.28s cubic-bezier(0.16,1,0.3,1), opacity 0.28s;
+  transform: scale(0.95); opacity: 0;
+  transition: transform 0.2s cubic-bezier(0.16,1,0.3,1), opacity 0.2s;
+  will-change: transform, opacity;
 }
 .modal-overlay.show .modal-box { transform: scale(1); opacity: 1; }
 .modal-title { font-size: 18px; font-weight: 600; color: #1C1917; }
@@ -245,7 +249,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
   background: rgba(0,0,0,0.5);
   display: flex; align-items: center; justify-content: center;
   opacity: 0; pointer-events: none;
-  transition: opacity 0.3s;
+  transition: opacity 0.2s;
+  will-change: opacity;
+  contain: layout style;
 }
 .success-modal-overlay.show { opacity: 1; pointer-events: auto; }
 .success-modal-box {
@@ -304,8 +310,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
    ══════════════════════════════════════════════════ */
 .app-navbar {
   position: sticky; top: 0; z-index: 50; height: 52px;
-  background: rgba(255,255,255,0.95);
-  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  background: rgba(255,255,255,0.97);
   border-bottom: 0.5px solid rgba(0,0,0,0.06);
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 16px;
@@ -363,8 +368,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
    Cards / Shadows
    ══════════════════════════════════════════════════ */
 .shadow-card { box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.03); }
-.shadow-card-hover { transition: transform 0.2s, box-shadow 0.2s; }
+.shadow-card-hover { transition: transform 0.15s ease-out, box-shadow 0.15s ease-out; }
 .shadow-card-hover:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+
+/* GPU acceleration hints for animated elements */
+.toast, .nudge-bar, .coach-bubble, #help-float-btn, #faq-panel { transform: translateZ(0); }
 
 /* ══════════════════════════════════════════════════
    Progress bars (with animation)
@@ -432,8 +440,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
    ══════════════════════════════════════════════════ */
 .filter-bar {
   position: sticky; top: 52px; z-index: 40;
-  background: rgba(255,255,255,0.95);
-  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  background: rgba(255,255,255,0.97);
   border-bottom: 0.5px solid rgba(0,0,0,0.06);
   padding: 10px 16px;
   display: flex; gap: 8px;
@@ -891,6 +898,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
   z-index: 1500; background: rgba(0,0,0,0.6);
   transition: opacity 200ms ease;
+  will-change: opacity;
+  contain: layout style;
 }
 .coach-bubble {
   position: fixed; z-index: 1502; background: #fff; border-radius: 12px;
@@ -962,7 +971,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
   position: fixed; top: 0; left: 0; right: 0; bottom: 0;
   background: rgba(0,0,0,0.4); z-index: 1100;
   opacity: 0; pointer-events: none;
-  transition: opacity 250ms ease;
+  transition: opacity 200ms ease;
+  will-change: opacity;
+  contain: layout style;
 }
 #faq-overlay.show { opacity: 1; pointer-events: auto; }
 
@@ -972,7 +983,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
   max-height: 75vh; overflow-y: auto;
   padding: 24px;
   transform: translateY(100%);
-  transition: transform 300ms ease-out;
+  transition: transform 250ms cubic-bezier(0.32,0.72,0,1);
+  will-change: transform;
 }
 #faq-overlay.show #faq-panel { transform: translateY(0); }
 @media (min-width: 481px) {
@@ -1000,10 +1012,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
 .faq-q-icon { font-size: 12px; color: #A8A29E; transition: transform 200ms ease; flex-shrink: 0; }
 .faq-q-icon.open { transform: rotate(180deg); }
 .faq-a {
-  max-height: 0; overflow: hidden; transition: max-height 250ms ease, padding 250ms ease;
+  max-height: 0; overflow: hidden; transition: max-height 200ms ease-out, padding 200ms ease-out;
   padding: 0;
 }
-.faq-a.open { max-height: 200px; padding: 0 0 16px 0; }
+.faq-a.open { max-height: 300px; padding: 0 0 16px 0; }
 .faq-a-text { font-size: 13px; line-height: 1.6; color: #78716C; }
 
 .faq-teacher-block {
@@ -1042,7 +1054,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
   border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.08);
   padding: 12px 16px; display: flex; align-items: center; gap: 8px;
   transform: translateY(20px); opacity: 0;
-  transition: transform 280ms ease, opacity 280ms ease;
+  transition: transform 200ms ease, opacity 200ms ease;
+  will-change: transform, opacity;
 }
 .nudge-bar.show { transform: translateY(0); opacity: 1; }
 @media (min-width: 481px) {

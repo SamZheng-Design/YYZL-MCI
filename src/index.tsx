@@ -19,34 +19,46 @@ const app = new Hono()
 // ── Global JS Utilities (injected into every page) ─────
 const GlobalScripts = () => (
   <script dangerouslySetInnerHTML={{ __html: `
-// ── Toast ──
+// ── Toast (reuse single element) ──
+var _toastEl = null, _toastTimer = null;
 function showToast(message, type, duration) {
   type = type || 'success'; duration = duration || 3000;
-  var t = document.createElement('div');
-  t.className = 'toast toast-' + type;
-  t.textContent = message;
-  document.body.appendChild(t);
-  requestAnimationFrame(function(){ t.classList.add('show'); });
-  setTimeout(function(){ t.classList.remove('show'); setTimeout(function(){ t.remove(); }, 300); }, duration);
+  if(_toastTimer){ clearTimeout(_toastTimer); _toastTimer = null; }
+  if(!_toastEl){
+    _toastEl = document.createElement('div');
+    _toastEl.className = 'toast toast-' + type;
+    document.body.appendChild(_toastEl);
+  } else {
+    _toastEl.className = 'toast toast-' + type;
+  }
+  _toastEl.textContent = message;
+  requestAnimationFrame(function(){ _toastEl.classList.add('show'); });
+  _toastTimer = setTimeout(function(){
+    _toastEl.classList.remove('show');
+    _toastTimer = null;
+  }, duration);
 }
 
-// ── Confirm Modal ──
+// ── Confirm Modal (reuse single overlay) ──
+var _confirmOverlay = null;
 function showConfirm(opts) {
-  var overlay = document.createElement('div');
-  overlay.className = 'modal-overlay';
-  overlay.innerHTML = '<div class="modal-box">'
+  if(!_confirmOverlay){
+    _confirmOverlay = document.createElement('div');
+    _confirmOverlay.className = 'modal-overlay';
+    document.body.appendChild(_confirmOverlay);
+  }
+  _confirmOverlay.innerHTML = '<div class="modal-box">'
     + '<div class="modal-title">' + (opts.title || '确认') + '</div>'
     + (opts.desc ? '<div class="modal-desc">' + opts.desc + '</div>' : '')
     + '<div class="modal-btn-row">'
     + '<button class="modal-btn modal-btn-cancel">取消</button>'
     + '<button class="modal-btn ' + (opts.danger ? 'modal-btn-danger' : 'modal-btn-confirm') + '">确认</button>'
     + '</div></div>';
-  document.body.appendChild(overlay);
-  requestAnimationFrame(function(){ overlay.classList.add('show'); });
-  function close(){ overlay.classList.remove('show'); setTimeout(function(){ overlay.remove(); }, 300); }
-  overlay.querySelector('.modal-btn-cancel').onclick = function(){ close(); if(opts.onCancel) opts.onCancel(); };
-  overlay.querySelector('.modal-btn-confirm').onclick = function(){ close(); if(opts.onConfirm) opts.onConfirm(); };
-  overlay.addEventListener('click', function(e){ if(e.target === overlay) close(); });
+  _confirmOverlay.classList.add('show');
+  function close(){ _confirmOverlay.classList.remove('show'); }
+  _confirmOverlay.querySelector('.modal-btn-cancel').onclick = function(){ close(); if(opts.onCancel) opts.onCancel(); };
+  _confirmOverlay.querySelector('.modal-btn-confirm').onclick = function(){ close(); if(opts.onConfirm) opts.onConfirm(); };
+  _confirmOverlay.addEventListener('click', function handler(e){ if(e.target === _confirmOverlay){ close(); _confirmOverlay.removeEventListener('click', handler); } });
 }
 
 // ── Success Modal (green / gold) ──
@@ -58,10 +70,10 @@ function showSuccessModal(opts) {
   if(opts.confetti){
     var colors = ['#D4A853','#B8860B','#F5DEB3','#B91C1C','#DC2626'];
     confettiHTML = '<div class="confetti-container">';
-    for(var i=0;i<20;i++){
+    for(var i=0;i<12;i++){
       var c = colors[i%colors.length];
       var left = Math.random()*100;
-      var delay = Math.random()*1;
+      var delay = Math.random()*0.8;
       confettiHTML += '<div class="confetti" style="left:'+left+'%;background:'+c+';animation-delay:'+delay.toFixed(2)+'s;"></div>';
     }
     confettiHTML += '</div>';
@@ -76,7 +88,7 @@ function showSuccessModal(opts) {
   requestAnimationFrame(function(){ overlay.classList.add('show'); });
   setTimeout(function(){
     overlay.classList.remove('show');
-    setTimeout(function(){ overlay.remove(); if(opts.onDone) opts.onDone(); }, 300);
+    setTimeout(function(){ overlay.remove(); if(opts.onDone) opts.onDone(); }, 200);
   }, opts.duration || 2000);
 }
 
@@ -94,46 +106,54 @@ function animateNumber(el, target, duration, decimals) {
   requestAnimationFrame(update);
 }
 
-// ── Scroll Reveal (IntersectionObserver) ──
+// ── Scroll Reveal + Progress Bars (shared single observer) ──
+var _sharedObserver = null;
+function _getSharedObserver() {
+  if(!_sharedObserver){
+    _sharedObserver = new IntersectionObserver(function(entries) {
+      for(var i=0;i<entries.length;i++){
+        var e = entries[i];
+        if(e.isIntersecting){
+          if(e.target.classList.contains('reveal')) e.target.classList.add('visible');
+          if(e.target.dataset && e.target.dataset.width) e.target.style.width = e.target.dataset.width;
+          _sharedObserver.unobserve(e.target);
+        }
+      }
+    }, { threshold: 0.1 });
+  }
+  return _sharedObserver;
+}
 function initReveal() {
-  document.querySelectorAll('.reveal').forEach(function(el) {
-    new IntersectionObserver(function(entries) {
-      entries.forEach(function(e) {
-        if (e.isIntersecting) { e.target.classList.add('visible'); }
-      });
-    }, { threshold: 0.1 }).observe(el);
-  });
+  var obs = _getSharedObserver();
+  var els = document.querySelectorAll('.reveal');
+  for(var i=0;i<els.length;i++) obs.observe(els[i]);
 }
-
-// ── Progress Bar Animation ──
 function initProgressBars() {
-  document.querySelectorAll('.progress-fill[data-width]').forEach(function(el) {
-    new IntersectionObserver(function(entries) {
-      entries.forEach(function(e) {
-        if (e.isIntersecting) { e.target.style.width = e.target.dataset.width; }
-      });
-    }, { threshold: 0.1 }).observe(el);
-  });
+  var obs = _getSharedObserver();
+  var els = document.querySelectorAll('.progress-fill[data-width]');
+  for(var i=0;i<els.length;i++) obs.observe(els[i]);
 }
 
-// ── Help Icon Toggle ──
+// ── Help Icon Toggle (delegated) ──
+var _helpIconsBound = false;
 function initHelpIcons() {
-  document.querySelectorAll('.help-icon').forEach(function(icon) {
-    icon.addEventListener('click', function(e) {
+  if(_helpIconsBound) return;
+  _helpIconsBound = true;
+  document.addEventListener('click', function(e) {
+    var icon = e.target.closest('.help-icon');
+    if(icon){
       e.stopPropagation();
       var helpEl = icon.nextElementSibling;
       if (!helpEl || !helpEl.classList.contains('help-text')) return;
-      if (helpEl.classList.contains('expanded')) {
-        helpEl.classList.remove('expanded');
-      } else {
-        document.querySelectorAll('.help-text.expanded').forEach(function(el) { el.classList.remove('expanded'); });
-        helpEl.classList.add('expanded');
-      }
-    });
-  });
-  // Close on outside click
-  document.addEventListener('click', function() {
-    document.querySelectorAll('.help-text.expanded').forEach(function(el) { el.classList.remove('expanded'); });
+      var wasOpen = helpEl.classList.contains('expanded');
+      var allOpen = document.querySelectorAll('.help-text.expanded');
+      for(var i=0;i<allOpen.length;i++) allOpen[i].classList.remove('expanded');
+      if(!wasOpen) helpEl.classList.add('expanded');
+      return;
+    }
+    // Close all on outside click
+    var allOpen = document.querySelectorAll('.help-text.expanded');
+    for(var i=0;i<allOpen.length;i++) allOpen[i].classList.remove('expanded');
   });
 }
 
@@ -315,17 +335,14 @@ function showCoachMark(targetSelector, text, position, id) {
 }
 
 // ── Floating Help Button + FAQ Panel ──
+var _helpIdleTimer = null;
 function initHelpButton() {
-  // Already exists?
   if (document.getElementById('help-float-btn')) return;
-  // Skip on login page
   if (window.location.pathname === '/login') return;
-  // Teacher sees it too
   var u = null;
   try { u = JSON.parse(localStorage.getItem('zlc_user')); } catch(e){}
   if (!u) return;
 
-  // First login date tracking
   var firstLogin = localStorage.getItem('zlc_first_login_date');
   if (!firstLogin) {
     firstLogin = new Date().toISOString().slice(0,10);
@@ -347,22 +364,23 @@ function initHelpButton() {
   btn.addEventListener('click', openFAQPanel);
   document.body.appendChild(btn);
 
-  // Idle timer — show help button after 60s no interaction
-  var helpIdleTimer = null;
-  function resetHelpIdle() {
-    clearTimeout(helpIdleTimer);
-    helpIdleTimer = setTimeout(function() {
+  // Throttled idle timer — show help button after 60s no interaction
+  var _lastActivity = Date.now();
+  function resetHelpIdle() { _lastActivity = Date.now(); }
+  function checkIdle() {
+    if (Date.now() - _lastActivity >= 60000) {
       var b = document.getElementById('help-float-btn');
       if (b && b.style.display === 'none') {
         b.style.display = 'flex';
         b.classList.add('pulse-once');
       }
-    }, 60000);
+    }
+    _helpIdleTimer = setTimeout(checkIdle, 15000);
   }
-  ['click','scroll','touchstart'].forEach(function(evt) {
-    document.addEventListener(evt, resetHelpIdle);
-  });
-  resetHelpIdle();
+  document.addEventListener('click', resetHelpIdle, {passive: true});
+  document.addEventListener('scroll', resetHelpIdle, {passive: true});
+  document.addEventListener('touchstart', resetHelpIdle, {passive: true});
+  _helpIdleTimer = setTimeout(checkIdle, 15000);
 }
 
 function openFAQPanel() {
@@ -428,7 +446,9 @@ function openFAQPanel() {
     + '</div>';
 
   document.body.appendChild(overlay);
-  requestAnimationFrame(function(){ overlay.classList.add('show'); });
+  // Use void offsetHeight to force layout, then add show class in same frame
+  void overlay.offsetHeight;
+  overlay.classList.add('show');
 
   // Close
   overlay.addEventListener('click', function(e){ if(e.target === overlay) closeFAQ(); });
@@ -500,9 +520,8 @@ function showNudge(icon, text, id) {
   nudge.querySelector('.nudge-close').addEventListener('click', function(){ closeNudge(id); });
 
   document.body.appendChild(nudge);
-  requestAnimationFrame(function(){
-    requestAnimationFrame(function(){ nudge.classList.add('show'); });
-  });
+  // Single rAF is enough — the element needs one frame to be in DOM before transition triggers
+  requestAnimationFrame(function(){ nudge.classList.add('show'); });
 
   // Auto-dismiss after 8s
   setTimeout(function(){ closeNudge(id); }, 8000);
@@ -513,16 +532,17 @@ function closeNudge(id) {
   var nudge = document.getElementById('nudge-' + id);
   if (nudge) {
     nudge.classList.remove('show');
-    setTimeout(function(){ nudge.remove(); }, 280);
+    setTimeout(function(){ if(nudge.parentNode) nudge.remove(); }, 220);
   }
 }
 
-// Init on page load
+// Init on page load — defer non-critical work
 document.addEventListener('DOMContentLoaded', function(){
   initReveal();
   initProgressBars();
   initHelpIcons();
-  initHelpButton();
+  // Defer help button init to not block first paint
+  setTimeout(initHelpButton, 100);
 });
 `}} />
 )
@@ -1981,15 +2001,12 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, nam
 
   function openSharePanel(){
     shareOverlay.style.display = 'block';
-    requestAnimationFrame(function(){
-      requestAnimationFrame(function(){
-        sharePanel.style.transform = 'translateY(0)';
-      });
-    });
+    void sharePanel.offsetHeight;
+    sharePanel.style.transform = 'translateY(0)';
   }
   function closeSharePanel(){
     sharePanel.style.transform = 'translateY(100%)';
-    setTimeout(function(){ shareOverlay.style.display = 'none'; }, 250);
+    setTimeout(function(){ shareOverlay.style.display = 'none'; }, 220);
   }
 
   if(btnShareProject){
@@ -2077,17 +2094,14 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, nam
     if(!myTeacher) return;
     if(refTeacherNameEl) refTeacherNameEl.textContent = myTeacher.name;
     refOverlay.style.display = 'flex';
-    requestAnimationFrame(function(){
-      requestAnimationFrame(function(){
-        refModal.style.transform = 'scale(1)';
-        refModal.style.opacity = '1';
-      });
-    });
+    void refModal.offsetHeight;
+    refModal.style.transform = 'scale(1)';
+    refModal.style.opacity = '1';
   }
   function closeReferralModal(){
     refModal.style.transform = 'scale(0.95)';
     refModal.style.opacity = '0';
-    setTimeout(function(){ refOverlay.style.display = 'none'; }, 250);
+    setTimeout(function(){ refOverlay.style.display = 'none'; }, 200);
   }
 
   if(btnReferral && !isOwner && myTeacher){
@@ -2512,11 +2526,8 @@ app.get('/create', (c) => {
     newPanel.style.display = 'block';
     var enterClass = direction === 'left' ? 'step-panel-enter-left' : 'step-panel-enter-right';
     newPanel.classList.add(enterClass);
-    requestAnimationFrame(function(){
-      requestAnimationFrame(function(){
-        newPanel.classList.remove(enterClass);
-      });
-    });
+    void newPanel.offsetHeight;
+    newPanel.classList.remove(enterClass);
     currentStep = n;
     updateStepper();
     window.scrollTo({top: 0, behavior: 'smooth'});
@@ -4283,17 +4294,14 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, nam
     }
 
     recOverlay.style.display = 'block';
-    requestAnimationFrame(function(){
-      requestAnimationFrame(function(){
-        recPanel.style.transform = 'translateY(0)';
-      });
-    });
+    void recPanel.offsetHeight;
+    recPanel.style.transform = 'translateY(0)';
   });
 
   recOverlay.addEventListener('click', function(e) {
     if (e.target === recOverlay) {
       recPanel.style.transform = 'translateY(100%)';
-      setTimeout(function(){ recOverlay.style.display = 'none'; }, 300);
+      setTimeout(function(){ recOverlay.style.display = 'none'; }, 250);
     }
   });
 
@@ -4308,7 +4316,7 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, nam
     showToast('已推荐');
     // Close panel
     recPanel.style.transform = 'translateY(100%)';
-    setTimeout(function(){ recOverlay.style.display = 'none'; }, 300);
+    setTimeout(function(){ recOverlay.style.display = 'none'; }, 250);
     renderRecommended();
   };
 
