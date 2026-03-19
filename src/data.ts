@@ -15,6 +15,19 @@ export interface Member {
   status: 'active' | 'inactive'
   joinDate: string
   role?: 'member' | 'admin'
+  classId?: string
+  className?: string
+}
+
+// ── 老师类型 ──────────────────────────────────────────────
+export interface Teacher {
+  id: string
+  name: string
+  phone: string
+  avatar: string | null
+  classIds: string[]
+  role: 'teacher'
+  status: 'active' | 'inactive'
 }
 
 export const mockMembers: Member[] = [
@@ -22,33 +35,55 @@ export const mockMembers: Member[] = [
     id: 'm-001', phone: '13888888888', name: '张建国', company: '星火餐饮集团',
     industry: '餐饮连锁', title: '董事长',
     bio: '20年餐饮连锁经验，全国120家门店', cohort: '第12期', status: 'active', joinDate: '2024-03-15',
+    classId: 'class-12', className: '第12期',
   },
   {
     id: 'm-002', phone: '13966666666', name: '李明远', company: '新锐智造科技',
     industry: '智能制造', title: '创始人/CEO',
     bio: '前华为供应链总监，专注工业自动化', cohort: '第10期', status: 'active', joinDate: '2023-09-20',
+    classId: 'class-10', className: '第10期',
   },
   {
     id: 'm-003', phone: '13733333333', name: '王晓薇', company: '优学教育科技',
     industry: '教育培训', title: '创始人',
     bio: '前新东方区域总监，AI教育创业者', cohort: '第14期', status: 'active', joinDate: '2025-01-10',
+    classId: 'class-14', className: '第14期',
   },
   {
     id: 'm-004', phone: '13611111111', name: '陈伟强', company: '鼎盛供应链',
     industry: '物流供应链', title: '董事长',
     bio: '华东地区冷链物流龙头，年营收5亿', cohort: '第8期', status: 'active', joinDate: '2023-03-08',
+    classId: 'class-08', className: '第8期',
   },
   {
     id: 'm-005', phone: '13599999999', name: '赵丽华', company: '芙蓉美业集团',
     industry: '美容健康', title: '创始人/CEO',
     bio: '全国50+美容门店，年营收2亿', cohort: '第11期', status: 'active', joinDate: '2024-01-22',
+    classId: 'class-11', className: '第11期',
   },
   {
     id: 'm-admin', phone: '18000000000', name: '管理员', company: '一亿中流',
     industry: '平台管理', title: '平台管理员',
     bio: '一亿中流平台管理员', cohort: '管理团队', status: 'active', joinDate: '2023-01-01', role: 'admin',
+    classId: 'class-admin', className: '管理组',
   },
 ]
+
+// ── 老师数据 ──────────────────────────────────────────────
+export const mockTeachers: Teacher[] = [
+  { id: 't-001', name: '刘老师', phone: '18011111111', avatar: null, classIds: ['class-12', 'class-14'], role: 'teacher', status: 'active' },
+  { id: 't-002', name: '陈老师', phone: '18022222222', avatar: null, classIds: ['class-10', 'class-11'], role: 'teacher', status: 'active' },
+  { id: 't-003', name: '周老师', phone: '18033333333', avatar: null, classIds: ['class-08'], role: 'teacher', status: 'active' },
+]
+
+// ── 班级工具函数 ─────────────────────────────────────────
+export function getTeacherForMember(member: Member): Teacher | null {
+  return mockTeachers.find(t => member.classId ? t.classIds.includes(member.classId) : false) || null
+}
+
+export function isSameClass(memberA: Member, memberB: Member): boolean {
+  return !!memberA.classId && memberA.classId === memberB.classId
+}
 
 // ── 项目类型 ──────────────────────────────────────────────
 export interface Project {
@@ -70,12 +105,15 @@ export interface Project {
   status: 'open' | 'funded' | 'active' | 'completed'
   createdAt: string
   investors: string[]
+  shareCode?: string
+  initiatorClassId?: string
+  initiatorClassName?: string
 }
 
 export const mockProjects: Project[] = [
   {
     id: 'p-001', name: '星火餐饮华南区20店扩张', ownerId: 'm-001',
-    industry: '餐饮连锁',
+    industry: '餐饮连锁', shareCode: 'TH2K9A', initiatorClassId: 'class-12', initiatorClassName: '第12期',
     description: '计划在广深佛莞新开20家直营门店，单店面积80-120㎡，聚焦社区快餐赛道。已完成选址和团队组建，预计6个月内全部开业。',
     targetAmount: 500, raisedAmount: 380, revenueShareRate: 8.5, duration: 36,
     recoveryMultiple: 1.4, estimatedMonthlyRevenue: 180,
@@ -85,7 +123,7 @@ export const mockProjects: Project[] = [
   },
   {
     id: 'p-002', name: '工业视觉检测新产线', ownerId: 'm-002',
-    industry: '智能制造',
+    industry: '智能制造', shareCode: 'MF7R3B', initiatorClassId: 'class-10', initiatorClassName: '第10期',
     description: '引进第四代柔性产线，提升产能40%，降低人工成本30%。已与德国设备商签订采购意向书，预计产线3个月内投产。',
     targetAmount: 150, raisedAmount: 150, revenueShareRate: 15.0, duration: 36,
     recoveryMultiple: 1.5, estimatedMonthlyRevenue: 320,
@@ -95,7 +133,7 @@ export const mockProjects: Project[] = [
   },
   {
     id: 'p-003', name: '优学AI双师课堂全国推广', ownerId: 'm-003',
-    industry: '教育培训',
+    industry: '教育培训', shareCode: 'HG4N8C', initiatorClassId: 'class-11', initiatorClassName: '第11期',
     description: 'AI+真人双师模式，目标覆盖100个三四线城市学习中心。已在15个城市验证模型，单中心月均营收8万，利润率40%。',
     targetAmount: 300, raisedAmount: 120, revenueShareRate: 10.0, duration: 24,
     recoveryMultiple: 1.6, estimatedMonthlyRevenue: 95,
@@ -105,7 +143,7 @@ export const mockProjects: Project[] = [
   },
   {
     id: 'p-004', name: '鼎盛冷链华东仓网优化', ownerId: 'm-004',
-    industry: '物流供应链',
+    industry: '物流供应链', shareCode: 'CL9P5D', initiatorClassId: 'class-08', initiatorClassName: '第8期',
     description: '新建3个智能冷库节点，覆盖长三角95%区域次日达。已获得土地审批和环评通过，一期仓库预计8个月建成投产。',
     targetAmount: 1200, raisedAmount: 900, revenueShareRate: 6.5, duration: 60,
     recoveryMultiple: 1.3, estimatedMonthlyRevenue: 480,
@@ -115,7 +153,7 @@ export const mockProjects: Project[] = [
   },
   {
     id: 'p-005', name: 'AI英语口语APP开发', ownerId: 'm-003',
-    industry: '教育培训',
+    industry: '教育培训', shareCode: 'ED6W2E', initiatorClassId: 'class-14', initiatorClassName: '第14期',
     description: '基于大模型的英语口语练习APP，目标覆盖K12和成人学习群体。已完成MVP开发，用户增长迅速。',
     targetAmount: 25, raisedAmount: 25, revenueShareRate: 8.0, duration: 24,
     recoveryMultiple: 1.5, estimatedMonthlyRevenue: 12,
@@ -354,6 +392,11 @@ export function getUserStats(userId: string) {
     .filter(r => r.investorId === userId)
     .reduce((sum, r) => sum + r.amount, 0)
   return { initiated, invested, totalInvested, totalRepaid: Math.round(totalRepaid * 100) / 100 }
+}
+
+// ── 分享码查找 ──────────────────────────────────────────
+export function findProjectByShareCode(code: string): Project | null {
+  return mockProjects.find(p => p.shareCode === code.toUpperCase()) || null
 }
 
 // Demo 验证码

@@ -6,10 +6,11 @@ import { renderer } from './renderer'
 import {
   mockMembers, mockProjects, mockRepayments,
   mockContracts, mockRevenueReports, mockRepaymentRecords,
+  mockTeachers, getTeacherForMember, isSameClass, findProjectByShareCode,
   getUserStats, getProjectStats, calculateRBF, distributeRevenue,
   DEMO_VERIFY_CODE,
 } from './data'
-import type { Member, Project, Contract, RevenueReport, RepaymentRecord, DistributionResult } from './data'
+import type { Member, Teacher, Project, Contract, RevenueReport, RepaymentRecord, DistributionResult } from './data'
 
 const app = new Hono()
 
@@ -224,17 +225,38 @@ app.post('/api/login', async (c) => {
     const { phone, code } = await c.req.json<{ phone: string; code: string }>()
     if (!phone || !code) return c.json({ ok: false, error: '请输入手机号和验证码' }, 400)
     if (code !== DEMO_VERIFY_CODE) return c.json({ ok: false, error: '验证码错误' }, 400)
+
+    // Check members first
     const member = mockMembers.find((m) => m.phone === phone)
-    if (!member) return c.json({ ok: false, error: '该手机号未认证为一亿中流学员' }, 403)
-    return c.json({
-      ok: true,
-      member: {
-        id: member.id, name: member.name, phone: member.phone,
-        company: member.company, industry: member.industry,
-        title: member.title, bio: member.bio, cohort: member.cohort,
-        joinDate: member.joinDate, role: member.role || 'member',
-      },
-    })
+    if (member) {
+      return c.json({
+        ok: true,
+        member: {
+          id: member.id, name: member.name, phone: member.phone,
+          company: member.company, industry: member.industry,
+          title: member.title, bio: member.bio, cohort: member.cohort,
+          joinDate: member.joinDate, role: member.role || 'member',
+          classId: member.classId || '', className: member.className || '',
+        },
+      })
+    }
+
+    // Check teachers
+    const teacher = mockTeachers.find((t) => t.phone === phone)
+    if (teacher) {
+      return c.json({
+        ok: true,
+        member: {
+          id: teacher.id, name: teacher.name, phone: teacher.phone,
+          company: '一亿中流', industry: '教育管理',
+          title: '班主任', bio: '一亿中流班主任老师', cohort: '导师团队',
+          joinDate: '2023-01-01', role: 'teacher' as string,
+          classIds: teacher.classIds,
+        },
+      })
+    }
+
+    return c.json({ ok: false, error: '该手机号未认证为一亿中流学员' }, 403)
   } catch { return c.json({ ok: false, error: '请求格式错误' }, 400) }
 })
 
@@ -340,6 +362,15 @@ app.get('/', (c) => {
         <section class="mb-5">
           <h2 id="greeting" class="font-bold text-text-title" style="font-size:20px;font-family:'Noto Sans SC',sans-serif;" />
           <p id="user-subtitle" class="text-text-secondary mt-0.5" style="font-size:14px;" />
+        </section>
+
+        {/* 1.5 Share Code Input */}
+        <section style="margin:0 0 12px 0;">
+          <div style="background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 1px 2px rgba(0,0,0,0.04);display:flex;align-items:center;gap:10px;">
+            <i class="fas fa-link" style="font-size:14px;color:#B91C1C;flex-shrink:0;" />
+            <input id="home-share-input" type="text" maxlength={6} placeholder="收到分享码？输入6位码查看项目" style="flex:1;background:transparent;border:none;outline:none;font-size:14px;color:#1C1917;font-family:inherit;" />
+            <button id="home-share-btn" style="flex-shrink:0;padding:6px 12px;background:rgba(185,28,28,0.08);border:none;border-radius:8px;color:#B91C1C;font-size:13px;font-weight:600;cursor:pointer;">查看</button>
+          </div>
         </section>
 
         {/* 2. Quick Actions */}
@@ -457,6 +488,33 @@ app.get('/', (c) => {
     var el3 = document.getElementById('stat-total-inv'); if(el3) animateNumber(el3, s.totalInvested, 600, 0);
     var el4 = document.getElementById('stat-total-rep'); if(el4) animateNumber(el4, s.totalRepaid, 600, 1);
   }).catch(function(){});
+
+  // Share code input
+  var shareInput = document.getElementById('home-share-input');
+  var shareBtn = document.getElementById('home-share-btn');
+  var SHARE_CODES = ${JSON.stringify(mockProjects.filter(p => p.shareCode).map(p => ({ code: p.shareCode, id: p.id })))};
+
+  if(shareInput){
+    shareInput.addEventListener('input', function(){
+      shareInput.value = shareInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+    });
+    shareInput.addEventListener('keydown', function(e){
+      if(e.key === 'Enter') doShareLookup();
+    });
+  }
+  if(shareBtn){
+    shareBtn.addEventListener('click', doShareLookup);
+  }
+  function doShareLookup(){
+    var code = shareInput.value.trim().toUpperCase();
+    if(code.length < 6){ showToast('请输入完整的6位分享码', 'error'); return; }
+    var found = SHARE_CODES.find(function(s){ return s.code === code; });
+    if(found){
+      window.location.href = '/projects/' + found.id + '?from=share';
+    } else {
+      showToast('未找到该分享码对应的项目', 'error');
+    }
+  }
 })();
 `}} />
     </div>,
@@ -863,6 +921,11 @@ app.get('/projects/:id', (c) => {
           <i class="fas fa-arrow-left" style="font-size:13px;" /> 返回项目大厅
         </a>
 
+        {/* From share banner — shown via JS if ?from=share */}
+        <div id="share-from-banner" style="display:none;background:#EFF6FF;color:#2563EB;border-radius:8px;padding:8px 12px;font-size:12px;margin-bottom:12px;font-weight:500;">
+          🔗 通过分享码查看
+        </div>
+
         {/* 1. Project Header Card */}
         <div class="bg-white rounded-2xl shadow-card p-5 mb-4">
           <div class="flex items-center justify-between mb-3">
@@ -1004,7 +1067,102 @@ app.get('/projects/:id', (c) => {
           </div>
           <p class="text-text-secondary" style="font-size:13px;">共 {investorMembers.length} 位同学参与</p>
         </div>
+
+        {/* 6. Share / Referral Buttons */}
+        <div style="margin-bottom:16px;">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+            <div style="flex:1;height:1px;background:#D6D3D1;" />
+            <span style="font-size:12px;color:#A8A29E;white-space:nowrap;">或者</span>
+            <div style="flex:1;height:1px;background:#D6D3D1;" />
+          </div>
+          <div style="display:flex;gap:12px;">
+            <button id="btn-referral" style="flex:1;height:44px;background:#fff;border:1.5px solid #B91C1C;border-radius:12px;color:#B91C1C;font-weight:600;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:background 0.2s;">
+              <i class="fas fa-user-tie" style="font-size:13px;" /> 请老师引荐
+            </button>
+            <button id="btn-share-project" style="flex:1;height:44px;background:#fff;border:1.5px solid #78716C;border-radius:12px;color:#78716C;font-weight:600;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:background 0.2s;">
+              <i class="fas fa-share-alt" style="font-size:13px;" /> 分享项目
+            </button>
+          </div>
+        </div>
       </main>
+
+      {/* Share Panel Overlay */}
+      <div id="share-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);z-index:1000;">
+        <div id="share-panel" style="position:absolute;bottom:0;left:0;right:0;background:#fff;border-radius:20px 20px 0 0;padding:24px;transform:translateY(100%);transition:transform 300ms ease-out;max-height:85vh;overflow-y:auto;">
+          {/* Drag indicator */}
+          <div style="width:40px;height:4px;border-radius:2px;background:#D6D3D1;margin:0 auto 20px;" />
+          <div style="font-size:18px;font-weight:600;color:#1C1917;margin-bottom:16px;">分享给同学</div>
+
+          {/* Share Card Preview */}
+          <div style="background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:12px;overflow:hidden;">
+            {/* Top red bar */}
+            <div style="height:6px;background:#B91C1C;" />
+            <div style="padding:20px;">
+              {/* Logo row */}
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;">
+                <svg width="20" height="20" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="sc-gt" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#DC2626"/><stop offset="100%" stop-color="#B91C1C"/></linearGradient><linearGradient id="sc-gb" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#991B1B"/><stop offset="100%" stop-color="#DC2626"/></linearGradient></defs><circle cx="44" cy="28" r="22" fill="url(#sc-gt)"/><circle cx="36" cy="44" r="22" fill="url(#sc-gb)" opacity="0.85"/></svg>
+                <span style="font-size:11px;color:#A8A29E;">项目分享</span>
+              </div>
+              {/* Project name */}
+              <div style="font-size:18px;font-weight:700;color:#1C1917;margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">{proj.name}</div>
+              {/* Initiator */}
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+                <div style="width:24px;height:24px;border-radius:50%;background:#B91C1C;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">{owner.name.charAt(0)}</div>
+                <span style="font-size:12px;color:#78716C;">{owner.name} · {owner.company}</span>
+              </div>
+              {/* Terms 2x2 grid */}
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+                <div>
+                  <div style="font-size:10px;color:#A8A29E;">融资总额</div>
+                  <div style="font-size:15px;font-weight:700;color:#1C1917;">¥{proj.targetAmount}万</div>
+                </div>
+                <div>
+                  <div style="font-size:10px;color:#A8A29E;">分成比例</div>
+                  <div style="font-size:15px;font-weight:700;color:#1C1917;">{proj.revenueShareRate}%</div>
+                </div>
+                <div>
+                  <div style="font-size:10px;color:#A8A29E;">联营期限</div>
+                  <div style="font-size:15px;font-weight:700;color:#1C1917;">{proj.duration}个月</div>
+                </div>
+                <div>
+                  <div style="font-size:10px;color:#A8A29E;">预估月回</div>
+                  <div style="font-size:15px;font-weight:700;color:#1C1917;">¥{(proj.estimatedMonthlyRevenue * proj.revenueShareRate / 100).toFixed(1)}万</div>
+                </div>
+              </div>
+              {/* Dashed divider */}
+              <div style="border-top:1px dashed #E7E5E4;margin-bottom:16px;" />
+              {/* Share code */}
+              <div style="text-align:center;">
+                <div style="font-size:10px;color:#A8A29E;margin-bottom:4px;">分享码</div>
+                <div style="font-size:22px;font-weight:800;font-family:Montserrat,sans-serif;color:#B91C1C;letter-spacing:3px;">{proj.shareCode || '------'}</div>
+              </div>
+              {/* QR placeholder */}
+              <div style="margin:12px auto 0;width:100px;height:100px;background:#F5F5F4;border-radius:8px;display:flex;align-items:center;justify-content:center;">
+                <i class="fas fa-qrcode" style="font-size:48px;color:#D6D3D1;" />
+              </div>
+              <div style="text-align:center;font-size:10px;color:#A8A29E;margin-top:8px;">打开中流通 · 输入分享码查看详情</div>
+            </div>
+            {/* Bottom red bar */}
+            <div style="height:3px;background:#B91C1C;" />
+          </div>
+
+          {/* Action buttons */}
+          <div style="display:flex;gap:12px;margin-top:20px;">
+            <button id="btn-copy-code" style="flex:1;background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:12px;padding:12px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;">
+              <i class="fas fa-copy" style="font-size:20px;color:#B91C1C;" />
+              <span style="font-size:12px;color:#78716C;">复制分享码</span>
+            </button>
+            <button id="btn-copy-link" style="flex:1;background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:12px;padding:12px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;">
+              <i class="fas fa-link" style="font-size:20px;color:#3B82F6;" />
+              <span style="font-size:12px;color:#78716C;">复制链接</span>
+            </button>
+            <button id="btn-save-card" style="flex:1;background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:12px;padding:12px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;">
+              <i class="fas fa-image" style="font-size:20px;color:#16A34A;" />
+              <span style="font-size:12px;color:#78716C;">保存卡片</span>
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* Toast */}
       <div id="toast" class="toast" />
@@ -1023,11 +1181,15 @@ app.get('/projects/:id', (c) => {
     revenueShareRate: proj.revenueShareRate, estimatedMonthlyRevenue: proj.estimatedMonthlyRevenue,
     recoveryMultiple: proj.recoveryMultiple, duration: proj.duration,
     industry: proj.industry, description: proj.description,
+    shareCode: proj.shareCode || '',
   })};
   var MEMBERS = ${JSON.stringify(mockMembers.map(m => ({ id:m.id, name:m.name })))};
 
-  // Toast (use global)
-  var toastEl = document.getElementById('toast');
+  // Show from=share banner
+  if(window.location.search.indexOf('from=share') !== -1){
+    var banner = document.getElementById('share-from-banner');
+    if(banner) banner.style.display = 'block';
+  }
 
   // Hide calculator if owner
   var ownerHint = document.getElementById('owner-hint');
@@ -1152,6 +1314,70 @@ app.get('/projects/:id', (c) => {
     partBtn.disabled = true;
     partBtn.textContent = '已参与 ¥' + alreadyIn.amount + '万';
     if(sel) sel.disabled = true;
+  }
+
+  // ── Share Panel Logic ──
+  var shareOverlay = document.getElementById('share-overlay');
+  var sharePanel = document.getElementById('share-panel');
+  var btnShareProject = document.getElementById('btn-share-project');
+  var btnReferral = document.getElementById('btn-referral');
+
+  function openSharePanel(){
+    shareOverlay.style.display = 'block';
+    requestAnimationFrame(function(){
+      requestAnimationFrame(function(){
+        sharePanel.style.transform = 'translateY(0)';
+      });
+    });
+  }
+  function closeSharePanel(){
+    sharePanel.style.transform = 'translateY(100%)';
+    setTimeout(function(){ shareOverlay.style.display = 'none'; }, 250);
+  }
+
+  if(btnShareProject){
+    btnShareProject.addEventListener('click', openSharePanel);
+  }
+  if(btnReferral){
+    btnReferral.addEventListener('click', function(){
+      showToast('引荐功能即将上线', 'success');
+    });
+  }
+  if(shareOverlay){
+    shareOverlay.addEventListener('click', function(e){
+      if(e.target === shareOverlay) closeSharePanel();
+    });
+  }
+
+  // Copy share code
+  var btnCopyCode = document.getElementById('btn-copy-code');
+  if(btnCopyCode){
+    btnCopyCode.addEventListener('click', function(){
+      if(PROJ.shareCode){
+        navigator.clipboard.writeText(PROJ.shareCode).then(function(){
+          showToast('分享码已复制，发给同学即可', 'success');
+        }).catch(function(){ showToast('复制失败，请手动复制: ' + PROJ.shareCode, 'error'); });
+      }
+    });
+  }
+
+  // Copy link
+  var btnCopyLink = document.getElementById('btn-copy-link');
+  if(btnCopyLink){
+    btnCopyLink.addEventListener('click', function(){
+      var link = window.location.origin + '/share/' + PROJ.shareCode;
+      navigator.clipboard.writeText(link).then(function(){
+        showToast('链接已复制', 'success');
+      }).catch(function(){ showToast('复制失败，请手动复制', 'error'); });
+    });
+  }
+
+  // Save card
+  var btnSaveCard = document.getElementById('btn-save-card');
+  if(btnSaveCard){
+    btnSaveCard.addEventListener('click', function(){
+      showToast('请长按或截屏保存上方卡片', 'success');
+    });
   }
 })();
 `}} />
@@ -2813,6 +3039,41 @@ app.get('/admin', (c) => {
 `}} />
     </div>,
     { title: '中流通 - 管理后台' }
+  )
+})
+
+// ══════════════════════════════════════════════════════════
+// Share Code Route  (/share/:code)
+// ══════════════════════════════════════════════════════════
+app.get('/share/:code', (c) => {
+  const code = c.req.param('code').toUpperCase()
+  const project = findProjectByShareCode(code)
+  if (project) {
+    return c.redirect('/projects/' + project.id + '?from=share')
+  }
+  // Project not found — show error page
+  return c.render(
+    <div class="app-container">
+      <GlobalScripts />
+      <Navbar />
+      <main class="max-w-lg mx-auto px-4 pt-16 pb-8 text-center page-enter">
+        <div class="flex justify-center mb-4">
+          <LogoSVG size={48} />
+        </div>
+        <div class="flex items-center justify-center mb-4">
+          <div class="flex items-center justify-center rounded-full" style="width:64px;height:64px;background:#FEE2E2;">
+            <i class="fas fa-circle-xmark" style="font-size:28px;color:#DC2626;" />
+          </div>
+        </div>
+        <h2 class="font-bold text-text-title mb-2" style="font-size:20px;font-family:'Noto Sans SC',sans-serif;">该项目不存在或已关闭</h2>
+        <p class="text-text-secondary mb-2" style="font-size:14px;">分享码 <span style="font-weight:700;color:#B91C1C;letter-spacing:2px;font-family:Montserrat,sans-serif;">{code}</span> 未匹配到任何项目</p>
+        <p class="text-text-tertiary mb-8" style="font-size:13px;">请检查分享码是否正确，或联系分享人确认</p>
+        <a href="/" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-brand text-white font-semibold" style="text-decoration:none;font-size:15px;">
+          <i class="fas fa-home" style="font-size:13px;" /> 返回首页
+        </a>
+      </main>
+    </div>,
+    { title: '中流通 - 项目不存在' }
   )
 })
 
