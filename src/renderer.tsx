@@ -710,6 +710,168 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
 }
 
 /* ══════════════════════════════════════════════════
+   Contract Sign Ceremony Page (Task 1)
+   ══════════════════════════════════════════════════ */
+.ceremony-page {
+  position: fixed; inset: 0; z-index: 2000;
+  background: linear-gradient(160deg, #1C1917, #292524);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 40px 20px;
+  opacity: 0; transition: opacity 800ms ease;
+  pointer-events: none;
+}
+.ceremony-page.show { opacity: 1; pointer-events: auto; }
+.ceremony-check-circle {
+  width: 80px; height: 80px; border: 3px solid #D4A853; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  transform: scale(0);
+  animation: ceremonyCirclePop 300ms ease-out forwards;
+}
+.ceremony-check-circle.animate {
+  box-shadow: 0 0 0 0 rgba(212,168,83,0.4);
+  animation: ceremonyCirclePop 300ms ease-out forwards, ceremonyGlow 600ms ease-out forwards;
+}
+.ceremony-check-mark {
+  font-size: 36px; color: #D4A853; font-weight: 700; line-height: 1;
+  opacity: 0; transform: translateY(10px);
+}
+.ceremony-check-mark.animate {
+  animation: ceremonyCheckFade 300ms 300ms ease-out forwards;
+}
+@keyframes ceremonyCirclePop {
+  0% { transform: scale(0); }
+  100% { transform: scale(1); }
+}
+@keyframes ceremonyGlow {
+  0% { box-shadow: 0 0 0 0 rgba(212,168,83,0.4); }
+  100% { box-shadow: 0 0 0 30px rgba(212,168,83,0); }
+}
+@keyframes ceremonyCheckFade {
+  0% { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.ceremony-title {
+  margin-top: 32px; text-align: center;
+}
+.ceremony-title h2 {
+  font-size: 24px; font-weight: 800; color: #fff; letter-spacing: 2px;
+}
+.ceremony-title p {
+  margin-top: 8px; font-size: 14px; color: rgba(255,255,255,0.5);
+}
+.ceremony-summary {
+  margin-top: 28px; background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1); border-radius: 16px;
+  padding: 20px 24px; width: 100%; max-width: 320px;
+}
+.ceremony-summary-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.ceremony-summary-row:last-child { border-bottom: none; }
+.ceremony-summary-label { font-size: 13px; color: rgba(255,255,255,0.4); }
+.ceremony-summary-value { font-size: 14px; color: #fff; font-weight: 600; }
+.ceremony-buttons { margin-top: 32px; width: 100%; max-width: 320px; }
+.ceremony-btn-primary {
+  background: linear-gradient(135deg, #D4A853, #B8860B); color: #1C1917;
+  font-weight: 700; border-radius: 14px; padding: 16px; width: 100%;
+  font-size: 16px; border: none; cursor: pointer; transition: opacity 0.2s;
+}
+.ceremony-btn-primary:active { opacity: 0.85; }
+.ceremony-btn-secondary {
+  margin-top: 10px; background: transparent; color: rgba(255,255,255,0.5);
+  border: 1px solid rgba(255,255,255,0.15); border-radius: 14px;
+  padding: 14px; width: 100%; font-size: 14px; cursor: pointer; transition: opacity 0.2s;
+}
+.ceremony-btn-secondary:active { opacity: 0.7; }
+.ceremony-btn-tertiary {
+  margin-top: 10px; background: transparent; color: rgba(255,255,255,0.3);
+  border: none; font-size: 13px; padding: 10px; width: 100%; cursor: pointer;
+  transition: opacity 0.2s;
+}
+.ceremony-btn-tertiary:active { opacity: 0.5; }
+
+/* ══════════════════════════════════════════════════
+   Payback Celebration Banner (Task 2)
+   ══════════════════════════════════════════════════ */
+.payback-banner {
+  margin: 0 16px 16px; padding: 16px 20px;
+  background: linear-gradient(135deg, #D4A853, #B8860B);
+  border-radius: 16px; text-align: center; position: relative; overflow: visible;
+  transform: scale(0.8); opacity: 0;
+  animation: paybackBannerIn 500ms ease-out forwards;
+}
+@keyframes paybackBannerIn {
+  0% { transform: scale(0.8); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.payback-banner .emoji-row { font-size: 24px; }
+.payback-banner .banner-title {
+  margin-top: 6px; font-size: 18px; font-weight: 800; color: #1C1917;
+}
+.payback-banner .banner-sub {
+  margin-top: 4px; font-size: 13px; color: rgba(28,25,23,0.7);
+}
+
+/* Confetti (pure CSS) */
+.confetti-piece {
+  position: absolute; width: 4px; height: 4px; top: 50%; left: 50%;
+  animation-fill-mode: forwards; animation-iteration-count: 1;
+}
+@keyframes confetti-1 { 0%{transform:translate(0,0) rotate(0);opacity:1;} 100%{transform:translate(-40px,-60px) rotate(120deg);opacity:0;} }
+@keyframes confetti-2 { 0%{transform:translate(0,0) rotate(0);opacity:1;} 100%{transform:translate(50px,-50px) rotate(-90deg);opacity:0;} }
+@keyframes confetti-3 { 0%{transform:translate(0,0) rotate(0);opacity:1;} 100%{transform:translate(-60px,30px) rotate(200deg);opacity:0;} }
+@keyframes confetti-4 { 0%{transform:translate(0,0) rotate(0);opacity:1;} 100%{transform:translate(35px,55px) rotate(-150deg);opacity:0;} }
+@keyframes confetti-5 { 0%{transform:translate(0,0) rotate(0);opacity:1;} 100%{transform:translate(70px,-30px) rotate(80deg);opacity:0;} }
+@keyframes confetti-6 { 0%{transform:translate(0,0) rotate(0);opacity:1;} 100%{transform:translate(-30px,-75px) rotate(-200deg);opacity:0;} }
+
+/* ══════════════════════════════════════════════════
+   Investment Overview Card (Task 3)
+   ══════════════════════════════════════════════════ */
+.invest-overview-card {
+  margin: 12px 16px; padding: 20px; background: #fff; border-radius: 18px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06); display: flex; align-items: center;
+}
+.invest-overview-left { width: 60%; }
+.invest-overview-right { width: 40%; display: flex; justify-content: center; }
+.invest-overview-total { font-size: 24px; font-weight: 800; color: #B91C1C; }
+.invest-overview-repaid { font-size: 20px; font-weight: 700; color: #16A34A; margin-top: 8px; }
+.invest-overview-count { font-size: 14px; color: #78716C; margin-top: 6px; }
+.invest-overview-label { font-size: 12px; color: #A8A29E; margin-bottom: 2px; }
+
+/* ══════════════════════════════════════════════════
+   Initiator Note (Task 4)
+   ══════════════════════════════════════════════════ */
+.initiator-note {
+  margin: 12px 16px; padding: 20px; background: #FAFAF9; border-radius: 14px;
+}
+.initiator-note-header {
+  display: flex; align-items: center;
+}
+.initiator-note-avatar {
+  width: 36px; height: 36px; border-radius: 50%; background: #FEE2E2;
+  color: #B91C1C; font-weight: 600; display: flex; align-items: center;
+  justify-content: center; font-size: 15px; flex-shrink: 0;
+}
+.initiator-note-name {
+  font-size: 14px; font-weight: 600; color: #1C1917; margin-left: 10px;
+}
+.initiator-note-tag {
+  font-size: 11px; background: rgba(185,28,28,0.08); color: #B91C1C;
+  border-radius: 4px; padding: 2px 6px; margin-left: 6px;
+}
+.initiator-note-body {
+  margin-top: 12px;
+}
+.initiator-note-quote {
+  font-size: 32px; color: #E7E5E4; font-family: Georgia, serif;
+  line-height: 1; float: left; margin-right: 6px; margin-top: -4px;
+}
+.initiator-note-text {
+  font-size: 14px; color: #57534E; line-height: 1.7;
+}
+
+/* ══════════════════════════════════════════════════
    Repayment Tab Bar
    ══════════════════════════════════════════════════ */
 .rep-tab-bar { position: sticky; top: 52px; z-index: 40; }

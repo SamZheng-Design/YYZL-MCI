@@ -112,6 +112,7 @@ export interface Project {
   viewCount?: number
   highlightText?: string
   highlights?: string[]
+  initiatorNote?: string
 }
 
 export const mockProjects: Project[] = [
@@ -127,6 +128,7 @@ export const mockProjects: Project[] = [
     viewCount: 47,
     highlightText: '华南餐饮龙头品牌，月均流水稳定300万',
     highlights: ['18家直营门店，运营超5年', '月均流水300万+', '已获两轮机构投资'],
+    initiatorNote: '我从2018年开始做餐饮连锁，目前华南区已经有18家店。这次融资主要用于新开5家店，每家店预计3个月回本。欢迎同学们一起参与，有任何问题随时联系我。',
   },
   {
     id: 'p-002', name: '工业视觉检测新产线', ownerId: 'm-002',
@@ -141,6 +143,7 @@ export const mockProjects: Project[] = [
     viewCount: 128,
     highlightText: '智能制造赛道，政府重点扶持项目',
     highlights: ['国家高新技术企业', '3项核心发明专利', '年产值增长率40%'],
+    initiatorNote: '智能制造是我做了12年的老本行，这个项目是我们的第三条产线扩建。产品供不应求，产能是唯一瓶颈。',
   },
   {
     id: 'p-003', name: '优学AI双师课堂全国推广', ownerId: 'm-003',
@@ -154,6 +157,7 @@ export const mockProjects: Project[] = [
     viewCount: 35,
     highlightText: '社区生鲜万亿赛道，轻资产高周转模式',
     highlights: ['覆盖12个社区，3万+家庭用户', '月复购率78%', '冷链仓配自建完成'],
+    initiatorNote: '社区生鲜是未来10年最大的零售机会。我们已经跑通了单点模型，现在需要资金加速复制。',
   },
   {
     id: 'p-004', name: '鼎盛冷链华东仓网优化', ownerId: 'm-004',
@@ -167,6 +171,7 @@ export const mockProjects: Project[] = [
     viewCount: 89,
     highlightText: '教育培训刚需市场，续费率行业领先',
     highlights: ['在读学员2000+', '年续费率85%', '已签约5个新校区'],
+    initiatorNote: '',
   },
   {
     id: 'p-005', name: 'AI英语口语APP开发', ownerId: 'm-003',
@@ -180,6 +185,7 @@ export const mockProjects: Project[] = [
     viewCount: 62,
     highlightText: '跨境电商蓝海机会，东南亚市场爆发期',
     highlights: ['Shopee/Lazada双平台运营', '月GMV突破500万', '自有供应链优势'],
+    initiatorNote: '东南亚电商正处于2015年中国电商的爆发期，我们团队在当地运营3年，已经建立了完整的供应链和运营体系。',
   },
   {
     id: 'p-006', name: '华南社区团购联营试点', ownerId: 'm-001',
@@ -193,6 +199,7 @@ export const mockProjects: Project[] = [
     viewCount: 156,
     highlightText: '社区团购试点项目，已成功完成全部回款',
     highlights: ['3个站点，覆盖8000+家庭', '项目已完成，回报率117%', '12个月完整回款记录'],
+    initiatorNote: '这个项目已经圆满完成，感谢各位同学的信任与支持！12个月117%的回报，是我们共同创造的成绩。',
   },
 ]
 

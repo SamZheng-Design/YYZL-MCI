@@ -1174,6 +1174,9 @@ app.get('/', (c) => {
         {/* 1.8 Repayment Flash Bar (rendered by client JS) */}
         <div id="repayment-flash-bar" />
 
+        {/* 1.9 Personal Investment Overview Card (Task 3 — rendered by client JS, member only) */}
+        <div id="invest-overview-card" />
+
         {/* 2. Quick Actions */}
         <section id="quick-actions" class="grid grid-cols-2 gap-3 mb-5">
           <a href="/create" class="quick-card quick-card-brand">
@@ -1344,6 +1347,90 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, nam
           if(inner){ inner.style.opacity='1'; inner.style.transform='translateX(0)'; }
         }, 300);
       }
+    }
+  })();
+
+  // ── Personal Investment Overview Card (Task 3 — member only) ──
+  (function(){
+    // Only show for member role (not admin, not teacher)
+    var cu = null;
+    try { cu = JSON.parse(localStorage.getItem('zlc_current_user')); } catch(e){}
+    if(cu && (cu.role === 'admin' || cu.role === 'teacher')) return;
+
+    var ALL_CONTRACTS = ${JSON.stringify(mockContracts.map(c => ({ id:c.id, participantId:c.participantId, amount:c.amount, status:c.status, projectId:c.projectId })))};
+    var ALL_REP_RECORDS = ${JSON.stringify(mockRepaymentRecords.map(r => ({ contractId:r.contractId, participantId:r.participantId, shareAmount:r.shareAmount })))};
+
+    // Merge localStorage contracts
+    var lsContracts = [];
+    try { lsContracts = JSON.parse(localStorage.getItem('zlc_contracts') || '[]'); } catch(e){}
+    lsContracts.forEach(function(c){
+      if(c.status === 'active' && !ALL_CONTRACTS.find(function(x){return x.id===c.id;})){
+        ALL_CONTRACTS.push({ id:c.id, participantId:c.userId||u.id, amount:c.amount, status:c.status, projectId:c.projectId });
+      }
+    });
+
+    // Filter signed contracts for current user
+    var myContracts = ALL_CONTRACTS.filter(function(c){
+      return c.participantId === u.id && (c.status === 'active' || c.status === 'completed');
+    });
+    if(myContracts.length === 0) return;
+
+    // Calculate totals
+    var totalInvested = 0;
+    var projectIds = {};
+    myContracts.forEach(function(c){
+      totalInvested += c.amount;
+      projectIds[c.projectId] = true;
+    });
+    var projectCount = Object.keys(projectIds).length;
+
+    var myContractIds = {};
+    myContracts.forEach(function(c){ myContractIds[c.id] = true; });
+
+    var totalRepaid = 0;
+    ALL_REP_RECORDS.forEach(function(r){
+      if(myContractIds[r.contractId]){ totalRepaid += r.shareAmount; }
+    });
+    // Also check localStorage repayment records
+    var lsRepRecords = [];
+    try { lsRepRecords = JSON.parse(localStorage.getItem('zlc_repayment_records') || '[]'); } catch(e){}
+    lsRepRecords.forEach(function(r){
+      if(myContractIds[r.contractId] && !ALL_REP_RECORDS.find(function(x){return x.contractId===r.contractId && x.shareAmount===r.shareAmount;})){ totalRepaid += r.shareAmount; }
+    });
+
+    var recoveryRate = totalInvested > 0 ? (totalRepaid / totalInvested) : 0;
+    var displayRate = Math.min(recoveryRate, 1.5); // cap at 150%
+    var ratePercent = (recoveryRate * 100).toFixed(1);
+
+    // SVG half-circle gauge
+    // Arc from left to right: M 10 65 A 50 50 0 0 1 110 65
+    var arcLength = Math.PI * 50; // ~157.08
+    var filledLength = arcLength * displayRate;
+
+    var svgHTML = '<svg viewBox="0 0 120 70" width="120" height="70">'
+      + '<defs><linearGradient id="gauge-gradient" x1="0%" y1="0%" x2="100%" y2="0%">'
+      + '<stop offset="0%" stop-color="#B91C1C"/>'
+      + '<stop offset="50%" stop-color="#D4A853"/>'
+      + '<stop offset="100%" stop-color="#16A34A"/>'
+      + '</linearGradient></defs>'
+      + '<path d="M 10 65 A 50 50 0 0 1 110 65" fill="none" stroke="#F5F5F4" stroke-width="10" stroke-linecap="round"/>'
+      + '<path d="M 10 65 A 50 50 0 0 1 110 65" fill="none" stroke="url(#gauge-gradient)" stroke-width="10" stroke-linecap="round" stroke-dasharray="' + arcLength.toFixed(2) + '" stroke-dashoffset="' + (arcLength - filledLength).toFixed(2) + '"/>'
+      + '<text x="60" y="55" text-anchor="middle" fill="#1C1917" font-size="20" font-weight="800">' + ratePercent + '%</text>'
+      + '<text x="60" y="67" text-anchor="middle" fill="#A8A29E" font-size="10">回收率</text>'
+      + '</svg>';
+
+    var cardEl = document.getElementById('invest-overview-card');
+    if(cardEl){
+      cardEl.innerHTML = '<div class="invest-overview-card">'
+        + '<div class="invest-overview-left">'
+        + '<div class="invest-overview-label">总投资</div>'
+        + '<div class="invest-overview-total">¥' + totalInvested.toFixed(1) + '万</div>'
+        + '<div class="invest-overview-label" style="margin-top:8px;">总回款</div>'
+        + '<div class="invest-overview-repaid">¥' + totalRepaid.toFixed(2) + '万</div>'
+        + '<div class="invest-overview-count">参与项目 ' + projectCount + ' 个</div>'
+        + '</div>'
+        + '<div class="invest-overview-right">' + svgHTML + '</div>'
+        + '</div>';
     }
   })();
 
@@ -2041,6 +2128,21 @@ app.get('/projects/:id', (c) => {
                   <span style="font-size:14px;color:#44403C;line-height:1.6;">{h}</span>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* 2.5a 发起人说 — 仅当 initiatorNote 非空时显示 (Task 4) */}
+        {proj.initiatorNote && proj.initiatorNote.trim() && (
+          <div class="initiator-note">
+            <div class="initiator-note-header">
+              <div class="initiator-note-avatar">{owner.name.charAt(0)}</div>
+              <span class="initiator-note-name">{owner.name}</span>
+              <span class="initiator-note-tag">发起人</span>
+            </div>
+            <div class="initiator-note-body">
+              <span class="initiator-note-quote">"</span>
+              <span class="initiator-note-text">{proj.initiatorNote}</span>
             </div>
           </div>
         )}
@@ -3512,13 +3614,23 @@ app.get('/contracts/:id/sign', (c) => {
         </div>
       </main>
 
-      {/* Success overlay */}
-      <div class="sign-success-overlay" id="success-overlay">
-        <div class="sign-success-icon">
-          <i class="fas fa-check text-white" style="font-size:36px;" />
+      {/* Ceremony full-screen page (Task 1 — replaces old success overlay) */}
+      <div class="ceremony-page" id="ceremony-page">
+        <div class="ceremony-check-circle" id="ceremony-circle">
+          <span class="ceremony-check-mark" id="ceremony-check">✓</span>
         </div>
-        <div class="sign-success-text">合同签署成功！</div>
-        <div class="sign-success-sub">协议已生效，即将跳转到回款页面...</div>
+        <div class="ceremony-title">
+          <h2>投资协议已生效</h2>
+          <p>合同由平台托管，具有法律效力</p>
+        </div>
+        <div class="ceremony-summary" id="ceremony-summary">
+          {/* Rows injected by JS */}
+        </div>
+        <div class="ceremony-buttons">
+          <button class="ceremony-btn-primary" id="ceremony-share-btn">📤 分享给同学</button>
+          <button class="ceremony-btn-secondary" id="ceremony-contract-btn">查看合同详情</button>
+          <button class="ceremony-btn-tertiary" id="ceremony-home-btn">返回首页</button>
+        </div>
       </div>
 
       {/* Client script */}
@@ -3689,12 +3801,55 @@ app.get('/contracts/:id/sign', (c) => {
         if(pIdx >= 0){ userProjects[pIdx].status = 'active'; localStorage.setItem('zlc_user_projects', JSON.stringify(userProjects)); }
       }
 
-      // Show success
+      // Show ceremony page (Task 1)
       setTimeout(function(){
-        var overlay = document.getElementById('success-overlay');
-        overlay.classList.add('show');
-        // Redirect after 3s
-        setTimeout(function(){ window.location.href = '/repayments'; }, 3000);
+        // Calculate ceremony data
+        var investmentAmount = contract.amount;
+        var proj = contract.project;
+        var sharePercentage = (investmentAmount / proj.targetAmount * 100).toFixed(1);
+        var monthlyShare = (investmentAmount * proj.revenueShareRate / 100).toFixed(2);
+        var recoveryCap = (investmentAmount * proj.recoveryMultiple).toFixed(1);
+
+        // Fill summary rows
+        var summaryEl = document.getElementById('ceremony-summary');
+        if(summaryEl){
+          summaryEl.innerHTML = ''
+            + '<div class="ceremony-summary-row"><span class="ceremony-summary-label">投资金额</span><span class="ceremony-summary-value">¥' + investmentAmount + '万</span></div>'
+            + '<div class="ceremony-summary-row"><span class="ceremony-summary-label">占比份额</span><span class="ceremony-summary-value">' + sharePercentage + '%</span></div>'
+            + '<div class="ceremony-summary-row"><span class="ceremony-summary-label">预估月回款</span><span class="ceremony-summary-value">≈¥' + monthlyShare + '万</span></div>'
+            + '<div class="ceremony-summary-row"><span class="ceremony-summary-label">回收上限</span><span class="ceremony-summary-value">¥' + recoveryCap + '万</span></div>';
+        }
+
+        // Show ceremony page
+        var ceremony = document.getElementById('ceremony-page');
+        if(ceremony){
+          ceremony.classList.add('show');
+          // Trigger animations
+          var circle = document.getElementById('ceremony-circle');
+          var check = document.getElementById('ceremony-check');
+          if(circle) circle.classList.add('animate');
+          if(check) check.classList.add('animate');
+        }
+
+        // Button handlers
+        var shareBtn = document.getElementById('ceremony-share-btn');
+        if(shareBtn){
+          shareBtn.addEventListener('click', function(){
+            window.location.href = '/projects/' + contract.projectId + '?share=true';
+          });
+        }
+        var contractBtn = document.getElementById('ceremony-contract-btn');
+        if(contractBtn){
+          contractBtn.addEventListener('click', function(){
+            ceremony.classList.remove('show');
+          });
+        }
+        var homeBtn = document.getElementById('ceremony-home-btn');
+        if(homeBtn){
+          homeBtn.addEventListener('click', function(){
+            window.location.href = '/';
+          });
+        }
       }, 500);
     }, 1000);
   });
@@ -4061,6 +4216,22 @@ app.get('/investments/:contractId', (c) => {
   // 0. Completed badge (top green banner)
   if(isCompleted){
     html += '<div style="background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0;border-radius:12px;padding:12px 20px;text-align:center;font-size:15px;font-weight:600;margin-bottom:12px;">\\u2705 \\u9879\\u76EE\\u5DF2\\u5B8C\\u6210</div>';
+  }
+
+  // 0.5 Payback celebration banner (Task 2)
+  if(repaid >= contract.amount){
+    var roi = (repaid / contract.amount * 100).toFixed(1);
+    var confettiColors = ['#B91C1C','#D4A853','#16A34A','#3B82F6','#B91C1C','#D4A853'];
+    var confettiHTML = '';
+    for(var ci=0;ci<6;ci++){
+      confettiHTML += '<span class="confetti-piece" style="background:'+confettiColors[ci]+';animation:confetti-'+(ci+1)+' 1.2s ease-out '+(ci*0.05).toFixed(2)+'s forwards;"></span>';
+    }
+    html += '<div class="payback-banner" style="position:relative;overflow:visible;">';
+    html += confettiHTML;
+    html += '<div class="emoji-row">\\uD83C\\uDF89\\uD83C\\uDF8A\\uD83C\\uDF89</div>';
+    html += '<div class="banner-title">恭喜，本项目已回本！</div>';
+    html += '<div class="banner-sub">累计回款 ¥' + repaid.toFixed(2) + '万，投资回报率 ' + roi + '%</div>';
+    html += '</div>';
   }
 
   // 1. Project info
