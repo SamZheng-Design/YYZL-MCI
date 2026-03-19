@@ -4332,7 +4332,7 @@ app.get('/admin', (c) => {
       <TabBar active="profile" />
 
       {/* Batch Register Modal Overlay */}
-      <div id="batch-register-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1100;display:none;align-items:center;justify-content:center;" />
+      <div id="batch-register-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1100;align-items:center;justify-content:center;" />
 
       {/* Member Detail Modal Overlay */}
       <div id="member-detail-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:1100;" />
@@ -4345,9 +4345,15 @@ app.get('/admin', (c) => {
 
       <script dangerouslySetInnerHTML={{ __html: `
 (function(){
+  // ── Auth: check zlc_current_user for role ──
+  var cu = null;
+  try { cu = JSON.parse(localStorage.getItem('zlc_current_user')); } catch(e){}
+  if (!cu || cu.role !== 'admin') { window.location.href = '/'; return; }
+
+  // Also get full user data
   var u = null;
   try { u = JSON.parse(localStorage.getItem('zlc_user')); } catch(e){}
-  if (!u || u.role !== 'admin') { window.location.href = '/'; return; }
+  if (!u) u = cu;
 
   // ── Data ──
   var MOCK_MEMBERS = ${JSON.stringify(mockMembers)};
@@ -4366,7 +4372,7 @@ app.get('/admin', (c) => {
     return members;
   }
   function saveMembers(members){
-    // Save only new members (not in MOCK_MEMBERS) to localStorage
+    // Save the FULL updated array so other pages can read it
     var newOnes = members.filter(function(m){ return !MOCK_MEMBERS.find(function(x){return x.id===m.id;}); });
     localStorage.setItem('zlc_mock_members', JSON.stringify(newOnes));
   }
@@ -4375,8 +4381,8 @@ app.get('/admin', (c) => {
   var navBtn = document.getElementById('admin-nav-user-btn');
   var navDD = document.getElementById('admin-nav-user-dropdown');
   var navName = document.getElementById('admin-dd-name');
-  if(navBtn) navBtn.textContent = u.name ? u.name.charAt(0) : '?';
-  if(navName) navName.textContent = u.name || '';
+  if(navBtn) navBtn.textContent = (u.name || cu.name || '?').charAt(0);
+  if(navName) navName.textContent = u.name || cu.name || '';
   var ddOpen = false;
   if(navBtn) navBtn.addEventListener('click',function(e){e.stopPropagation();ddOpen=!ddOpen;navDD.style.display=ddOpen?'block':'none';});
   document.addEventListener('click',function(e){if(ddOpen&&!navDD.contains(e.target)&&e.target!==navBtn){ddOpen=false;navDD.style.display='none';}});
@@ -4385,7 +4391,7 @@ app.get('/admin', (c) => {
   if(switchBtn) switchBtn.addEventListener('click',function(){localStorage.removeItem('zlc_current_user');localStorage.removeItem('zlc_user');localStorage.removeItem('zlc_token');window.location.href='/login';});
   if(logoutBtn) logoutBtn.addEventListener('click',function(){localStorage.removeItem('zlc_current_user');localStorage.removeItem('zlc_user');localStorage.removeItem('zlc_token');window.location.href='/login';});
 
-  // ── Tab Switching ──
+  // ── Tab Switching with hash ──
   var tabs = document.querySelectorAll('.admin-tab');
   var panels = {
     overview: document.getElementById('tab-overview'),
@@ -4455,7 +4461,7 @@ app.get('/admin', (c) => {
 
     var barHTML = '';
     var legendHTML = '';
-    Object.keys(statusCounts).forEach(function(s){
+    ['draft','open','active','completed','terminated'].forEach(function(s){
       if(statusCounts[s]>0){
         var pct = (statusCounts[s]/total*100);
         barHTML += '<div style="width:'+pct+'%;height:100%;background:'+statusColors[s]+';"></div>';
@@ -4464,11 +4470,11 @@ app.get('/admin', (c) => {
     });
 
     var activities = [
-      {icon:'\\uD83C\\uDF93',text:'张明远（第12期）发起了新项目「华南餐饮连锁联营」',time:'2小时前'},
-      {icon:'\\uD83D\\uDCB0',text:'李芳华（第12期）参与投资「华南餐饮连锁联营」¥10万',time:'5小时前'},
-      {icon:'\\uD83D\\uDCCA',text:'王建国（第14期）提交了收入报告「智能制造设备融资」',time:'1天前'},
-      {icon:'\\uD83E\\uDD1D',text:'刘老师 完成了一次引荐对接',time:'2天前'},
-      {icon:'\\u2705',text:'项目「华南社区团购联营试点」已完成全部回款',time:'5天前'}
+      {icon:'🎓',text:'张明远（第12期）发起了新项目「华南餐饮连锁联营」',time:'2小时前'},
+      {icon:'💰',text:'李芳华（第12期）参与投资「华南餐饮连锁联营」¥10万',time:'5小时前'},
+      {icon:'📊',text:'王建国（第14期）提交了收入报告「智能制造设备融资」',time:'1天前'},
+      {icon:'🤝',text:'刘老师 完成了一次引荐对接',time:'2天前'},
+      {icon:'✅',text:'项目「华南社区团购联营试点」已完成全部回款',time:'5天前'}
     ];
 
     var actHTML = activities.map(function(a){
@@ -4493,7 +4499,7 @@ app.get('/admin', (c) => {
     ];
     kpis.forEach(function(k){
       html += '<div style="background:white;border-radius:16px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,0.06);">'
-        +'<div id="'+k.id+'" style="font-size:28px;font-weight:800;color:'+k.color+';" data-target="'+(k.raw!==undefined?k.raw:k.val)+'" data-prefix="'+(typeof k.val==='string'&&k.val.indexOf('¥')===0?'¥':'')+'" data-suffix="'+(typeof k.val==='string'&&k.val.indexOf('万')>0?'万':'')+'">0</div>'
+        +'<div id="'+k.id+'" style="font-size:28px;font-weight:800;color:'+k.color+';">0</div>'
         +'<div style="font-size:12px;color:#A8A29E;margin-top:4px;">'+k.label+'</div></div>';
     });
     html += '</div>';
@@ -4510,7 +4516,7 @@ app.get('/admin', (c) => {
 
     panels.overview.innerHTML = html;
 
-    // Animate KPI numbers
+    // Animate KPI numbers (0→target, 600ms, ease-out cubic)
     kpis.forEach(function(k){
       var el = document.getElementById(k.id);
       if(!el) return;
@@ -4519,13 +4525,13 @@ app.get('/admin', (c) => {
       var prefix = typeof k.val==='string'&&k.val.indexOf('¥')===0?'¥':'';
       var suffix = typeof k.val==='string'&&k.val.indexOf('万')>0?'万':'';
       var start=0,startTime=performance.now();
-      function update(now){
+      function anim(now){
         var elapsed=now-startTime;var progress=Math.min(elapsed/600,1);var eased=1-Math.pow(1-progress,3);
         var current=start+(target-start)*eased;
         el.textContent=prefix+(isDecimal?current.toFixed(1):Math.round(current))+suffix;
-        if(progress<1)requestAnimationFrame(update);
+        if(progress<1)requestAnimationFrame(anim);
       }
-      requestAnimationFrame(update);
+      requestAnimationFrame(anim);
     });
   }
 
@@ -4555,12 +4561,12 @@ app.get('/admin', (c) => {
     var html = '';
     // Search + Batch Register
     html += '<div style="padding:16px 16px 0;display:flex;gap:10px;align-items:center;">';
-    html += '<input id="member-search" type="text" placeholder="搜索学员姓名或手机号" value="'+memberSearchTerm+'" style="flex:1;background:#F5F5F4;border:none;border-radius:12px;padding:12px 16px;font-size:14px;outline:none;" />';
+    html += '<input id="member-search" type="text" placeholder="搜索学员姓名或手机号" value="'+(memberSearchTerm||'')+'" style="width:60%;background:#F5F5F4;border:none;border-radius:12px;padding:12px 16px;font-size:14px;outline:none;" />';
     html += '<button id="batch-register-btn" style="background:linear-gradient(135deg,#B91C1C,#991B1B);color:white;border:none;border-radius:12px;padding:10px 16px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;">+批量注册</button>';
     html += '</div>';
 
     // Class filter tags
-    html += '<div style="display:flex;gap:8px;padding:12px 16px;overflow-x:auto;-webkit-overflow-scrolling:touch;">';
+    html += '<div style="display:flex;gap:8px;padding:12px 16px;overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;">';
     classNames.forEach(function(cn){
       var isActive = memberClassFilter === cn;
       var style = isActive ? 'background:#B91C1C;color:white;' : 'background:#F5F5F4;color:#57534E;';
@@ -4595,11 +4601,18 @@ app.get('/admin', (c) => {
     panels.members.innerHTML = html;
 
     // Bind events
-    document.getElementById('member-search').addEventListener('input',function(e){
-      memberSearchTerm = e.target.value.trim();
-      renderMembers();
-    });
-    document.getElementById('batch-register-btn').addEventListener('click', openBatchRegister);
+    var searchEl = document.getElementById('member-search');
+    if(searchEl){
+      searchEl.addEventListener('input',function(e){
+        memberSearchTerm = e.target.value.trim();
+        renderMembers();
+      });
+      // Keep focus after re-render
+      searchEl.focus();
+      searchEl.setSelectionRange(searchEl.value.length, searchEl.value.length);
+    }
+    var batchBtn = document.getElementById('batch-register-btn');
+    if(batchBtn) batchBtn.addEventListener('click', openBatchRegister);
     document.querySelectorAll('.member-class-tag').forEach(function(btn){
       btn.addEventListener('click',function(){
         memberClassFilter = btn.dataset.class;
@@ -4633,7 +4646,7 @@ app.get('/admin', (c) => {
     html += '<div style="width:40px;height:4px;border-radius:2px;background:#D6D3D1;margin:12px auto 0;"></div>';
     html += '<button id="member-detail-close" style="position:absolute;top:16px;right:20px;background:none;border:none;font-size:20px;color:#A8A29E;cursor:pointer;">✕</button>';
 
-    // Avatar + info
+    // Avatar + info (admin sees full phone number)
     html += '<div style="padding:24px;text-align:center;">';
     html += '<div style="width:72px;height:72px;background:linear-gradient(135deg,#B91C1C,#7F1D1D);color:white;font-size:28px;font-weight:700;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto;">'+m.name.charAt(0)+'</div>';
     html += '<div style="font-size:20px;font-weight:700;color:#1C1917;margin-top:12px;">'+m.name+'</div>';
@@ -4697,11 +4710,11 @@ app.get('/admin', (c) => {
     html += '</select></div>';
 
     // New class input (hidden)
-    html += '<div id="new-class-row" style="display:none;margin-top:8px;"><input id="new-class-input" type="text" placeholder="班级名称（如"第18期"）" style="width:100%;padding:12px 16px;border:1px solid #E7E5E4;border-radius:12px;font-size:14px;outline:none;" /></div>';
+    html += '<div id="new-class-row" style="display:none;margin-top:8px;"><input id="new-class-input" type="text" placeholder="班级名称（如第18期）" style="width:100%;padding:12px 16px;border:1px solid #E7E5E4;border-radius:12px;font-size:14px;outline:none;" /></div>';
 
     // Textarea
     html += '<div style="margin-top:16px;"><label style="font-size:13px;font-weight:600;color:#44403C;">学员信息（每行一位：姓名 手机号）</label>';
-    html += '<textarea id="batch-textarea" placeholder="张三 13800001234\\n李四 13900005678\\n王五 13700009012" style="width:100%;height:160px;padding:14px 16px;border:1px solid #E7E5E4;border-radius:12px;font-size:14px;font-family:monospace;resize:vertical;margin-top:6px;outline:none;"></textarea></div>';
+    html += '<textarea id="batch-textarea" placeholder="张三 13800001234&#10;李四 13900005678&#10;王五 13700009012" style="width:100%;height:160px;padding:14px 16px;border:1px solid #E7E5E4;border-radius:12px;font-size:14px;font-family:monospace;resize:vertical;margin-top:6px;outline:none;box-sizing:border-box;"></textarea></div>';
 
     // Buttons
     html += '<div style="margin-top:20px;display:flex;gap:10px;">';
@@ -4722,7 +4735,7 @@ app.get('/admin', (c) => {
     });
 
     function countValid(){
-      var lines = textarea.value.split('\\n');
+      var lines = textarea.value.split(/\\n|\\r\\n?/);
       var count = 0;
       lines.forEach(function(line){
         line = line.trim();
@@ -4748,7 +4761,7 @@ app.get('/admin', (c) => {
       }
       var classId = 'class-'+className.replace(/[^\\u4e00-\\u9fa5a-zA-Z0-9]/g,'');
 
-      var lines = textarea.value.split('\\n');
+      var lines = textarea.value.split(/\\n|\\r\\n?/);
       var allMembers = getMembers();
       var added = 0;
       var ts = Date.now();
@@ -4771,12 +4784,13 @@ app.get('/admin', (c) => {
       saveMembers(allMembers);
       overlay.style.display='none';
       showToast('成功注册 '+added+' 位学员','success');
-      renderMembers();
+      rendered['members']=false;
+      renderMembers(); rendered['members']=true;
     });
   }
 
   // ══════════════════════════════════
-  // TAB: Classes (班级) - placeholder
+  // TAB: Classes (班级)
   // ══════════════════════════════════
   function renderClasses(){
     var members = getMembers().filter(function(m){return m.role!=='admin';});
