@@ -10,5 +10,13 @@ export default defineConfig({
       adapter,
       entry: 'src/index.tsx'
     })
-  ]
+  ],
+  build: {
+    minify: 'esbuild',
+    rollupOptions: {
+      output: {
+        compact: true,
+      }
+    }
+  }
 })

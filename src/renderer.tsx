@@ -11,18 +11,29 @@ export const renderer = jsxRenderer(({ children, title }) => {
         {/* Favicon */}
         <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'><circle cx='44' cy='28' r='22' fill='%23DC2626'/><circle cx='36' cy='44' r='22' fill='%23991B1B' opacity='0.85'/></svg>" />
 
-        {/* Google Fonts */}
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Montserrat:wght@700;800;900&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap"
-          rel="stylesheet"
-        />
-        {/* FontAwesome */}
-        <link
-          href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css"
-          rel="stylesheet"
-        />
-        {/* Tailwind CSS (locally built, production-ready) */}
+        {/* DNS Prefetch for CDN domains */}
+        <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+        <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+        <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+
+        {/* Tailwind CSS (locally built, production-ready) — loaded first, no network */}
         <link rel="stylesheet" href="/static/tailwind.css" />
+
+        {/* Google Fonts — only essential weights, swap for instant text rendering */}
+        <link
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap"
+          rel="stylesheet"
+        />
+        {/* FontAwesome — deferred with media trick */}
+        <link
+          rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css"
+          media="print"
+          onload="this.media='all'"
+        />
 
         {/* Global Styles */}
         <style
@@ -1309,7 +1320,23 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
           }}
         />
       </head>
-      <body class="bg-surface-page text-text-primary">{children}</body>
+      <body class="bg-surface-page text-text-primary">
+        {/* Loading skeleton — hidden instantly when page JS runs */}
+        <div id="zlc-skeleton" style="max-width:480px;margin:0 auto;min-height:100vh;background:#FAFAF9;padding:16px;">
+          <div style="display:flex;align-items:center;gap:8px;padding:12px 0 24px;">
+            <div style="width:24px;height:24px;border-radius:50%;background:#FEE2E2;" />
+            <div style="width:48px;height:14px;border-radius:4px;background:#FEE2E2;" />
+            <div style="flex:1;" />
+            <div style="width:32px;height:32px;border-radius:50%;background:#F5F5F4;" />
+          </div>
+          <div style="height:80px;border-radius:16px;background:linear-gradient(90deg,#F5F5F4 25%,#FAFAF9 50%,#F5F5F4 75%);background-size:200%;animation:shimmer 1.5s infinite;" />
+          <div style="margin-top:16px;height:120px;border-radius:16px;background:linear-gradient(90deg,#F5F5F4 25%,#FAFAF9 50%,#F5F5F4 75%);background-size:200%;animation:shimmer 1.5s infinite;animation-delay:0.15s;" />
+          <div style="margin-top:16px;height:64px;border-radius:12px;background:linear-gradient(90deg,#F5F5F4 25%,#FAFAF9 50%,#F5F5F4 75%);background-size:200%;animation:shimmer 1.5s infinite;animation-delay:0.3s;" />
+          <style>{'@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}'}</style>
+        </div>
+        <script dangerouslySetInnerHTML={{__html: `document.getElementById('zlc-skeleton').style.display='none';`}} />
+        {children}
+      </body>
     </html>
   )
 })
