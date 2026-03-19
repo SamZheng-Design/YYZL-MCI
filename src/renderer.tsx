@@ -805,6 +805,126 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
 }
 
 /* ══════════════════════════════════════════════════
+   Onboarding Carousel
+   ══════════════════════════════════════════════════ */
+.onboarding-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  z-index: 2000; background: #fff;
+  transition: opacity 300ms ease;
+}
+.onboarding-viewport {
+  width: 100%; height: calc(100% - 80px); overflow: hidden;
+}
+.onboarding-container {
+  display: flex; height: 100%;
+  transition: transform 300ms cubic-bezier(0.22,1,0.36,1);
+}
+.onboarding-page {
+  min-width: 100%; flex-shrink: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 24px 32px;
+}
+.onboarding-skip {
+  position: absolute; top: 16px; right: 16px;
+  font-size: 13px; color: #A8A29E; background: none; border: none;
+  cursor: pointer; padding: 8px 12px; z-index: 2001;
+}
+.onboarding-controls {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  padding: 24px 32px; display: flex; align-items: center; justify-content: space-between;
+}
+.onboarding-dots { display: flex; gap: 6px; align-items: center; }
+.onboarding-dot {
+  height: 6px; border-radius: 3px; background: #D6D3D1;
+  width: 6px; transition: width 280ms ease, background 280ms ease;
+}
+.onboarding-dot-active { width: 24px; background: #B91C1C; }
+.onboarding-next {
+  font-size: 15px; font-weight: 600; color: #B91C1C;
+  background: none; border: none; cursor: pointer;
+}
+.onboarding-start {
+  background: linear-gradient(135deg, #D4A853, #B8860B);
+  color: #fff; font-size: 15px; font-weight: 600;
+  border: none; border-radius: 12px; padding: 10px 24px; cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.25s;
+}
+.onboarding-start:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(212,168,83,0.35); }
+
+/* Onboarding page specific */
+.ob-icon-row { display: flex; align-items: center; gap: 0; margin-bottom: 32px; }
+.ob-icon-circle {
+  width: 80px; height: 80px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.ob-arrow { font-size: 16px; color: #D6D3D1; margin: 0 8px; }
+.ob-title { font-size: 24px; font-weight: 800; color: #1C1917; text-align: center; }
+.ob-title-brand { font-size: 24px; font-weight: 800; color: #B91C1C; text-align: center; }
+.ob-desc { font-size: 15px; color: #78716C; text-align: center; }
+
+.ob-card {
+  background: #fff; border: 1px solid rgba(0,0,0,0.06); border-radius: 16px;
+  padding: 20px; display: flex; align-items: center; gap: 14px;
+}
+.ob-card-icon {
+  width: 48px; height: 48px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.ob-card-title { font-size: 16px; font-weight: 600; color: #1C1917; }
+.ob-card-desc { font-size: 13px; color: #78716C; margin-top: 2px; }
+
+.ob-shield {
+  width: 100px; height: 100px; border-radius: 50%;
+  background: #FEE2E2; display: flex; align-items: center; justify-content: center;
+  margin-bottom: 24px;
+}
+.ob-feature-row {
+  display: flex; align-items: center; gap: 12px;
+}
+.ob-feature-text { font-size: 15px; color: #292524; }
+
+/* ══════════════════════════════════════════════════
+   Coach Mark (Focused Bubble Guide)
+   ══════════════════════════════════════════════════ */
+.coach-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  z-index: 1500; background: rgba(0,0,0,0.6);
+  transition: opacity 200ms ease;
+}
+.coach-bubble {
+  position: fixed; z-index: 1502; background: #fff; border-radius: 12px;
+  padding: 16px; max-width: 280px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+  animation: coachFadeIn 200ms ease forwards;
+}
+@keyframes coachFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.coach-bubble-text { font-size: 14px; line-height: 1.5; color: #292524; }
+.coach-dismiss-btn {
+  font-size: 13px; font-weight: 600; color: #B91C1C;
+  background: none; border: none; cursor: pointer;
+  margin-top: 12px; float: right;
+}
+/* Arrow for coach bubble */
+.coach-arrow-top {
+  position: absolute; top: -8px; left: 50%;
+  transform: translateX(-50%);
+  width: 0; height: 0;
+  border-left: 8px solid transparent; border-right: 8px solid transparent;
+  border-bottom: 8px solid #fff;
+}
+.coach-arrow-bottom {
+  position: absolute; bottom: -8px; left: 50%;
+  transform: translateX(-50%);
+  width: 0; height: 0;
+  border-left: 8px solid transparent; border-right: 8px solid transparent;
+  border-top: 8px solid #fff;
+}
+
+/* ══════════════════════════════════════════════════
    Responsive
    ══════════════════════════════════════════════════ */
 @media (max-width: 640px) {

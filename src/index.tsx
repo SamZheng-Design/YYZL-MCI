@@ -137,6 +137,183 @@ function initHelpIcons() {
   });
 }
 
+// ── Onboarding Carousel ──
+function showOnboarding() {
+  if (localStorage.getItem('zlc_onboarding_done')) return;
+  var overlay = document.createElement('div');
+  overlay.className = 'onboarding-overlay';
+  overlay.id = 'onboarding-overlay';
+  overlay.innerHTML =
+    '<button class="onboarding-skip" onclick="finishOnboarding()">跳过</button>'
+    + '<div class="onboarding-viewport">'
+    + '<div class="onboarding-container" id="ob-container">'
+    // Page 1
+    + '<div class="onboarding-page">'
+    + '<div class="ob-icon-row">'
+    + '<div class="ob-icon-circle" style="background:#FEE2E2;"><i class="fas fa-user" style="font-size:32px;color:#B91C1C;"></i></div>'
+    + '<i class="fas fa-arrow-right ob-arrow"></i>'
+    + '<div class="ob-icon-circle" style="background:#FFFBEB;"><i class="fas fa-coins" style="font-size:32px;color:#D4A853;"></i></div>'
+    + '<i class="fas fa-arrow-right ob-arrow"></i>'
+    + '<div class="ob-icon-circle" style="background:#F0FDF4;"><i class="fas fa-users" style="font-size:32px;color:#16A34A;"></i></div>'
+    + '</div>'
+    + '<div class="ob-title">不入股、不借贷</div>'
+    + '<div class="ob-title-brand">按收入分成</div>'
+    + '<div style="height:16px;"></div>'
+    + '<div class="ob-desc">同学的好项目，一起参与</div>'
+    + '<div class="ob-desc">项目赚钱了，按约定比例分给你</div>'
+    + '</div>'
+    // Page 2
+    + '<div class="onboarding-page">'
+    + '<div class="ob-title" style="margin-bottom:24px;">选择你舒服的方式</div>'
+    + '<div style="display:flex;flex-direction:column;gap:12px;max-width:320px;width:100%;">'
+    + '<div class="ob-card"><div class="ob-card-icon" style="background:#F0FDF4;"><i class="fas fa-handshake" style="font-size:20px;color:#16A34A;"></i></div><div><div class="ob-card-title">熟人分享</div><div class="ob-card-desc">同学把项目分享给你，直接参与</div></div></div>'
+    + '<div class="ob-card"><div class="ob-card-icon" style="background:#EFF6FF;"><i class="fas fa-search" style="font-size:20px;color:#3B82F6;"></i></div><div><div class="ob-card-title">大厅发现</div><div class="ob-card-desc">浏览所有项目，看中就投</div></div></div>'
+    + '<div class="ob-card"><div class="ob-card-icon" style="background:#FFFBEB;"><i class="fas fa-user-tie" style="font-size:20px;color:#D97706;"></i></div><div><div class="ob-card-title">老师引荐</div><div class="ob-card-desc">不认识发起人？请老师帮你对接</div></div></div>'
+    + '</div>'
+    + '</div>'
+    // Page 3
+    + '<div class="onboarding-page">'
+    + '<div class="ob-shield"><i class="fas fa-shield-alt" style="font-size:40px;color:#B91C1C;"></i></div>'
+    + '<div class="ob-title" style="margin-bottom:20px;">放心参与</div>'
+    + '<div style="display:flex;flex-direction:column;gap:16px;max-width:280px;">'
+    + '<div class="ob-feature-row"><i class="fas fa-lock" style="font-size:20px;color:#B91C1C;width:24px;text-align:center;flex-shrink:0;"></i><span class="ob-feature-text">仅限一亿中流认证学员</span></div>'
+    + '<div class="ob-feature-row"><i class="fas fa-file-contract" style="font-size:20px;color:#B91C1C;width:24px;text-align:center;flex-shrink:0;"></i><span class="ob-feature-text">标准化电子合同，法律效力</span></div>'
+    + '<div class="ob-feature-row"><i class="fas fa-university" style="font-size:20px;color:#B91C1C;width:24px;text-align:center;flex-shrink:0;"></i><span class="ob-feature-text">滴灌通提供基础设施保障</span></div>'
+    + '</div>'
+    + '<div style="height:24px;"></div>'
+    + '<div style="font-size:12px;color:#A8A29E;text-align:center;">滴灌通 × 一亿中流 · 联合出品</div>'
+    + '</div>'
+    + '</div></div>'
+    + '<div class="onboarding-controls">'
+    + '<div class="onboarding-dots" id="ob-dots"><div class="onboarding-dot onboarding-dot-active"></div><div class="onboarding-dot"></div><div class="onboarding-dot"></div></div>'
+    + '<button class="onboarding-next" id="ob-next-btn" onclick="obNext()">下一步</button>'
+    + '</div>';
+  document.body.appendChild(overlay);
+
+  var obPage = 0;
+  var container = document.getElementById('ob-container');
+  var dots = document.querySelectorAll('#ob-dots .onboarding-dot');
+  var nextBtn = document.getElementById('ob-next-btn');
+
+  window.obGoTo = function(n) {
+    obPage = n;
+    container.style.transform = 'translateX(-' + (n * 100) + '%)';
+    dots.forEach(function(d, i) {
+      d.className = 'onboarding-dot' + (i === n ? ' onboarding-dot-active' : '');
+    });
+    if (n < 2) {
+      nextBtn.className = 'onboarding-next';
+      nextBtn.textContent = '下一步';
+      nextBtn.onclick = function(){ window.obNext(); };
+    } else {
+      nextBtn.className = 'onboarding-start';
+      nextBtn.textContent = '开始使用';
+      nextBtn.onclick = function(){ window.finishOnboarding(); };
+    }
+  };
+  window.obNext = function() {
+    if (obPage < 2) window.obGoTo(obPage + 1);
+    else window.finishOnboarding();
+  };
+
+  // Touch swipe support
+  var startX = 0;
+  var viewport = overlay.querySelector('.onboarding-viewport');
+  viewport.addEventListener('touchstart', function(e) { startX = e.touches[0].clientX; }, {passive: true});
+  viewport.addEventListener('touchend', function(e) {
+    var diff = startX - e.changedTouches[0].clientX;
+    if (diff > 50 && obPage < 2) window.obGoTo(obPage + 1);
+    if (diff < -50 && obPage > 0) window.obGoTo(obPage - 1);
+  });
+}
+
+window.finishOnboarding = function() {
+  localStorage.setItem('zlc_onboarding_done', 'true');
+  var overlay = document.getElementById('onboarding-overlay');
+  if (overlay) {
+    overlay.style.opacity = '0';
+    setTimeout(function(){ overlay.remove(); }, 300);
+  }
+};
+
+// ── Coach Marks (Focused Bubble Guide) ──
+var _coachQueue = [];
+var _coachActive = false;
+
+function showCoachMark(targetSelector, text, position, id) {
+  if (localStorage.getItem('zlc_coach_' + id)) return;
+  var target = document.querySelector(targetSelector);
+  if (!target) return;
+
+  // If another coach is active, queue it
+  if (_coachActive) {
+    _coachQueue.push({ targetSelector: targetSelector, text: text, position: position, id: id });
+    return;
+  }
+  _coachActive = true;
+
+  // Create overlay
+  var overlay = document.createElement('div');
+  overlay.className = 'coach-overlay';
+  overlay.id = 'coach-overlay-' + id;
+
+  // Highlight target
+  var rect = target.getBoundingClientRect();
+  var origPosition = target.style.position;
+  var origZIndex = target.style.zIndex;
+  var origBoxShadow = target.style.boxShadow;
+  var origBorderRadius = target.style.borderRadius;
+  target.style.position = 'relative';
+  target.style.zIndex = '1501';
+  target.style.boxShadow = '0 0 0 4000px rgba(0,0,0,0.6)';
+  target.style.borderRadius = '12px';
+
+  // Determine bubble position (auto-adapt)
+  var finalPosition = position;
+  if (position === 'bottom' && rect.bottom + 180 > window.innerHeight) finalPosition = 'top';
+  if (position === 'top' && rect.top < 180) finalPosition = 'bottom';
+
+  // Create bubble
+  var bubble = document.createElement('div');
+  bubble.className = 'coach-bubble';
+  bubble.id = 'coach-bubble-' + id;
+
+  var bubbleLeft = Math.max(16, Math.min(rect.left + rect.width / 2 - 140, window.innerWidth - 296));
+  if (finalPosition === 'bottom') {
+    bubble.style.top = (rect.bottom + 12) + 'px';
+    bubble.style.left = bubbleLeft + 'px';
+    bubble.innerHTML = '<div class="coach-arrow-top" style="left:' + Math.min(Math.max(rect.left + rect.width/2 - bubbleLeft, 20), 260) + 'px;transform:none;"></div>';
+  } else {
+    bubble.style.bottom = (window.innerHeight - rect.top + 12) + 'px';
+    bubble.style.left = bubbleLeft + 'px';
+    bubble.innerHTML = '<div class="coach-arrow-bottom" style="left:' + Math.min(Math.max(rect.left + rect.width/2 - bubbleLeft, 20), 260) + 'px;transform:none;"></div>';
+  }
+  bubble.innerHTML += '<div class="coach-bubble-text">' + text + '</div>'
+    + '<button class="coach-dismiss-btn" id="coach-dismiss-' + id + '">知道了</button>';
+
+  document.body.appendChild(overlay);
+  document.body.appendChild(bubble);
+
+  function dismiss() {
+    localStorage.setItem('zlc_coach_' + id, 'true');
+    overlay.remove();
+    bubble.remove();
+    target.style.position = origPosition;
+    target.style.zIndex = origZIndex;
+    target.style.boxShadow = origBoxShadow;
+    target.style.borderRadius = origBorderRadius;
+    _coachActive = false;
+    // Process next in queue
+    if (_coachQueue.length > 0) {
+      var next = _coachQueue.shift();
+      setTimeout(function(){ showCoachMark(next.targetSelector, next.text, next.position, next.id); }, 400);
+    }
+  }
+
+  document.getElementById('coach-dismiss-' + id).addEventListener('click', dismiss);
+  overlay.addEventListener('click', dismiss);
+}
+
 // Init on page load
 document.addEventListener('DOMContentLoaded', function(){
   initReveal();
@@ -389,7 +566,7 @@ app.get('/', (c) => {
         </section>
 
         {/* 1.5 Share Code Input */}
-        <section style="margin:0 0 12px 0;">
+        <section id="share-code-input" style="margin:0 0 12px 0;">
           <div style="background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 1px 2px rgba(0,0,0,0.04);display:flex;align-items:center;gap:10px;">
             <i class="fas fa-link" style="font-size:14px;color:#B91C1C;flex-shrink:0;" />
             <input id="home-share-input" type="text" maxlength={6} placeholder="收到分享码？输入6位码查看项目" style="flex:1;background:transparent;border:none;outline:none;font-size:14px;color:#1C1917;font-family:inherit;" />
@@ -398,7 +575,7 @@ app.get('/', (c) => {
         </section>
 
         {/* 2. Quick Actions */}
-        <section class="grid grid-cols-2 gap-3 mb-5">
+        <section id="quick-actions" class="grid grid-cols-2 gap-3 mb-5">
           <a href="/create" class="quick-card quick-card-brand">
             <i class="fas fa-rocket" style="font-size:22px;" />
             <span class="font-semibold" style="font-size:15px;">发起项目</span>
@@ -539,6 +716,17 @@ app.get('/', (c) => {
       showToast('未找到该分享码对应的项目', 'error');
     }
   }
+
+  // ── Onboarding (first-time) ──
+  showOnboarding();
+
+  // ── Coach Marks for Home Page ──
+  setTimeout(function(){
+    showCoachMark('#quick-actions', '从这里开始：发起你的项目，或去大厅看看同学的项目', 'bottom', 'home-quick');
+  }, 800);
+  setTimeout(function(){
+    showCoachMark('#share-code-input', '收到同学的分享码？在这里输入就能直接查看项目', 'bottom', 'home-share');
+  }, 1500);
 })();
 `}} />
     </div>,
@@ -603,6 +791,11 @@ app.get('/profile', (c) => {
             <span class="flex-1 text-text-primary font-medium" style="font-size:15px;">隐私政策</span>
             <i class="fas fa-chevron-right text-text-tertiary" style="font-size:12px;" />
           </div>
+          <div class="menu-row" id="reset-guide-btn" style="cursor:pointer;">
+            <i class="fas fa-book-open" style="font-size:16px;width:20px;text-align:center;color:#3B82F6;" />
+            <span class="flex-1 text-text-primary font-medium" style="font-size:15px;">重新查看使用引导</span>
+            <i class="fas fa-chevron-right text-text-tertiary" style="font-size:12px;" />
+          </div>
         </div>
 
         {/* Logout */}
@@ -654,6 +847,24 @@ app.get('/profile', (c) => {
       }
     });
   });
+
+  // Reset guide button
+  var resetGuideBtn = document.getElementById('reset-guide-btn');
+  if(resetGuideBtn){
+    resetGuideBtn.addEventListener('click', function(){
+      // Clear all onboarding and coach mark keys
+      var keysToRemove = [];
+      for(var i = 0; i < localStorage.length; i++){
+        var key = localStorage.key(i);
+        if(key && (key.indexOf('zlc_coach_') === 0 || key.indexOf('zlc_onboarding_') === 0)){
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(function(k){ localStorage.removeItem(k); });
+      showToast('引导已重置，即将跳转首页', 'success');
+      setTimeout(function(){ window.location.href = '/'; }, 1000);
+    });
+  }
 })();
 `}} />
     </div>,
@@ -855,7 +1066,7 @@ app.get('/projects', (c) => {
       var pct = Math.round(p.raisedAmount/p.targetAmount*100);
       var remain = p.totalShares - p.raisedShares;
       var tag = getRelationTag(p);
-      var tagHTML = tag.text ? '<span style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;'+tagStyles[tag.type]+'">'+tag.text+'</span>' : '';
+      var tagHTML = tag.text ? '<span class="relation-tag" style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;'+tagStyles[tag.type]+'">'+tag.text+'</span>' : '';
       return '<a href="/projects/'+p.id+'" class="bg-white rounded-2xl shadow-card shadow-card-hover p-5 block" style="text-decoration:none;color:inherit;">'
         +(tagHTML ? '<div style="margin-bottom:8px;">'+tagHTML+'</div>' : '')
         +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">'
@@ -888,6 +1099,11 @@ app.get('/projects', (c) => {
   fSta.addEventListener('change', render);
   fSort.addEventListener('change', render);
   render();
+
+  // ── Coach Mark for Projects Hall ──
+  setTimeout(function(){
+    showCoachMark('.relation-tag', '绿色表示同班同学，金色是老师推荐的项目，帮你快速识别', 'bottom', 'hall-tags');
+  }, 800);
 })();
 `}} />
     </div>,
@@ -1122,7 +1338,7 @@ app.get('/projects/:id', (c) => {
 
         {/* 4. Participate Calculator (open only, not owner) */}
         {proj.status === 'open' && remainShares > 0 && (
-          <div class="calc-card shadow-card p-5 mb-4">
+          <div id="participate-calculator" class="calc-card shadow-card p-5 mb-4">
             <h3 class="font-semibold text-text-title mb-4" style="font-size:16px;">
               <i class="fas fa-calculator text-gold mr-2" style="font-size:14px;" />
               我要参与
@@ -1725,6 +1941,14 @@ app.get('/projects/:id', (c) => {
       showToast('请长按或截屏保存上方卡片', 'success');
     });
   }
+
+  // ── Coach Marks for Project Detail ──
+  setTimeout(function(){
+    showCoachMark('#participate-calculator', '选择份额数，系统自动帮你算预估回款', 'top', 'detail-calc');
+  }, 800);
+  setTimeout(function(){
+    showCoachMark('#btn-referral', '不认识发起人？点这里请你的老师帮忙对接，先见面再投资', 'top', 'detail-referral');
+  }, 1500);
 })();
 `}} />
     </div>,
@@ -1880,7 +2104,7 @@ app.get('/create', (c) => {
                   <span class="help-icon" data-help-id="revenueShareRatio">?</span>
                 </label>
                 <div class="help-text">发起人愿意把项目月收入的多少拿出来分给参与人。比例越高，参与人回款越快，但发起人让出的越多。同类项目一般在8%-20%。</div>
-                <div class="input-unit-wrap">
+                <div class="input-unit-wrap" id="input-share-ratio">
                   <input id="f-rate" type="number" class="form-input" placeholder="如 12" min={0.1} max={100} step={0.1} />
                   <span class="input-unit">%</span>
                 </div>
@@ -2105,6 +2329,10 @@ app.get('/create', (c) => {
       return;
     }
     goStep(2, 'right');
+    // Coach Mark for create page - share ratio
+    setTimeout(function(){
+      showCoachMark('#input-share-ratio', '这是你愿意分给参与人的月收入比例。填高了回款快但你让利多，填低了可能不够吸引人。一般在8%-20%', 'bottom', 'create-ratio');
+    }, 800);
   });
 
   // Reference cases toggle
@@ -2580,7 +2808,7 @@ app.get('/repayments', (c) => {
         </section>
 
         {/* Tab switcher */}
-        <div class="rep-tab-bar" style="background:#fff;border-bottom:1px solid rgba(0,0,0,0.06);display:flex;margin-top:12px;">
+        <div id="repayment-tabs" class="rep-tab-bar" style="background:#fff;border-bottom:1px solid rgba(0,0,0,0.06);display:flex;margin-top:12px;">
           <button id="tab-invest" class="rep-tab rep-tab-active" style="flex:1;padding:12px 0;font-size:15px;font-weight:600;background:none;border:none;cursor:pointer;position:relative;color:#B91C1C;">
             我的投资
             <span class="rep-tab-line" style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:48px;height:3px;background:#B91C1C;border-radius:2px;" />
@@ -2816,6 +3044,11 @@ app.get('/repayments', (c) => {
     localStorage.setItem('zlc_user_projects', JSON.stringify(ups));
     window.location.reload();
   };
+
+  // ── Coach Mark for Repayments Page ──
+  setTimeout(function(){
+    showCoachMark('#repayment-tabs', '左边看你投出去的钱的回款，右边管理你自己发起的项目', 'bottom', 'repay-tabs');
+  }, 800);
 })();
 `}} />
     </div>,
