@@ -1321,21 +1321,130 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
         />
       </head>
       <body class="bg-surface-page text-text-primary">
-        {/* Loading skeleton — hidden instantly when page JS runs */}
-        <div id="zlc-skeleton" style="max-width:480px;margin:0 auto;min-height:100vh;background:#FAFAF9;padding:16px;">
-          <div style="display:flex;align-items:center;gap:8px;padding:12px 0 24px;">
-            <div style="width:24px;height:24px;border-radius:50%;background:#FEE2E2;" />
-            <div style="width:48px;height:14px;border-radius:4px;background:#FEE2E2;" />
-            <div style="flex:1;" />
-            <div style="width:32px;height:32px;border-radius:50%;background:#F5F5F4;" />
+
+        {/* ══ Splash Screen ══ */}
+        <div id="splash-screen" dangerouslySetInnerHTML={{__html: `
+          <style>
+            #splash-screen {
+              position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;
+              background:linear-gradient(160deg,#0A0A0A 0%,#1C1917 50%,#0A0A0A 100%);
+              display:flex;align-items:center;justify-content:center;
+              opacity:1;transition:none;
+            }
+            #splash-screen::before {
+              content:'';position:absolute;inset:0;
+              background-image:repeating-radial-gradient(circle at 1px 1px,rgba(255,255,255,0.07) 0px,transparent 1px);
+              background-size:3px 3px;opacity:0.03;pointer-events:none;
+            }
+            #splash-screen .sp-line-top {
+              position:absolute;top:0;left:50%;width:1px;height:80px;
+              background:linear-gradient(180deg,transparent,#D4A853,transparent);
+              transform:translateX(-50%) scaleY(0);transform-origin:top;
+              animation:splash-line-grow 1000ms ease-out 200ms forwards;
+            }
+            #splash-screen .sp-line-bot {
+              position:absolute;bottom:0;left:50%;width:1px;height:80px;
+              background:linear-gradient(0deg,transparent,#D4A853,transparent);
+              transform:translateX(-50%) scaleY(0);transform-origin:bottom;
+              animation:splash-line-grow 1000ms ease-out 200ms forwards;
+            }
+            #splash-screen .sp-center {
+              display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+              position:relative;z-index:1;
+            }
+            #splash-screen .sp-brand {
+              display:flex;align-items:center;justify-content:center;
+              opacity:0;transform:translateY(20px);
+              animation:splash-fade-in 800ms ease-out 0ms forwards;
+            }
+            #splash-screen .sp-brand-text {
+              font-size:28px;font-weight:800;color:#fff;letter-spacing:4px;
+              font-family:'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;
+            }
+            #splash-screen .sp-brand-x {
+              font-size:28px;font-weight:300;color:#D4A853;margin:0 12px;
+            }
+            #splash-screen .sp-product {
+              font-size:18px;font-weight:500;color:rgba(255,255,255,0.4);letter-spacing:8px;margin-top:16px;
+              font-family:'Noto Sans SC',sans-serif;
+              opacity:0;transform:translateY(20px);
+              animation:splash-fade-in 800ms ease-out 400ms forwards;
+            }
+            #splash-screen .sp-slogan {
+              font-size:14px;font-weight:400;color:#D4A853;letter-spacing:3px;font-style:italic;margin-top:24px;
+              font-family:'Inter',sans-serif;
+              opacity:0;transform:translateY(20px);
+              animation:splash-fade-in 800ms ease-out 800ms forwards;
+            }
+            #splash-screen .sp-dots {
+              display:flex;gap:8px;justify-content:center;margin-top:40px;
+              opacity:0;animation:splash-fade-in 500ms ease-out 1200ms forwards;
+            }
+            #splash-screen .sp-dot {
+              width:6px;height:6px;border-radius:50%;background:#D4A853;
+              animation:splash-dot-bounce 600ms ease-in-out infinite;
+            }
+            #splash-screen .sp-dot:nth-child(2){animation-delay:150ms;}
+            #splash-screen .sp-dot:nth-child(3){animation-delay:300ms;}
+
+            #splash-screen.sp-dots-hide .sp-dots {
+              opacity:0 !important;transition:opacity 300ms ease;
+            }
+            #splash-screen.sp-out {
+              opacity:0 !important;transition:opacity 500ms ease-in !important;
+            }
+
+            #zlc-page-wrap {opacity:0;transition:opacity 400ms ease;}
+            #zlc-page-wrap.sp-visible {opacity:1;}
+
+            @keyframes splash-fade-in {
+              from {opacity:0;transform:translateY(20px);}
+              to {opacity:1;transform:translateY(0);}
+            }
+            @keyframes splash-dot-bounce {
+              0%,100% {transform:translateY(0);}
+              50% {transform:translateY(-8px);}
+            }
+            @keyframes splash-line-grow {
+              from {transform:translateX(-50%) scaleY(0);}
+              to {transform:translateX(-50%) scaleY(1);}
+            }
+          </style>
+          <div class="sp-line-top"></div>
+          <div class="sp-line-bot"></div>
+          <div class="sp-center">
+            <div class="sp-brand">
+              <span class="sp-brand-text">\u6EF4\u7058\u901A</span>
+              <span class="sp-brand-x">\u00D7</span>
+              <span class="sp-brand-text">\u4E00\u4EBF\u4E2D\u6D41</span>
+            </div>
+            <div class="sp-product">\u4E2D\u6D41\u901A</div>
+            <div class="sp-slogan">Connect All Possibilities</div>
+            <div class="sp-dots"><div class="sp-dot"></div><div class="sp-dot"></div><div class="sp-dot"></div></div>
           </div>
-          <div style="height:80px;border-radius:16px;background:linear-gradient(90deg,#F5F5F4 25%,#FAFAF9 50%,#F5F5F4 75%);background-size:200%;animation:shimmer 1.5s infinite;" />
-          <div style="margin-top:16px;height:120px;border-radius:16px;background:linear-gradient(90deg,#F5F5F4 25%,#FAFAF9 50%,#F5F5F4 75%);background-size:200%;animation:shimmer 1.5s infinite;animation-delay:0.15s;" />
-          <div style="margin-top:16px;height:64px;border-radius:12px;background:linear-gradient(90deg,#F5F5F4 25%,#FAFAF9 50%,#F5F5F4 75%);background-size:200%;animation:shimmer 1.5s infinite;animation-delay:0.3s;" />
-          <style>{'@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}'}</style>
+        `}} />
+
+        {/* ══ Page Content (hidden until splash finishes) ══ */}
+        <div id="zlc-page-wrap">
+          {children}
         </div>
-        <script dangerouslySetInnerHTML={{__html: `document.getElementById('zlc-skeleton').style.display='none';`}} />
-        {children}
+
+        {/* ══ Splash dismiss logic ══ */}
+        <script dangerouslySetInnerHTML={{__html: `
+          (function(){
+            var sp = document.getElementById('splash-screen');
+            var pw = document.getElementById('zlc-page-wrap');
+            if(!sp) { if(pw) pw.classList.add('sp-visible'); return; }
+            setTimeout(function(){
+              sp.classList.add('sp-dots-hide');
+              setTimeout(function(){
+                sp.classList.add('sp-out');
+                if(pw) pw.classList.add('sp-visible');
+                setTimeout(function(){ sp.style.display='none'; }, 520);
+              }, 300);
+            }, 3000);
+          })();
+        `}} />
       </body>
     </html>
   )
