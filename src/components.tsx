@@ -145,7 +145,20 @@ function initHelpIcons() {
     var icon = e.target.closest('.help-icon');
     if(icon){
       e.stopPropagation();
+      // Look for .help-text: first try direct sibling, then parent's sibling, then search within closest container
       var helpEl = icon.nextElementSibling;
+      if (!helpEl || !helpEl.classList.contains('help-text')) {
+        // help-icon is inside a wrapper div; look for .help-text in parent's next sibling
+        var wrapper = icon.parentElement;
+        if (wrapper) {
+          helpEl = wrapper.nextElementSibling;
+        }
+      }
+      if (!helpEl || !helpEl.classList.contains('help-text')) {
+        // Fallback: search within the closest terms-cell or container
+        var cell = icon.closest('.terms-cell') || icon.parentElement.parentElement;
+        if (cell) helpEl = cell.querySelector('.help-text');
+      }
       if (!helpEl || !helpEl.classList.contains('help-text')) return;
       var wasOpen = helpEl.classList.contains('expanded');
       var allOpen = document.querySelectorAll('.help-text.expanded');
