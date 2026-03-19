@@ -21,31 +21,8 @@ export const renderer = jsxRenderer(({ children, title }) => {
           href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css"
           rel="stylesheet"
         />
-        {/* Tailwind CSS */}
-        <script src="https://cdn.tailwindcss.com"></script>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-tailwind.config = {
-  theme: {
-    extend: {
-      fontFamily: {
-        sans: ['-apple-system','BlinkMacSystemFont','Inter','SF Pro Display','Segoe UI','Roboto','Noto Sans SC','sans-serif'],
-        display: ['Montserrat','Inter','Futura','Helvetica Neue','sans-serif'],
-      },
-      colors: {
-        brand: { DEFAULT:'#B91C1C', light:'#DC2626', dark:'#991B1B', darker:'#7F1D1D', soft:'#FEE2E2' },
-        gold: { DEFAULT:'#D4A853', light:'#F5DEB3', dark:'#B8860B' },
-        text: { primary:'#1C1917', title:'#292524', secondary:'#78716C', tertiary:'#A8A29E', onDark:'#FAFAF9' },
-        surface: { page:'#FAFAF9', card:'rgba(255,255,255,0.92)', divider:'#F5F5F4' }
-      },
-      borderRadius: { xs:'4px', sm:'8px', md:'12px', lg:'16px', xl:'20px', '2xl':'24px' }
-    }
-  }
-}
-`,
-          }}
-        />
+        {/* Tailwind CSS (locally built, production-ready) */}
+        <link rel="stylesheet" href="/static/tailwind.css" />
 
         {/* Global Styles */}
         <style

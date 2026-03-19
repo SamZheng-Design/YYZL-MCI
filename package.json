@@ -3,7 +3,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "tailwindcss -i src/tailwind.css -o public/static/tailwind.css --minify && vite build",
     "preview": "wrangler pages dev dist",
     "deploy": "npm run build && wrangler pages deploy dist --project-name zhongliu-connect",
     "dev:sandbox": "wrangler pages dev dist --ip 0.0.0.0 --port 3000",
@@ -15,6 +15,9 @@
   "devDependencies": {
     "@hono/vite-build": "^1.2.0",
     "@hono/vite-dev-server": "^0.18.2",
+    "@tailwindcss/cli": "^4.2.2",
+    "@tailwindcss/vite": "^4.2.2",
+    "tailwindcss": "^4.2.2",
     "vite": "^6.3.5",
     "wrangler": "^4.4.0"
   }

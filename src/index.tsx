@@ -998,7 +998,7 @@ app.get('/login', (c) => {
       { id:'t-002', name:'陈老师', info:'负责第16期', phone:'18022222222', role:'teacher', classIds:['class-10','class-11'] }
     ],
     admin: [
-      { id:'m-admin', name:'平台管理员', info:'系统管理', phone:'19900001111', role:'admin', classId:'class-admin', className:'管理组' }
+      { id:'m-admin', name:'管理员', info:'平台管理', phone:'18000000000', role:'admin', classId:'class-admin', className:'管理组' }
     ]
   };
 
@@ -1526,7 +1526,7 @@ app.get('/profile', (c) => {
           <h2 id="profile-name" class="font-bold text-text-title" style="font-size:22px;font-family:'Noto Sans SC',sans-serif;">—</h2>
           <p id="profile-company" class="text-text-secondary mt-1" style="font-size:14px;">—</p>
           <p id="profile-cohort" class="text-text-tertiary mt-0.5" style="font-size:13px;">—</p>
-          <button class="mt-4 px-6 py-2 rounded-lg border border-surface-divider text-text-secondary text-sm font-medium bg-white" style="cursor:pointer;transition:background 0.2s;" onmouseover="this.style.background='#FAFAF9'" onmouseout="this.style.background='#fff'">
+          <button id="edit-profile-btn" class="mt-4 px-6 py-2 rounded-lg border border-surface-divider text-text-secondary text-sm font-medium bg-white" style="cursor:pointer;transition:background 0.2s;" onmouseover="this.style.background='#FAFAF9'" onmouseout="this.style.background='#fff'">
             <i class="fas fa-pen mr-1.5" style="font-size:11px;" />
             编辑资料
           </button>
@@ -1540,9 +1540,10 @@ app.get('/profile', (c) => {
             <span class="flex-1 text-text-primary font-medium" style="font-size:15px;">管理后台</span>
             <i class="fas fa-chevron-right text-text-tertiary" style="font-size:12px;" />
           </a>
-          <div class="menu-row">
+          <div class="menu-row" id="menu-contracts" style="cursor:pointer;">
             <i class="fas fa-file-contract text-brand" style="font-size:16px;width:20px;text-align:center;" />
             <span class="flex-1 text-text-primary font-medium" style="font-size:15px;">我的合同</span>
+            <span style="font-size:10px;color:#B91C1C;background:#FEE2E2;padding:1px 6px;border-radius:4px;font-weight:600;margin-right:4px;">即将上线</span>
             <i class="fas fa-chevron-right text-text-tertiary" style="font-size:12px;" />
           </div>
           <div class="menu-row" id="open-faq-btn" style="cursor:pointer;">
@@ -1555,17 +1556,17 @@ app.get('/profile', (c) => {
             <span class="flex-1 text-text-primary font-medium" style="font-size:15px;">重新查看使用引导</span>
             <i class="fas fa-chevron-right text-text-tertiary" style="font-size:12px;" />
           </div>
-          <div class="menu-row">
+          <div class="menu-row" id="menu-contact-admin" style="cursor:pointer;">
             <i class="fas fa-phone text-brand-dark" style="font-size:16px;width:20px;text-align:center;" />
             <span class="flex-1 text-text-primary font-medium" style="font-size:15px;">联系管理员</span>
             <i class="fas fa-chevron-right text-text-tertiary" style="font-size:12px;" />
           </div>
-          <div class="menu-row">
+          <div class="menu-row" id="menu-terms" style="cursor:pointer;">
             <i class="fas fa-file-lines text-text-secondary" style="font-size:16px;width:20px;text-align:center;" />
             <span class="flex-1 text-text-primary font-medium" style="font-size:15px;">服务条款</span>
             <i class="fas fa-chevron-right text-text-tertiary" style="font-size:12px;" />
           </div>
-          <div class="menu-row">
+          <div class="menu-row" id="menu-privacy" style="cursor:pointer;">
             <i class="fas fa-lock text-text-secondary" style="font-size:16px;width:20px;text-align:center;" />
             <span class="flex-1 text-text-primary font-medium" style="font-size:15px;">隐私政策</span>
             <i class="fas fa-chevron-right text-text-tertiary" style="font-size:12px;" />
@@ -1628,6 +1629,26 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, nam
   if(openFaqBtn){
     openFaqBtn.addEventListener('click', function(){
       if(typeof openFAQPanel === 'function') openFAQPanel();
+    });
+  }
+
+  // Placeholder menu items — show Toast
+  var placeholderMenus = [
+    { id:'menu-contracts', msg:'合同管理功能即将上线，敬请期待' },
+    { id:'menu-contact-admin', msg:'如需帮助请联系管理员：18000000000' },
+    { id:'menu-terms', msg:'服务条款正在整理中，敬请期待' },
+    { id:'menu-privacy', msg:'隐私政策正在整理中，敬请期待' }
+  ];
+  placeholderMenus.forEach(function(item){
+    var el = document.getElementById(item.id);
+    if(el) el.addEventListener('click', function(){ showToast(item.msg, 'info'); });
+  });
+
+  // Edit profile button
+  var editProfileBtn = document.getElementById('edit-profile-btn');
+  if(editProfileBtn){
+    editProfileBtn.addEventListener('click', function(){
+      showToast('资料编辑功能即将上线', 'info');
     });
   }
 
@@ -2347,7 +2368,7 @@ app.get('/projects/:id', (c) => {
       </div>
 
       {/* Referral Modal Overlay */}
-      <div id="referral-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.45);z-index:1100;display:none;align-items:center;justify-content:center;">
+      <div id="referral-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.45);z-index:1100;align-items:center;justify-content:center;">
         <div id="referral-modal" style="background:#fff;border-radius:16px;width:92%;max-width:400px;margin:auto;padding:0;overflow:hidden;transform:scale(0.95);opacity:0;transition:transform 250ms ease-out,opacity 250ms ease-out;">
           {/* Header */}
           <div style="background:linear-gradient(135deg,#B91C1C 0%,#991B1B 100%);padding:20px 24px;color:#fff;">
@@ -5911,5 +5932,42 @@ app.get('/notifications', (c) => {
 
 // ── Guide Pages (Apple-style immersive demos) ──────────────
 app.route('/guide', guide)
+
+// ══════════════════════════════════════════════════════════
+// 404 Not Found (catch-all — must be last)
+// ══════════════════════════════════════════════════════════
+app.notFound((c) => {
+  return c.render(
+    <div class="app-container">
+      <GlobalScripts />
+      <Navbar />
+      <main class="max-w-lg mx-auto px-4 pt-16 pb-8 text-center page-enter">
+        <div class="flex justify-center mb-4">
+          <LogoSVG size={48} />
+        </div>
+        <div class="flex items-center justify-center mb-4">
+          <div class="flex items-center justify-center rounded-full" style="width:72px;height:72px;background:#FEE2E2;">
+            <span style="font-size:36px;line-height:1;">🔍</span>
+          </div>
+        </div>
+        <h2 class="font-bold text-text-title mb-2" style="font-size:22px;font-family:'Noto Sans SC',sans-serif;">页面未找到</h2>
+        <p class="text-text-secondary mb-1" style="font-size:15px;">您访问的页面不存在或已被移除</p>
+        <p class="text-text-tertiary mb-8" style="font-size:13px;">请检查网址是否正确，或返回首页</p>
+        <div style="display:flex;gap:12px;justify-content:center;">
+          <a href="/" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-brand text-white font-semibold" style="text-decoration:none;font-size:15px;">
+            <i class="fas fa-home" style="font-size:13px;" /> 返回首页
+          </a>
+          <a href="/projects" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold" style="text-decoration:none;font-size:15px;background:#F5F5F4;color:#44403C;">
+            <i class="fas fa-store" style="font-size:13px;" /> 项目大厅
+          </a>
+        </div>
+        <p class="text-text-tertiary mt-12" style="font-size:12px;">
+          滴灌通 × 一亿中流 · 联合出品
+        </p>
+      </main>
+    </div>,
+    { title: '中流通 - 页面未找到' }
+  )
+})
 
 export default app

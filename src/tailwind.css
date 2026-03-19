@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+/* Scan our tsx source files for class names */
+@source "../src/**/*.tsx";
+
+/* Custom theme — matches the previous CDN config */
+@theme {
+  --color-brand: #B91C1C;
+  --color-brand-light: #DC2626;
+  --color-brand-dark: #991B1B;
+  --color-brand-darker: #7F1D1D;
+  --color-brand-soft: #FEE2E2;
+
+  --color-gold: #D4A853;
+  --color-gold-light: #F5DEB3;
+  --color-gold-dark: #B8860B;
+
+  --color-text-primary: #1C1917;
+  --color-text-title: #292524;
+  --color-text-secondary: #78716C;
+  --color-text-tertiary: #A8A29E;
+  --color-text-onDark: #FAFAF9;
+
+  --color-surface-page: #FAFAF9;
+  --color-surface-card: rgba(255,255,255,0.92);
+  --color-surface-divider: #F5F5F4;
+}
