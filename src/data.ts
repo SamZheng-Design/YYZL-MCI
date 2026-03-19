@@ -14,6 +14,7 @@ export interface Member {
   cohort: string
   status: 'active' | 'inactive'
   joinDate: string
+  role?: 'member' | 'admin'
 }
 
 export const mockMembers: Member[] = [
@@ -41,6 +42,11 @@ export const mockMembers: Member[] = [
     id: 'm-005', phone: '13599999999', name: '赵丽华', company: '芙蓉美业集团',
     industry: '美容健康', title: '创始人/CEO',
     bio: '全国50+美容门店，年营收2亿', cohort: '第11期', status: 'active', joinDate: '2024-01-22',
+  },
+  {
+    id: 'm-admin', phone: '18000000000', name: '管理员', company: '一亿中流',
+    industry: '平台管理', title: '平台管理员',
+    bio: '一亿中流平台管理员', cohort: '管理团队', status: 'active', joinDate: '2023-01-01', role: 'admin',
   },
 ]
 

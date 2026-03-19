@@ -6,7 +6,10 @@ export const renderer = jsxRenderer(({ children, title }) => {
       <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-        <title>{title || '中流通 ZhongLiu Connect'}</title>
+        <title>{title || '中流通'}</title>
+
+        {/* Favicon */}
+        <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'><circle cx='44' cy='28' r='22' fill='%23DC2626'/><circle cx='36' cy='44' r='22' fill='%23991B1B' opacity='0.85'/></svg>" />
 
         {/* Google Fonts */}
         <link
@@ -48,12 +51,63 @@ tailwind.config = {
         <style
           dangerouslySetInnerHTML={{
             __html: `
-/* ---- Base ---- */
+/* ══════════════════════════════════════════════════
+   Base
+   ══════════════════════════════════════════════════ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display', 'Segoe UI', 'Roboto', 'Noto Sans SC', sans-serif; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display', 'Segoe UI', 'Roboto', 'Noto Sans SC', sans-serif; background: #FAFAF9; }
 
-/* ---- Login Background ---- */
+/* ══════════════════════════════════════════════════
+   Desktop 480px centered container
+   ══════════════════════════════════════════════════ */
+.app-container {
+  max-width: 480px; margin: 0 auto; min-height: 100vh;
+  background: #FAFAF9; position: relative;
+  box-shadow: 0 0 40px rgba(0,0,0,0.08);
+}
+@media (max-width: 640px) {
+  .app-container { max-width: 100%; box-shadow: none; }
+}
+
+/* ══════════════════════════════════════════════════
+   Page Enter Animation
+   ══════════════════════════════════════════════════ */
+.page-enter {
+  animation: pageEnter 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ══════════════════════════════════════════════════
+   Scroll Reveal (IntersectionObserver)
+   ══════════════════════════════════════════════════ */
+.reveal {
+  opacity: 0; transform: translateY(24px);
+  transition: opacity 0.5s cubic-bezier(0.19,1,0.22,1), transform 0.5s cubic-bezier(0.19,1,0.22,1);
+}
+.reveal.visible { opacity: 1; transform: translateY(0); }
+.stagger-1 { transition-delay: 0.05s; }
+.stagger-2 { transition-delay: 0.10s; }
+.stagger-3 { transition-delay: 0.15s; }
+.stagger-4 { transition-delay: 0.20s; }
+.stagger-5 { transition-delay: 0.25s; }
+.stagger-6 { transition-delay: 0.30s; }
+.stagger-7 { transition-delay: 0.35s; }
+.stagger-8 { transition-delay: 0.40s; }
+
+/* ══════════════════════════════════════════════════
+   Loading Spinner
+   ══════════════════════════════════════════════════ */
+.spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; }
+.page-spinner { width:32px; height:32px; border:3px solid #FEE2E2; border-top-color:#B91C1C; border-radius:50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ══════════════════════════════════════════════════
+   Login Background
+   ══════════════════════════════════════════════════ */
 .login-bg {
   position: fixed; inset: 0;
   background: linear-gradient(160deg, #991B1B 0%, #B91C1C 25%, #7F1D1D 60%, #581C1C 100%);
@@ -72,7 +126,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
   50% { transform: rotate(3deg) scale(1.05); }
 }
 
-/* ---- Glass Card ---- */
+/* Glass Card */
 .glass-card {
   background: rgba(255,255,255,0.08);
   backdrop-filter: blur(32px) saturate(120%);
@@ -81,7 +135,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
   border-radius: 24px;
 }
 
-/* ---- Login Inputs ---- */
+/* Login Inputs */
 .login-input {
   width: 100%;
   background: rgba(255,255,255,0.08);
@@ -99,7 +153,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
   box-shadow: 0 0 0 3px rgba(212,168,83,0.15);
 }
 
-/* ---- Buttons ---- */
+/* ══════════════════════════════════════════════════
+   Buttons
+   ══════════════════════════════════════════════════ */
 .btn-gold {
   width: 100%; height: 48px;
   background: linear-gradient(135deg, #D4A853, #B8860B);
@@ -121,23 +177,131 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
 .btn-code:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.4); }
 .btn-code:disabled { opacity: 0.45; cursor: not-allowed; background: transparent; }
 
-/* ---- Toast ---- */
-.toast {
-  position: fixed; top: 32px; left: 50%; transform: translateX(-50%) translateY(-120%);
-  padding: 12px 28px; border-radius: 12px; font-size: 14px; font-weight: 500;
-  z-index: 9999;
-  transition: transform 0.35s cubic-bezier(0.16,1,0.3,1), opacity 0.35s;
-  opacity: 0; pointer-events: none; backdrop-filter: blur(12px);
+.btn-secondary {
+  flex: 1; height: 48px; background: #F5F5F4; color: #78716C;
+  font-weight: 600; font-size: 15px; border: none; border-radius: 12px;
+  cursor: pointer; transition: background 0.2s;
 }
-.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
-.toast-error { background: rgba(185,28,28,0.92); color: #FEE2E2; border: 1px solid rgba(255,255,255,0.15); }
-.toast-success { background: rgba(21,128,61,0.92); color: #DCFCE7; border: 1px solid rgba(255,255,255,0.15); }
+.btn-secondary:hover { background: #E7E5E4; }
+.btn-primary {
+  flex: 1; height: 48px; background: #B91C1C; color: #fff;
+  font-weight: 600; font-size: 15px; border: none; border-radius: 12px;
+  cursor: pointer; transition: background 0.2s, transform 0.15s;
+}
+.btn-primary:hover { background: #991B1B; transform: translateY(-1px); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
-/* ---- Spinner ---- */
-.spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; }
-@keyframes spin { to { transform: rotate(360deg); } }
+/* ══════════════════════════════════════════════════
+   Global Toast
+   ══════════════════════════════════════════════════ */
+.toast {
+  position: fixed; top: 0; left: 50%; transform: translateX(-50%) translateY(-100%);
+  z-index: 9999; padding: 12px 24px; border-radius: 0 0 12px 12px;
+  font-size: 14px; font-weight: 500; color: white;
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+.toast.show { transform: translateX(-50%) translateY(0); pointer-events: auto; }
+.toast-success { background: #16A34A; }
+.toast-error { background: #DC2626; }
+.toast-info { background: #3B82F6; }
 
-/* ---- Sticky Navbar ---- */
+/* ══════════════════════════════════════════════════
+   Confirm Modal (unified)
+   ══════════════════════════════════════════════════ */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(0,0,0,0.5);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.25s;
+  padding: 20px;
+}
+.modal-overlay.show { opacity: 1; pointer-events: auto; }
+.modal-box {
+  background: #fff; border-radius: 20px; padding: 28px;
+  max-width: 360px; width: 100%; text-align: center;
+  transform: scale(0.9); opacity: 0;
+  transition: transform 0.28s cubic-bezier(0.16,1,0.3,1), opacity 0.28s;
+}
+.modal-overlay.show .modal-box { transform: scale(1); opacity: 1; }
+.modal-title { font-size: 18px; font-weight: 600; color: #1C1917; }
+.modal-desc { font-size: 14px; color: #78716C; margin-top: 8px; }
+.modal-btn-row { display: flex; gap: 12px; margin-top: 24px; }
+.modal-btn {
+  flex: 1; height: 44px; border-radius: 10px; font-size: 15px; font-weight: 600;
+  border: none; cursor: pointer; transition: opacity 0.2s;
+}
+.modal-btn:hover { opacity: 0.88; }
+.modal-btn-cancel { background: #F5F5F4; color: #78716C; border: 1px solid #E7E5E4; }
+.modal-btn-confirm { background: linear-gradient(135deg, #D4A853, #B8860B); color: #fff; }
+.modal-btn-danger { background: #DC2626; color: #fff; }
+
+/* ══════════════════════════════════════════════════
+   Success Modal (participate / sign)
+   ══════════════════════════════════════════════════ */
+.success-modal-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(0,0,0,0.5);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.3s;
+}
+.success-modal-overlay.show { opacity: 1; pointer-events: auto; }
+.success-modal-box {
+  background: #fff; border-radius: 24px; padding: 32px;
+  max-width: 320px; width: 90%; text-align: center;
+}
+.success-icon-green {
+  font-size: 64px; color: #16A34A;
+  animation: iconPop 0.5s cubic-bezier(0.16,1,0.3,1);
+}
+.success-icon-gold {
+  font-size: 64px; color: #D4A853;
+  animation: iconPop 0.5s cubic-bezier(0.16,1,0.3,1);
+}
+@keyframes iconPop {
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.success-title { font-size: 20px; font-weight: 700; color: #1C1917; margin-top: 16px; }
+.success-sub { font-size: 14px; color: #78716C; margin-top: 8px; }
+
+/* Gold confetti for sign success */
+.confetti-container { position: relative; overflow: hidden; width: 100%; height: 80px; margin-top: -40px; }
+.confetti {
+  position: absolute; width: 8px; height: 8px; border-radius: 2px;
+  animation: confettiFall 2s ease-in forwards;
+  opacity: 0;
+}
+@keyframes confettiFall {
+  0% { opacity: 1; transform: translateY(-20px) rotate(0deg); }
+  100% { opacity: 0; transform: translateY(100px) rotate(720deg); }
+}
+
+/* ══════════════════════════════════════════════════
+   Empty State
+   ══════════════════════════════════════════════════ */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 48px 20px; text-align: center;
+}
+.empty-state-icon { font-size: 48px; color: #D6D3D1; margin-bottom: 16px; }
+.empty-state-text { font-size: 15px; color: #78716C; margin-bottom: 8px; }
+.empty-state-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 10px 24px; border-radius: 10px;
+  background: #fff; color: #B91C1C; border: 1px solid #FECACA;
+  font-size: 14px; font-weight: 600; text-decoration: none;
+  margin-top: 12px; cursor: pointer;
+  transition: background 0.2s;
+}
+.empty-state-btn:hover { background: #FEF2F2; }
+
+/* ══════════════════════════════════════════════════
+   Sticky Navbar
+   ══════════════════════════════════════════════════ */
 .app-navbar {
   position: sticky; top: 0; z-index: 50; height: 52px;
   background: rgba(255,255,255,0.95);
@@ -146,8 +310,17 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 16px;
 }
+/* Admin navbar */
+.app-navbar-admin {
+  position: sticky; top: 0; z-index: 50; height: 52px;
+  background: #1C1917;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 16px;
+}
 
-/* ---- Bottom Tab Bar ---- */
+/* ══════════════════════════════════════════════════
+   Bottom Tab Bar
+   ══════════════════════════════════════════════════ */
 .tab-bar {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
   height: 60px;
@@ -155,6 +328,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
   border-top: 1px solid rgba(0,0,0,0.06);
   display: flex; align-items: center; justify-content: space-around;
   padding-bottom: env(safe-area-inset-bottom, 0);
+}
+@media (min-width: 481px) {
+  .tab-bar { max-width: 480px; left: 50%; transform: translateX(-50%); }
 }
 .tab-bar a, .tab-bar button {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -180,12 +356,19 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
 }
 .tab-center-btn:hover { transform: scale(1.08); box-shadow: 0 6px 20px rgba(185,28,28,0.45); }
 
-/* ---- Card Shadows ---- */
+/* Body padding for tab bar */
+.has-tabbar { padding-bottom: 72px; }
+
+/* ══════════════════════════════════════════════════
+   Cards / Shadows
+   ══════════════════════════════════════════════════ */
 .shadow-card { box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.03); }
 .shadow-card-hover { transition: transform 0.2s, box-shadow 0.2s; }
 .shadow-card-hover:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
 
-/* ---- Progress bar ---- */
+/* ══════════════════════════════════════════════════
+   Progress bars (with animation)
+   ══════════════════════════════════════════════════ */
 .progress-bar {
   height: 8px; border-radius: 99px;
   background: #F5F5F4; overflow: hidden;
@@ -193,10 +376,18 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
 .progress-fill {
   height: 100%; border-radius: 99px;
   background: linear-gradient(90deg, #D4A853, #B8860B);
-  transition: width 0.6s cubic-bezier(0.22,1,0.36,1);
+  width: 0;
+  transition: width 0.8s cubic-bezier(0.22,1,0.36,1);
 }
+.progress-bar-lg {
+  height: 12px; border-radius: 99px;
+  background: #F5F5F4; overflow: hidden;
+}
+.progress-bar-lg .progress-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, #D4A853, #B8860B); width: 0; transition: width 0.8s cubic-bezier(0.22,1,0.36,1); }
 
-/* ---- Profile menu rows ---- */
+/* ══════════════════════════════════════════════════
+   Profile menu rows
+   ══════════════════════════════════════════════════ */
 .menu-row {
   display: flex; align-items: center; padding: 16px 20px; gap: 14px;
   cursor: pointer; transition: background 0.15s;
@@ -204,10 +395,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
 .menu-row:hover { background: #FAFAF9; }
 .menu-row:not(:last-child) { border-bottom: 1px solid #F5F5F4; }
 
-/* ---- Body padding for tab bar ---- */
-.has-tabbar { padding-bottom: 72px; }
-
-/* ---- Quick action cards ---- */
+/* ══════════════════════════════════════════════════
+   Quick action cards
+   ══════════════════════════════════════════════════ */
 .quick-card {
   border-radius: 16px; padding: 20px; height: 100px;
   display: flex; flex-direction: column; justify-content: space-between;
@@ -218,7 +408,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
 .quick-card-brand { background: linear-gradient(135deg, #DC2626, #991B1B); }
 .quick-card-gold { background: linear-gradient(135deg, #D4A853, #B8860B); }
 
-/* ---- KPI Banner ---- */
+/* ══════════════════════════════════════════════════
+   KPI Banner
+   ══════════════════════════════════════════════════ */
 .kpi-banner {
   background: linear-gradient(135deg, #B91C1C, #7F1D1D);
   border-radius: 16px; padding: 20px;
@@ -235,7 +427,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
 .kpi-val { color: #fff; font-weight: 800; font-size: 20px; line-height: 1.2; }
 .kpi-label { color: rgba(255,255,255,0.65); font-size: 11px; margin-top: 4px; }
 
-/* ---- Filter bar ---- */
+/* ══════════════════════════════════════════════════
+   Filter bar
+   ══════════════════════════════════════════════════ */
 .filter-bar {
   position: sticky; top: 52px; z-index: 40;
   background: rgba(255,255,255,0.95);
@@ -243,6 +437,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
   border-bottom: 0.5px solid rgba(0,0,0,0.06);
   padding: 10px 16px;
   display: flex; gap: 8px;
+}
+@media (max-width: 640px) {
+  .filter-bar { flex-direction: column; }
 }
 .filter-select {
   flex: 1; min-width: 0;
@@ -256,14 +453,18 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
 }
 .filter-select:focus { border-color: #B91C1C; }
 
-/* ---- Status badges ---- */
+/* ══════════════════════════════════════════════════
+   Status badges
+   ══════════════════════════════════════════════════ */
 .badge { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid; }
 .badge-open { background: #FEF2F2; color: #DC2626; border-color: #FECACA; }
 .badge-funded { background: #F0FDF4; color: #16a34a; border-color: #BBF7D0; }
 .badge-active { background: #F0FDF4; color: #16a34a; border-color: #BBF7D0; }
 .badge-completed { background: #F5F5F4; color: #78716C; border-color: #E7E5E4; }
 
-/* ---- Detail page ---- */
+/* ══════════════════════════════════════════════════
+   Detail page
+   ══════════════════════════════════════════════════ */
 .back-link {
   display: inline-flex; align-items: center; gap: 6px;
   color: #78716C; font-size: 14px; text-decoration: none;
@@ -276,31 +477,17 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
   border-left: 4px solid #B91C1C;
   overflow: hidden;
 }
-
-.terms-grid {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 0;
-}
-.terms-cell {
-  padding: 14px 20px;
-  border-bottom: 1px solid #F5F5F4;
-}
+.terms-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+.terms-cell { padding: 14px 20px; border-bottom: 1px solid #F5F5F4; }
 .terms-cell:nth-child(odd) { border-right: 1px solid #F5F5F4; }
 .terms-label { font-size: 12px; color: #78716C; margin-bottom: 4px; }
 .terms-value { font-size: 18px; font-weight: 700; color: #1C1917; }
-
 .calc-highlight {
   background: #FEF2F2; padding: 16px 20px;
   display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
 }
 
-/* ---- Progress bar large ---- */
-.progress-bar-lg {
-  height: 12px; border-radius: 99px;
-  background: #F5F5F4; overflow: hidden;
-}
-.progress-bar-lg .progress-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, #D4A853, #B8860B); transition: width 0.6s cubic-bezier(0.22,1,0.36,1); }
-
-/* ---- Participate calculator ---- */
+/* Participate calculator */
 .calc-card {
   background: #fff; border-radius: 16px;
   border: 2px solid transparent;
@@ -312,7 +499,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
   border-radius: 18px;
   background: linear-gradient(135deg, #D4A853, #B8860B);
 }
-
 .share-select {
   appearance: none; -webkit-appearance: none;
   background: #FAFAF9 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2378716C'/%3E%3C/svg%3E") no-repeat right 12px center;
@@ -324,33 +510,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
 }
 .share-select:focus { border-color: #D4A853; box-shadow: 0 0 0 3px rgba(212,168,83,0.12); }
 
-/* ---- Confirm modal ---- */
-.modal-overlay {
-  position: fixed; inset: 0; z-index: 9000;
-  background: rgba(0,0,0,0.45);
-  display: flex; align-items: center; justify-content: center;
-  opacity: 0; pointer-events: none;
-  transition: opacity 0.25s;
-  padding: 20px;
-}
-.modal-overlay.show { opacity: 1; pointer-events: auto; }
-.modal-box {
-  background: #fff; border-radius: 20px; padding: 32px 28px;
-  max-width: 360px; width: 100%; text-align: center;
-  transform: translateY(20px) scale(0.96);
-  transition: transform 0.3s cubic-bezier(0.16,1,0.3,1);
-}
-.modal-overlay.show .modal-box { transform: translateY(0) scale(1); }
-.modal-btn-row { display: flex; gap: 12px; margin-top: 24px; }
-.modal-btn {
-  flex: 1; height: 44px; border-radius: 10px; font-size: 15px; font-weight: 600;
-  border: none; cursor: pointer; transition: opacity 0.2s;
-}
-.modal-btn:hover { opacity: 0.88; }
-.modal-btn-cancel { background: #F5F5F4; color: #78716C; }
-.modal-btn-confirm { background: linear-gradient(135deg, #D4A853, #B8860B); color: #fff; }
-
-/* ---- Investor avatar row ---- */
+/* Investor avatar row */
 .avatar-stack { display: flex; align-items: center; }
 .avatar-stack .av-circle {
   width: 36px; height: 36px; border-radius: 50%;
@@ -361,7 +521,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
 }
 .avatar-stack .av-circle:first-child { margin-left: 0; }
 
-/* ====== Create Project — Stepper ====== */
+/* ══════════════════════════════════════════════════
+   Create Project — Stepper
+   ══════════════════════════════════════════════════ */
 .stepper { display: flex; align-items: center; justify-content: center; gap: 0; padding: 20px 24px 24px; }
 .stepper-step { display: flex; align-items: center; gap: 0; }
 .stepper-dot {
@@ -380,7 +542,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
 .stepper-label-active { color: #B91C1C; font-weight: 600; }
 .stepper-label-done { color: #16a34a; }
 
-/* ====== Form Inputs ====== */
+/* ══════════════════════════════════════════════════
+   Form Inputs
+   ══════════════════════════════════════════════════ */
 .form-label { font-size: 14px; font-weight: 500; color: #292524; margin-bottom: 6px; display: block; }
 .form-label .req { color: #DC2626; }
 .form-input {
@@ -427,7 +591,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
 }
 .upload-zone:hover { border-color: #B91C1C; background: #FEF2F2; }
 
-/* Number input with unit */
 .input-unit-wrap { position: relative; }
 .input-unit-wrap .form-input { padding-right: 52px; }
 .input-unit {
@@ -435,7 +598,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
   font-size: 13px; color: #78716C; pointer-events: none;
 }
 
-/* Auto-calc card */
 .auto-calc-card {
   background: #FEF2F2; border-radius: 12px; padding: 16px;
   border: 1px solid #FECACA;
@@ -456,24 +618,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
 }
 .step-panel-enter-left { opacity: 0; transform: translateX(-40px); }
 .step-panel-enter-right { opacity: 0; transform: translateX(40px); }
-
-/* Buttons row */
 .btn-row { display: flex; gap: 12px; margin-top: 24px; }
-.btn-secondary {
-  flex: 1; height: 48px; background: #F5F5F4; color: #78716C;
-  font-weight: 600; font-size: 15px; border: none; border-radius: 12px;
-  cursor: pointer; transition: background 0.2s;
-}
-.btn-secondary:hover { background: #E7E5E4; }
-.btn-primary {
-  flex: 1; height: 48px; background: #B91C1C; color: #fff;
-  font-weight: 600; font-size: 15px; border: none; border-radius: 12px;
-  cursor: pointer; transition: background 0.2s, transform 0.15s;
-}
-.btn-primary:hover { background: #991B1B; transform: translateY(-1px); }
-.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
-/* ====== Contract Sign Page ====== */
+/* ══════════════════════════════════════════════════
+   Contract Sign Page
+   ══════════════════════════════════════════════════ */
 .contract-card {
   background: #fff; border-radius: 16px; padding: 24px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.03);
@@ -488,22 +637,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
 .contract-party-label { font-size: 12px; color: #78716C; margin-bottom: 4px; }
 .contract-party-name { font-size: 15px; font-weight: 600; color: #1C1917; }
 
-/* Sign confirmation area */
 .sign-area {
   background: #fff; border-radius: 16px; overflow: hidden;
   border-top: 3px solid; border-image: linear-gradient(90deg, #D4A853, #B8860B) 1;
   box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.03);
   padding: 24px;
 }
-
-.checkbox-row {
-  display: flex; align-items: flex-start; gap: 10px; cursor: pointer;
-}
-.checkbox-row input[type="checkbox"] {
-  width: 20px; height: 20px; margin-top: 2px; accent-color: #B91C1C; cursor: pointer; flex-shrink: 0;
-}
+.checkbox-row { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
+.checkbox-row input[type="checkbox"] { width: 20px; height: 20px; margin-top: 2px; accent-color: #B91C1C; cursor: pointer; flex-shrink: 0; }
 .checkbox-row label { font-size: 14px; color: #292524; cursor: pointer; }
-
 .verify-row { display: flex; gap: 10px; margin-top: 16px; }
 .verify-input {
   flex: 1;
@@ -521,16 +663,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
 .verify-send-btn:disabled { color: #A8A29E; cursor: not-allowed; background: #F5F5F4; }
 
 .sign-status { display: flex; gap: 16px; margin-top: 20px; }
-.sign-status-item {
-  flex: 1; background: #FAFAF9; border-radius: 10px; padding: 12px;
-  text-align: center;
-}
+.sign-status-item { flex: 1; background: #FAFAF9; border-radius: 10px; padding: 12px; text-align: center; }
 .sign-status-label { font-size: 12px; color: #78716C; margin-bottom: 4px; }
 .sign-status-val { font-size: 14px; font-weight: 600; }
 .sign-status-done { color: #16a34a; }
 .sign-status-pending { color: #D4A853; }
 
-/* Success animation */
+/* Sign success overlay (legacy — keep for contract page) */
 .sign-success-overlay {
   position: fixed; inset: 0; z-index: 9999;
   background: rgba(255,255,255,0.95);
@@ -541,7 +680,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
 .sign-success-overlay.show { opacity: 1; pointer-events: auto; }
 .sign-success-icon {
   width: 80px; height: 80px; border-radius: 50%;
-  background: linear-gradient(135deg, #16a34a, #15803d);
+  background: linear-gradient(135deg, #D4A853, #B8860B);
   display: flex; align-items: center; justify-content: center;
   animation: success-pop 0.5s cubic-bezier(0.16,1,0.3,1);
 }
@@ -563,11 +702,61 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
   100% { opacity: 1; transform: translateY(0); }
 }
 
-/* ====== Repayment Tab Bar ====== */
+/* ══════════════════════════════════════════════════
+   Repayment Tab Bar
+   ══════════════════════════════════════════════════ */
 .rep-tab-bar { position: sticky; top: 52px; z-index: 40; }
 .rep-tab { transition: color 0.2s; }
 .rep-tab-line { transition: opacity 0.2s; }
 
+/* ══════════════════════════════════════════════════
+   Admin Page
+   ══════════════════════════════════════════════════ */
+.admin-section {
+  background: #fff; border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.03);
+  padding: 20px; margin-bottom: 16px;
+}
+.admin-section-title {
+  font-size: 16px; font-weight: 600; color: #1C1917;
+  margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;
+}
+.admin-kpi-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px;
+}
+.admin-kpi-card {
+  background: #FAFAF9; border-radius: 12px; padding: 14px; text-align: center;
+}
+.admin-kpi-val { font-size: 24px; font-weight: 800; color: #1C1917; }
+.admin-kpi-label { font-size: 12px; color: #78716C; margin-top: 2px; }
+
+.admin-table { width: 100%; border-collapse: collapse; }
+.admin-table th {
+  text-align: left; padding: 10px 12px; font-size: 12px; color: #78716C;
+  font-weight: 500; border-bottom: 1px solid #F5F5F4;
+}
+.admin-table td {
+  padding: 12px; font-size: 14px; color: #292524;
+  border-bottom: 1px solid #F5F5F4;
+}
+.admin-table tr:hover td { background: #FAFAF9; }
+
+.admin-invite-btn {
+  padding: 8px 16px; background: #B91C1C; color: #fff;
+  border: none; border-radius: 8px; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: background 0.2s;
+}
+.admin-invite-btn:hover { background: #991B1B; }
+
+/* ══════════════════════════════════════════════════
+   Responsive
+   ══════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  .glass-card { padding: 32px 24px !important; }
+  .kpi-banner { flex-wrap: wrap; }
+  .kpi-item { min-width: 50%; padding: 8px; }
+  .kpi-item:not(:last-child)::after { display: none; }
+}
 `,
           }}
         />

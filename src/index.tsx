@@ -13,6 +13,114 @@ import type { Member, Project, Contract, RevenueReport, RepaymentRecord, Distrib
 
 const app = new Hono()
 
+// ── Global JS Utilities (injected into every page) ─────
+const GlobalScripts = () => (
+  <script dangerouslySetInnerHTML={{ __html: `
+// ── Toast ──
+function showToast(message, type, duration) {
+  type = type || 'success'; duration = duration || 3000;
+  var t = document.createElement('div');
+  t.className = 'toast toast-' + type;
+  t.textContent = message;
+  document.body.appendChild(t);
+  requestAnimationFrame(function(){ t.classList.add('show'); });
+  setTimeout(function(){ t.classList.remove('show'); setTimeout(function(){ t.remove(); }, 300); }, duration);
+}
+
+// ── Confirm Modal ──
+function showConfirm(opts) {
+  var overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = '<div class="modal-box">'
+    + '<div class="modal-title">' + (opts.title || '确认') + '</div>'
+    + (opts.desc ? '<div class="modal-desc">' + opts.desc + '</div>' : '')
+    + '<div class="modal-btn-row">'
+    + '<button class="modal-btn modal-btn-cancel">取消</button>'
+    + '<button class="modal-btn ' + (opts.danger ? 'modal-btn-danger' : 'modal-btn-confirm') + '">确认</button>'
+    + '</div></div>';
+  document.body.appendChild(overlay);
+  requestAnimationFrame(function(){ overlay.classList.add('show'); });
+  function close(){ overlay.classList.remove('show'); setTimeout(function(){ overlay.remove(); }, 300); }
+  overlay.querySelector('.modal-btn-cancel').onclick = function(){ close(); if(opts.onCancel) opts.onCancel(); };
+  overlay.querySelector('.modal-btn-confirm').onclick = function(){ close(); if(opts.onConfirm) opts.onConfirm(); };
+  overlay.addEventListener('click', function(e){ if(e.target === overlay) close(); });
+}
+
+// ── Success Modal (green / gold) ──
+function showSuccessModal(opts) {
+  var colorClass = opts.gold ? 'success-icon-gold' : 'success-icon-green';
+  var overlay = document.createElement('div');
+  overlay.className = 'success-modal-overlay';
+  var confettiHTML = '';
+  if(opts.confetti){
+    var colors = ['#D4A853','#B8860B','#F5DEB3','#B91C1C','#DC2626'];
+    confettiHTML = '<div class="confetti-container">';
+    for(var i=0;i<20;i++){
+      var c = colors[i%colors.length];
+      var left = Math.random()*100;
+      var delay = Math.random()*1;
+      confettiHTML += '<div class="confetti" style="left:'+left+'%;background:'+c+';animation-delay:'+delay.toFixed(2)+'s;"></div>';
+    }
+    confettiHTML += '</div>';
+  }
+  overlay.innerHTML = '<div class="success-modal-box">'
+    + '<i class="fas fa-check-circle '+colorClass+'"></i>'
+    + confettiHTML
+    + '<div class="success-title">' + (opts.title || '成功') + '</div>'
+    + '<div class="success-sub">' + (opts.sub || '') + '</div>'
+    + '</div>';
+  document.body.appendChild(overlay);
+  requestAnimationFrame(function(){ overlay.classList.add('show'); });
+  setTimeout(function(){
+    overlay.classList.remove('show');
+    setTimeout(function(){ overlay.remove(); if(opts.onDone) opts.onDone(); }, 300);
+  }, opts.duration || 2000);
+}
+
+// ── Number Animation ──
+function animateNumber(el, target, duration, decimals) {
+  duration = duration || 600; decimals = decimals || 0;
+  var start = 0, startTime = performance.now();
+  function update(currentTime) {
+    var elapsed = currentTime - startTime;
+    var progress = Math.min(elapsed / duration, 1);
+    var eased = 1 - Math.pow(1 - progress, 3);
+    el.textContent = (start + (target - start) * eased).toFixed(decimals);
+    if (progress < 1) requestAnimationFrame(update);
+  }
+  requestAnimationFrame(update);
+}
+
+// ── Scroll Reveal (IntersectionObserver) ──
+function initReveal() {
+  document.querySelectorAll('.reveal').forEach(function(el) {
+    new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) {
+        if (e.isIntersecting) { e.target.classList.add('visible'); }
+      });
+    }, { threshold: 0.1 }).observe(el);
+  });
+}
+
+// ── Progress Bar Animation ──
+function initProgressBars() {
+  document.querySelectorAll('.progress-fill[data-width]').forEach(function(el) {
+    new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) {
+        if (e.isIntersecting) { e.target.style.width = e.target.dataset.width; }
+      });
+    }, { threshold: 0.1 }).observe(el);
+  });
+}
+
+// Init on page load
+document.addEventListener('DOMContentLoaded', function(){
+  initReveal();
+  initProgressBars();
+});
+`}} />
+)
+
 // ── Favicon ──────────────────────────────────────────────
 app.get('/favicon.ico', (c) => {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><defs><linearGradient id="a" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#DC2626"/><stop offset="100%" stop-color="#B91C1C"/></linearGradient><linearGradient id="b" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#991B1B"/><stop offset="100%" stop-color="#DC2626"/></linearGradient></defs><circle cx="44" cy="28" r="22" fill="url(#a)"/><circle cx="36" cy="44" r="22" fill="url(#b)" opacity=".85"/></svg>`
@@ -124,7 +232,7 @@ app.post('/api/login', async (c) => {
         id: member.id, name: member.name, phone: member.phone,
         company: member.company, industry: member.industry,
         title: member.title, bio: member.bio, cohort: member.cohort,
-        joinDate: member.joinDate,
+        joinDate: member.joinDate, role: member.role || 'member',
       },
     })
   } catch { return c.json({ ok: false, error: '请求格式错误' }, 400) }
@@ -151,6 +259,7 @@ app.get('/api/user-stats/:id', (c) => {
 app.get('/login', (c) => {
   return c.render(
     <div>
+      <GlobalScripts />
       <div class="login-bg" />
       <div class="relative z-10 min-h-screen flex flex-col items-center justify-center px-4">
         <div class="glass-card w-full max-w-[420px]" style="padding: 48px 40px;">
@@ -180,14 +289,10 @@ app.get('/login', (c) => {
           滴灌通 × 一亿中流 · 联合出品
         </div>
       </div>
-      <div id="toast" class="toast" />
       <script dangerouslySetInnerHTML={{ __html: `
 (function(){
   var phoneInput=document.getElementById('phone-input'),codeInput=document.getElementById('code-input'),
-      sendCodeBtn=document.getElementById('send-code-btn'),loginBtn=document.getElementById('login-btn'),
-      toastEl=document.getElementById('toast');
-  var toastTimer=null;
-  function showToast(m,t){clearTimeout(toastTimer);toastEl.textContent=m;toastEl.className='toast toast-'+(t||'error');requestAnimationFrame(function(){toastEl.classList.add('show');});toastTimer=setTimeout(function(){toastEl.classList.remove('show');},3000);}
+      sendCodeBtn=document.getElementById('send-code-btn'),loginBtn=document.getElementById('login-btn');
   var countdown=0,cdTimer=null;
   sendCodeBtn.addEventListener('click',function(){
     if(countdown>0)return;var phone=phoneInput.value.trim();
@@ -212,7 +317,7 @@ app.get('/login', (c) => {
 })();
 `}} />
     </div>,
-    { title: '登录 — 中流通' }
+    { title: '中流通 - 登录' }
   )
 })
 
@@ -223,12 +328,13 @@ app.get('/', (c) => {
   const recentRepayments = mockRepayments.slice(0, 5)
 
   return c.render(
-    <div class="has-tabbar">
+    <div class="app-container has-tabbar">
       <AuthCheckScript />
+      <GlobalScripts />
       <Navbar />
 
       {/* Content */}
-      <main class="px-4 pt-4 pb-4 max-w-lg mx-auto">
+      <main class="px-4 pt-4 pb-4 max-w-lg mx-auto page-enter">
 
         {/* 1. Welcome */}
         <section class="mb-5">
@@ -298,7 +404,7 @@ app.get('/', (c) => {
                   {/* Row 4: Progress */}
                   <div class="flex items-center gap-3">
                     <div class="progress-bar flex-1">
-                      <div class="progress-fill" style={`width:${pct}%`} />
+                      <div class="progress-fill" data-width={`${pct}%`} />
                     </div>
                     <span class="font-semibold text-gold-dark" style="font-size:13px;">{pct}%</span>
                   </div>
@@ -346,26 +452,27 @@ app.get('/', (c) => {
   fetch('/api/user-stats/' + u.id).then(function(r){return r.json();}).then(function(d){
     if (!d.ok) return;
     var s = d.stats;
-    var el1 = document.getElementById('stat-initiated'); if(el1) el1.textContent = s.initiated;
-    var el2 = document.getElementById('stat-invested');  if(el2) el2.textContent = s.invested;
-    var el3 = document.getElementById('stat-total-inv'); if(el3) el3.textContent = s.totalInvested;
-    var el4 = document.getElementById('stat-total-rep'); if(el4) el4.textContent = s.totalRepaid;
+    var el1 = document.getElementById('stat-initiated'); if(el1) animateNumber(el1, s.initiated, 600, 0);
+    var el2 = document.getElementById('stat-invested');  if(el2) animateNumber(el2, s.invested, 600, 0);
+    var el3 = document.getElementById('stat-total-inv'); if(el3) animateNumber(el3, s.totalInvested, 600, 0);
+    var el4 = document.getElementById('stat-total-rep'); if(el4) animateNumber(el4, s.totalRepaid, 600, 1);
   }).catch(function(){});
 })();
 `}} />
     </div>,
-    { title: '中流通 — 首页' }
+    { title: '中流通 - 首页' }
   )
 })
 
 // ── Profile Page ──────────────────────────────────────────
 app.get('/profile', (c) => {
   return c.render(
-    <div class="has-tabbar">
+    <div class="app-container has-tabbar">
       <AuthCheckScript />
+      <GlobalScripts />
       <Navbar />
 
-      <main class="px-4 pt-5 pb-4 max-w-lg mx-auto">
+      <main class="px-4 pt-5 pb-4 max-w-lg mx-auto page-enter">
         {/* Profile Card */}
         <div class="bg-white rounded-2xl shadow-card p-6 mb-5 text-center">
           {/* Avatar placeholder */}
@@ -383,6 +490,12 @@ app.get('/profile', (c) => {
 
         {/* Menu List */}
         <div class="bg-white rounded-2xl shadow-card overflow-hidden mb-5">
+          {/* Admin entry (hidden by default, shown via JS for admin users) */}
+          <a id="admin-entry" href="/admin" class="menu-row" style="display:none;text-decoration:none;color:inherit;">
+            <i class="fas fa-shield-halved" style="font-size:16px;width:20px;text-align:center;color:#D4A853;" />
+            <span class="flex-1 text-text-primary font-medium" style="font-size:15px;">管理后台</span>
+            <i class="fas fa-chevron-right text-text-tertiary" style="font-size:12px;" />
+          </a>
           <div class="menu-row">
             <i class="fas fa-file-contract text-brand" style="font-size:16px;width:20px;text-align:center;" />
             <span class="flex-1 text-text-primary font-medium" style="font-size:15px;">我的合同</span>
@@ -441,15 +554,28 @@ app.get('/profile', (c) => {
   var ch = document.getElementById('profile-cohort');
   if (ch) ch.textContent = (u.cohort || '') + (u.joinDate ? ' · 加入于 ' + u.joinDate : '');
 
+  // Show admin entry if admin
+  if (u.role === 'admin') {
+    var adminEntry = document.getElementById('admin-entry');
+    if (adminEntry) adminEntry.style.display = 'flex';
+  }
+
   document.getElementById('logout-btn').addEventListener('click', function(){
-    localStorage.removeItem('zlc_user');
-    localStorage.removeItem('zlc_token');
-    window.location.href = '/login';
+    showConfirm({
+      title: '确认退出登录？',
+      desc: '退出后需要重新验证手机号登录',
+      danger: true,
+      onConfirm: function(){
+        localStorage.removeItem('zlc_user');
+        localStorage.removeItem('zlc_token');
+        window.location.href = '/login';
+      }
+    });
   });
 })();
 `}} />
     </div>,
-    { title: '我的 — 中流通' }
+    { title: '中流通 - 我的' }
   )
 })
 
@@ -489,13 +615,14 @@ app.get('/projects', (c) => {
   const industries = ['全部', ...Array.from(new Set(mockProjects.map(p => p.industry)))]
 
   return c.render(
-    <div class="has-tabbar">
+    <div class="app-container has-tabbar">
       <AuthCheckScript />
+      <GlobalScripts />
       <Navbar />
 
       <main class="max-w-lg mx-auto">
         {/* Title */}
-        <section class="px-4 pt-4 pb-3">
+        <section class="px-4 pt-4 pb-3 page-enter">
           <h1 class="font-bold text-text-title" style="font-size:22px;font-family:'Noto Sans SC',sans-serif;">项目大厅</h1>
           <p class="text-text-secondary mt-0.5" style="font-size:14px;">发现同学的优质项目</p>
         </section>
@@ -628,7 +755,7 @@ app.get('/projects', (c) => {
 })();
 `}} />
     </div>,
-    { title: '项目大厅 — 中流通' }
+    { title: '中流通 - 项目大厅' }
   )
 })
 
@@ -642,8 +769,9 @@ app.get('/projects/:id', (c) => {
   // If project not found in mock data, serve a client-side lookup page
   if (!proj) {
     return c.render(
-      <div>
+      <div class="app-container">
         <AuthCheckScript />
+        <GlobalScripts />
         <Navbar />
         <main class="max-w-lg mx-auto px-4 pt-3 pb-8">
           <a href="/projects" class="back-link mb-4 inline-flex">
@@ -712,7 +840,7 @@ app.get('/projects/:id', (c) => {
 })();
 `}} />
       </div>,
-      { title: '项目详情 — 中流通' }
+      { title: '中流通 - 项目详情' }
     )
   }
 
@@ -724,11 +852,12 @@ app.get('/projects/:id', (c) => {
   const bgColors = ['#B91C1C','#D4A853','#991B1B','#B8860B','#7F1D1D']
 
   return c.render(
-    <div>
+    <div class="app-container">
       <AuthCheckScript />
+      <GlobalScripts />
       <Navbar />
 
-      <main class="px-4 pt-3 pb-8 max-w-lg mx-auto">
+      <main class="px-4 pt-3 pb-8 max-w-lg mx-auto page-enter">
         {/* Back link */}
         <a href="/projects" class="back-link mb-4 inline-flex">
           <i class="fas fa-arrow-left" style="font-size:13px;" /> 返回项目大厅
@@ -810,7 +939,7 @@ app.get('/projects/:id', (c) => {
             募集进度
           </h3>
           <div class="progress-bar-lg mb-3">
-            <div class="progress-fill" style={`width:${pct}%`} />
+            <div class="progress-fill" data-width={`${pct}%`} />
           </div>
           <div class="font-semibold text-text-title mb-1" style="font-size:16px;">
             已募 ¥{proj.raisedAmount}万 / ¥{proj.targetAmount}万 <span class="text-gold-dark">({pct}%)</span>
@@ -877,23 +1006,6 @@ app.get('/projects/:id', (c) => {
         </div>
       </main>
 
-      {/* Confirm Modal */}
-      <div id="confirm-modal" class="modal-overlay">
-        <div class="modal-box">
-          <div class="flex items-center justify-center mb-3">
-            <div class="flex items-center justify-center rounded-full" style="width:48px;height:48px;background:linear-gradient(135deg,#D4A853,#B8860B);">
-              <i class="fas fa-handshake text-white" style="font-size:22px;" />
-            </div>
-          </div>
-          <h4 class="font-bold text-text-title mb-2" style="font-size:18px;">确认参与</h4>
-          <p id="modal-text" class="text-text-secondary" style="font-size:14px;">—</p>
-          <div class="modal-btn-row">
-            <button id="modal-cancel" class="modal-btn modal-btn-cancel">取消</button>
-            <button id="modal-confirm" class="modal-btn modal-btn-confirm">确认</button>
-          </div>
-        </div>
-      </div>
-
       {/* Toast */}
       <div id="toast" class="toast" />
 
@@ -914,15 +1026,8 @@ app.get('/projects/:id', (c) => {
   })};
   var MEMBERS = ${JSON.stringify(mockMembers.map(m => ({ id:m.id, name:m.name })))};
 
-  // Toast
+  // Toast (use global)
   var toastEl = document.getElementById('toast');
-  var toastTimer = null;
-  function showToast(m,t){
-    if(!toastEl) return;
-    clearTimeout(toastTimer);toastEl.textContent=m;toastEl.className='toast toast-'+(t||'error');
-    requestAnimationFrame(function(){toastEl.classList.add('show');});
-    toastTimer=setTimeout(function(){toastEl.classList.remove('show');},3000);
-  }
 
   // Hide calculator if owner
   var ownerHint = document.getElementById('owner-hint');
@@ -955,98 +1060,89 @@ app.get('/projects/:id', (c) => {
   }
   if(sel) { sel.addEventListener('change', updateCalc); updateCalc(); }
 
-  // Modal
-  var modal = document.getElementById('confirm-modal');
-  var modalText = document.getElementById('modal-text');
-  var modalCancel = document.getElementById('modal-cancel');
-  var modalConfirm = document.getElementById('modal-confirm');
-
-  function openModal(){
+  // Participate with confirm modal
+  function doParticipate(){
     if(!sel) return;
     var n = parseInt(sel.value) || 1;
     var cost = n * PROJ.sharePrice;
-    if(modalText) modalText.textContent = '确认参与「' + PROJ.name + '」' + n + '份，共 ¥' + cost + '万？';
-    if(modal) modal.classList.add('show');
-  }
-  function closeModal(){ if(modal) modal.classList.remove('show'); }
 
-  if(partBtn) partBtn.addEventListener('click', openModal);
-  if(modalCancel) modalCancel.addEventListener('click', closeModal);
-  if(modal) modal.addEventListener('click', function(e){ if(e.target===modal) closeModal(); });
+    showConfirm({
+      title: '确认参与 ' + PROJ.name + '？',
+      desc: '投资 ' + n + ' 份，共 ¥' + cost + '万',
+      onConfirm: function(){
+        // Check if already invested
+        var investments = [];
+        try { investments = JSON.parse(localStorage.getItem('zlc_investments') || '[]'); } catch(e){}
+        var existing = investments.find(function(inv){ return inv.projectId === PROJ.id && inv.userId === u.id; });
+        if(existing){
+          showToast('您已参与过该项目','error');
+          return;
+        }
 
-  if(modalConfirm) modalConfirm.addEventListener('click', function(){
-    var n = parseInt(sel.value) || 1;
-    var cost = n * PROJ.sharePrice;
+        // Save investment
+        investments.push({
+          projectId: PROJ.id,
+          userId: u.id,
+          shares: n,
+          amount: cost,
+          date: new Date().toISOString().slice(0,10),
+          projectName: PROJ.name,
+        });
+        localStorage.setItem('zlc_investments', JSON.stringify(investments));
 
-    // Check if already invested (from localStorage)
-    var investments = [];
-    try { investments = JSON.parse(localStorage.getItem('zlc_investments') || '[]'); } catch(e){}
-    var existing = investments.find(function(inv){ return inv.projectId === PROJ.id && inv.userId === u.id; });
-    if(existing){
-      closeModal();
-      showToast('您已参与过该项目','error');
-      return;
-    }
+        // Create contract record
+        var contractId = 'c-' + Date.now().toString(36);
+        var contracts = [];
+        try { contracts = JSON.parse(localStorage.getItem('zlc_contracts') || '[]'); } catch(e){}
 
-    // Save investment
-    investments.push({
-      projectId: PROJ.id,
-      userId: u.id,
-      shares: n,
-      amount: cost,
-      date: new Date().toISOString().slice(0,10),
-      projectName: PROJ.name,
-    });
-    localStorage.setItem('zlc_investments', JSON.stringify(investments));
+        var ownerName = '发起人';
+        if(typeof MEMBERS !== 'undefined'){
+          var ownerM = MEMBERS.find(function(m){return m.id===PROJ.ownerId;});
+          if(ownerM) ownerName = ownerM.name;
+        }
 
-    // Create contract record
-    var contractId = 'c-' + Date.now().toString(36);
-    var contracts = [];
-    try { contracts = JSON.parse(localStorage.getItem('zlc_contracts') || '[]'); } catch(e){}
+        contracts.push({
+          id: contractId,
+          projectId: PROJ.id,
+          userId: u.id,
+          shares: n,
+          amount: cost,
+          status: 'pending',
+          createdAt: new Date().toISOString(),
+          ownerName: ownerName,
+          project: {
+            id: PROJ.id, name: PROJ.name, industry: PROJ.industry || '',
+            description: PROJ.description || '',
+            sharePrice: PROJ.sharePrice, targetAmount: PROJ.targetAmount,
+            revenueShareRate: PROJ.revenueShareRate,
+            duration: PROJ.duration || 0,
+            recoveryMultiple: PROJ.recoveryMultiple,
+            estimatedMonthlyRevenue: PROJ.estimatedMonthlyRevenue,
+            reportFrequency: PROJ.reportFrequency || '月报',
+            ownerId: PROJ.ownerId,
+          }
+        });
+        localStorage.setItem('zlc_contracts', JSON.stringify(contracts));
 
-    // Find owner name from MEMBERS injected data or fallback
-    var ownerName = '发起人';
-    if(typeof MEMBERS !== 'undefined'){
-      var ownerM = MEMBERS.find(function(m){return m.id===PROJ.ownerId;});
-      if(ownerM) ownerName = ownerM.name;
-    }
+        // Disable button
+        if(partBtn){
+          partBtn.disabled = true;
+          partBtn.textContent = '已参与 ¥' + cost + '万';
+        }
+        if(sel) sel.disabled = true;
 
-    contracts.push({
-      id: contractId,
-      projectId: PROJ.id,
-      userId: u.id,
-      shares: n,
-      amount: cost,
-      status: 'pending',
-      createdAt: new Date().toISOString(),
-      ownerName: ownerName,
-      project: {
-        id: PROJ.id, name: PROJ.name, industry: PROJ.industry || '',
-        description: PROJ.description || '',
-        sharePrice: PROJ.sharePrice, targetAmount: PROJ.targetAmount,
-        revenueShareRate: PROJ.revenueShareRate,
-        duration: PROJ.duration || 0,
-        recoveryMultiple: PROJ.recoveryMultiple,
-        estimatedMonthlyRevenue: PROJ.estimatedMonthlyRevenue,
-        reportFrequency: PROJ.reportFrequency || '月报',
-        ownerId: PROJ.ownerId,
+        // Show success modal
+        showSuccessModal({
+          title: '参与成功！',
+          sub: '即将进入合同签署',
+          duration: 2000,
+          onDone: function(){ window.location.href = '/contracts/' + contractId + '/sign'; }
+        });
       }
     });
-    localStorage.setItem('zlc_contracts', JSON.stringify(contracts));
+  }
 
-    closeModal();
-    showToast('参与成功！即将跳转签署合同...', 'success');
-
-    // Disable button
-    if(partBtn){
-      partBtn.disabled = true;
-      partBtn.textContent = '已参与 ¥' + cost + '万';
-    }
-    if(sel) sel.disabled = true;
-
-    // Redirect to contract sign page
-    setTimeout(function(){ window.location.href = '/contracts/' + contractId + '/sign'; }, 1000);
-  });
+  if(partBtn) partBtn.addEventListener('click', doParticipate);
 
   // Check if already invested on load
   var investments = [];
@@ -1060,7 +1156,7 @@ app.get('/projects/:id', (c) => {
 })();
 `}} />
     </div>,
-    { title: proj.name + ' — 中流通' }
+    { title: '中流通 - ' + proj.name }
   )
 })
 
@@ -1071,11 +1167,12 @@ app.get('/create', (c) => {
   const industries = ['餐饮连锁','智能制造','教育培训','物流供应链','美容健康','零售','SaaS','其他']
 
   return c.render(
-    <div class="has-tabbar">
+    <div class="app-container has-tabbar">
       <AuthCheckScript />
+      <GlobalScripts />
       <Navbar />
 
-      <main class="max-w-lg mx-auto px-4 pt-2 pb-6">
+      <main class="max-w-lg mx-auto px-4 pt-2 pb-6 page-enter">
         {/* Stepper */}
         <div class="stepper" id="stepper">
           <div class="stepper-step">
@@ -1283,25 +1380,12 @@ app.get('/create', (c) => {
 
       <TabBar active="create" />
 
-      {/* Toast */}
-      <div id="toast" class="toast" />
-
       {/* Client script for create project */}
       <script dangerouslySetInnerHTML={{ __html: `
 (function(){
   var u = null;
   try { u = JSON.parse(localStorage.getItem('zlc_user')); } catch(e){}
   if (!u) return;
-
-  // Toast
-  var toastEl = document.getElementById('toast');
-  var toastTimer = null;
-  function showToast(m,t){
-    if(!toastEl) return;
-    clearTimeout(toastTimer);toastEl.textContent=m;toastEl.className='toast toast-'+(t||'error');
-    requestAnimationFrame(function(){toastEl.classList.add('show');});
-    toastTimer=setTimeout(function(){toastEl.classList.remove('show');},3000);
-  }
 
   // Step navigation
   var currentStep = 1;
@@ -1547,7 +1631,7 @@ app.get('/create', (c) => {
 })();
 `}} />
     </div>,
-    { title: '发起项目 — 中流通' }
+    { title: '中流通 - 发起项目' }
   )
 })
 
@@ -1558,11 +1642,12 @@ app.get('/contracts/:id/sign', (c) => {
   const contractId = c.req.param('id')
 
   return c.render(
-    <div>
+    <div class="app-container">
       <AuthCheckScript />
+      <GlobalScripts />
       <Navbar />
 
-      <main class="max-w-lg mx-auto px-4 pt-3 pb-8">
+      <main class="max-w-lg mx-auto px-4 pt-3 pb-8 page-enter">
         <a href="javascript:history.back()" class="back-link mb-4 inline-flex">
           <i class="fas fa-arrow-left" style="font-size:13px;" /> 返回
         </a>
@@ -1620,12 +1705,9 @@ app.get('/contracts/:id/sign', (c) => {
         <div class="sign-success-icon">
           <i class="fas fa-check text-white" style="font-size:36px;" />
         </div>
-        <div class="sign-success-text">合同签署成功</div>
+        <div class="sign-success-text">合同签署成功！</div>
         <div class="sign-success-sub">协议已生效，即将跳转到回款页面...</div>
       </div>
-
-      {/* Toast */}
-      <div id="toast" class="toast" />
 
       {/* Client script */}
       <script dangerouslySetInnerHTML={{ __html: `
@@ -1635,16 +1717,6 @@ app.get('/contracts/:id/sign', (c) => {
   if (!u) return;
 
   var CONTRACT_ID = '${contractId}';
-
-  // Toast
-  var toastEl = document.getElementById('toast');
-  var toastTimer = null;
-  function showToast(m,t){
-    if(!toastEl) return;
-    clearTimeout(toastTimer);toastEl.textContent=m;toastEl.className='toast toast-'+(t||'error');
-    requestAnimationFrame(function(){toastEl.classList.add('show');});
-    toastTimer=setTimeout(function(){toastEl.classList.remove('show');},3000);
-  }
 
   // Load contract data from localStorage
   var contracts = [];
@@ -1795,7 +1867,7 @@ app.get('/contracts/:id/sign', (c) => {
 })();
 `}} />
     </div>,
-    { title: '合同签署 — 中流通' }
+    { title: '中流通 - 合同签署' }
   )
 })
 
@@ -1804,8 +1876,9 @@ app.get('/contracts/:id/sign', (c) => {
 // ══════════════════════════════════════════════════════════
 app.get('/repayments', (c) => {
   return c.render(
-    <div class="has-tabbar">
+    <div class="app-container has-tabbar">
       <AuthCheckScript />
+      <GlobalScripts />
       <Navbar />
 
       <main class="max-w-lg mx-auto">
@@ -2054,7 +2127,7 @@ app.get('/repayments', (c) => {
 })();
 `}} />
     </div>,
-    { title: '回款中心 — 中流通' }
+    { title: '中流通 - 回款中心' }
   )
 })
 
@@ -2065,11 +2138,12 @@ app.get('/investments/:contractId', (c) => {
   const contractId = c.req.param('contractId')
 
   return c.render(
-    <div>
+    <div class="app-container">
       <AuthCheckScript />
+      <GlobalScripts />
       <Navbar />
 
-      <main class="max-w-lg mx-auto px-4 pt-3 pb-8">
+      <main class="max-w-lg mx-auto px-4 pt-3 pb-8 page-enter">
         <a href="/repayments" class="back-link mb-4 inline-flex">
           <i class="fas fa-arrow-left" style="font-size:13px;" /> 返回回款中心
         </a>
@@ -2212,7 +2286,7 @@ app.get('/investments/:contractId', (c) => {
 })();
 `}} />
     </div>,
-    { title: '投资详情 — 中流通' }
+    { title: '中流通 - 投资详情' }
   )
 })
 
@@ -2223,11 +2297,12 @@ app.get('/initiated/:projectId/report', (c) => {
   const projectId = c.req.param('projectId')
 
   return c.render(
-    <div>
+    <div class="app-container">
       <AuthCheckScript />
+      <GlobalScripts />
       <Navbar />
 
-      <main class="max-w-lg mx-auto px-4 pt-3 pb-8">
+      <main class="max-w-lg mx-auto px-4 pt-3 pb-8 page-enter">
         <a href="/repayments" class="back-link mb-4 inline-flex">
           <i class="fas fa-arrow-left" style="font-size:13px;" /> 返回回款中心
         </a>
@@ -2277,16 +2352,6 @@ app.get('/initiated/:projectId/report', (c) => {
   var lsRepRecords = [];
   try { lsRepRecords = JSON.parse(localStorage.getItem('zlc_repayment_records') || '[]'); } catch(e){}
   lsRepRecords.forEach(function(r){ if(!REP_RECORDS.find(function(x){return x.id===r.id;})) REP_RECORDS.push(r); });
-
-  // Toast
-  var toastEl = document.getElementById('toast');
-  var toastTimer = null;
-  function showToast(m,t){
-    if(!toastEl) return;
-    clearTimeout(toastTimer);toastEl.textContent=m;toastEl.className='toast toast-'+(t||'error');
-    requestAnimationFrame(function(){toastEl.classList.add('show');});
-    toastTimer=setTimeout(function(){toastEl.classList.remove('show');},3000);
-  }
 
   var proj = PROJECTS.find(function(p){ return p.id === PROJECT_ID; });
   var el = document.getElementById('report-content');
@@ -2535,7 +2600,219 @@ app.get('/initiated/:projectId/report', (c) => {
 })();
 `}} />
     </div>,
-    { title: '上报收入 — 中流通' }
+    { title: '中流通 - 上报收入' }
+  )
+})
+
+// ══════════════════════════════════════════════════════════
+// Admin Backend  (/admin)
+// ══════════════════════════════════════════════════════════
+app.get('/admin', (c) => {
+  const allMembers = mockMembers.filter(m => m.status === 'active')
+  const stats = {
+    memberCount: allMembers.length,
+    projectCount: mockProjects.length,
+    totalRaised: mockProjects.reduce((s, p) => s + p.raisedAmount, 0),
+    totalRepaid: mockRepayments.reduce((s, r) => s + r.amount, 0),
+    activeProjectCount: mockProjects.filter(p => p.status === 'active' || p.status === 'open').length,
+  }
+
+  return c.render(
+    <div class="app-container">
+      <GlobalScripts />
+      {/* Admin Navbar (black) */}
+      <nav class="app-navbar-admin">
+        <a href="/admin" class="flex items-center gap-2" style="text-decoration:none;">
+          <LogoSVG size={24} />
+          <span class="font-bold" style="font-size:17px;font-family:'Noto Sans SC',sans-serif;color:#D4A853;">
+            中流通 · 管理后台
+          </span>
+        </a>
+        <a href="/profile" style="text-decoration:none;font-size:13px;color:rgba(255,255,255,0.6);">
+          <i class="fas fa-arrow-left mr-1" /> 返回前台
+        </a>
+      </nav>
+
+      <main class="max-w-lg mx-auto px-4 pt-4 pb-8 page-enter">
+        {/* Platform Stats */}
+        <div class="admin-section">
+          <div class="admin-section-title">
+            <span><i class="fas fa-chart-bar text-brand mr-2" style="font-size:14px;" />平台数据</span>
+          </div>
+          <div class="admin-kpi-grid">
+            <div class="admin-kpi-card">
+              <div class="admin-kpi-val" id="admin-members">{stats.memberCount}</div>
+              <div class="admin-kpi-label">学员总数</div>
+            </div>
+            <div class="admin-kpi-card">
+              <div class="admin-kpi-val" id="admin-projects">{stats.projectCount}</div>
+              <div class="admin-kpi-label">项目总数</div>
+            </div>
+            <div class="admin-kpi-card">
+              <div class="admin-kpi-val" id="admin-raised">¥{stats.totalRaised}万</div>
+              <div class="admin-kpi-label">累计融资</div>
+            </div>
+            <div class="admin-kpi-card">
+              <div class="admin-kpi-val" id="admin-repaid">¥{stats.totalRepaid.toFixed(1)}万</div>
+              <div class="admin-kpi-label">累计回款</div>
+            </div>
+            <div class="admin-kpi-card">
+              <div class="admin-kpi-val" id="admin-active">{stats.activeProjectCount}</div>
+              <div class="admin-kpi-label">活跃项目</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Member Management */}
+        <div class="admin-section">
+          <div class="admin-section-title">
+            <span><i class="fas fa-users text-brand mr-2" style="font-size:14px;" />学员管理 · {allMembers.length}人</span>
+            <button class="admin-invite-btn" id="invite-btn">
+              <i class="fas fa-plus mr-1" style="font-size:11px;" />邀请新学员
+            </button>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>姓名</th>
+                  <th>公司</th>
+                  <th>行业</th>
+                  <th>期数</th>
+                  <th>加入时间</th>
+                </tr>
+              </thead>
+              <tbody>
+                {allMembers.map(m => (
+                  <tr>
+                    <td style="font-weight:500;">{m.name}</td>
+                    <td>{m.company}</td>
+                    <td><span class="bg-brand-soft text-brand px-2 py-0.5 rounded" style="font-size:11px;">{m.industry}</span></td>
+                    <td>{m.cohort}</td>
+                    <td style="font-size:13px;color:#78716C;">{m.joinDate}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* All Projects */}
+        <div class="admin-section">
+          <div class="admin-section-title">
+            <span><i class="fas fa-folder-open text-brand mr-2" style="font-size:14px;" />全部项目</span>
+            <select id="admin-status-filter" class="filter-select" style="flex:none;width:auto;">
+              <option value="all">全部状态</option>
+              <option value="open">募集中</option>
+              <option value="active">运营中</option>
+              <option value="completed">已完成</option>
+            </select>
+          </div>
+          <div id="admin-project-list" class="flex flex-col gap-3" />
+        </div>
+      </main>
+
+      {/* Invite Modal (hidden) */}
+      <div id="invite-modal" class="modal-overlay">
+        <div class="modal-box" style="text-align:left;">
+          <div class="modal-title" style="text-align:center;margin-bottom:16px;">邀请新学员</div>
+          <div class="mb-3">
+            <label class="form-label">手机号 <span class="req">*</span></label>
+            <input id="invite-phone" type="tel" class="form-input" placeholder="请输入手机号" maxlength={11} />
+          </div>
+          <div class="mb-4">
+            <label class="form-label">姓名 <span class="req">*</span></label>
+            <input id="invite-name" type="text" class="form-input" placeholder="请输入姓名" />
+          </div>
+          <div class="modal-btn-row">
+            <button class="modal-btn modal-btn-cancel" id="invite-cancel">取消</button>
+            <button class="modal-btn modal-btn-confirm" id="invite-submit">确认邀请</button>
+          </div>
+        </div>
+      </div>
+
+      <script dangerouslySetInnerHTML={{ __html: `
+(function(){
+  var u = null;
+  try { u = JSON.parse(localStorage.getItem('zlc_user')); } catch(e){}
+  if (!u || u.role !== 'admin') { window.location.href = '/'; return; }
+
+  var PROJECTS = ${JSON.stringify(mockProjects)};
+  var MEMBERS = ${JSON.stringify(mockMembers.map(m => ({ id:m.id, name:m.name, company:m.company })))};
+
+  // Merge user projects
+  var lsProjects = [];
+  try { lsProjects = JSON.parse(localStorage.getItem('zlc_user_projects') || '[]'); } catch(e){}
+  lsProjects.forEach(function(p){ if(!PROJECTS.find(function(x){return x.id===p.id;})) PROJECTS.push(p); });
+
+  var listEl = document.getElementById('admin-project-list');
+  var filterEl = document.getElementById('admin-status-filter');
+
+  function statusLabel(s){ return {open:'募集中',funded:'已满额',active:'运营中',completed:'已完成',draft:'草稿'}[s]||s; }
+
+  function renderProjects(){
+    var filter = filterEl.value;
+    var list = filter === 'all' ? PROJECTS : PROJECTS.filter(function(p){ return p.status === filter; });
+
+    if(list.length === 0){
+      listEl.innerHTML = '<div class="empty-state"><i class="fas fa-folder-open empty-state-icon"></i><div class="empty-state-text">暂无项目</div></div>';
+      return;
+    }
+
+    listEl.innerHTML = list.map(function(p){
+      var owner = MEMBERS.find(function(m){ return m.id === p.ownerId; }) || {name:'?',company:''};
+      var pct = p.targetAmount > 0 ? Math.round(p.raisedAmount/p.targetAmount*100) : 0;
+      return '<a href="/projects/'+p.id+'" style="display:block;text-decoration:none;color:inherit;background:#FAFAF9;border-radius:12px;padding:14px;transition:background 0.2s;" onmouseover="this.style.background=\\'#F5F5F4\\'" onmouseout="this.style.background=\\'#FAFAF9\\'">'
+        + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
+        + '<span style="font-size:15px;font-weight:600;color:#1C1917;">' + p.name + '</span>'
+        + '<span class="badge badge-'+p.status+'">' + statusLabel(p.status) + '</span>'
+        + '</div>'
+        + '<div style="display:flex;gap:12px;font-size:13px;color:#78716C;">'
+        + '<span>' + owner.name + ' · ' + owner.company + '</span>'
+        + '<span>¥' + p.targetAmount + '万</span>'
+        + '<span>' + pct + '%</span>'
+        + '</div></a>';
+    }).join('');
+  }
+
+  filterEl.addEventListener('change', renderProjects);
+  renderProjects();
+
+  // Invite modal
+  var inviteBtn = document.getElementById('invite-btn');
+  var inviteModal = document.getElementById('invite-modal');
+  var inviteCancel = document.getElementById('invite-cancel');
+  var inviteSubmit = document.getElementById('invite-submit');
+
+  inviteBtn.addEventListener('click', function(){
+    inviteModal.classList.add('show');
+  });
+  inviteCancel.addEventListener('click', function(){
+    inviteModal.classList.remove('show');
+  });
+  inviteModal.addEventListener('click', function(e){
+    if(e.target === inviteModal) inviteModal.classList.remove('show');
+  });
+  inviteSubmit.addEventListener('click', function(){
+    var phone = document.getElementById('invite-phone').value.trim();
+    var name = document.getElementById('invite-name').value.trim();
+    if(!phone || !name){
+      showToast('请填写手机号和姓名', 'error');
+      return;
+    }
+    if(!/^1[3-9]\\d{9}$/.test(phone)){
+      showToast('请输入正确的手机号', 'error');
+      return;
+    }
+    inviteModal.classList.remove('show');
+    showToast('邀请已发送给 ' + name + ' (' + phone + ')', 'success');
+    document.getElementById('invite-phone').value = '';
+    document.getElementById('invite-name').value = '';
+  });
+})();
+`}} />
+    </div>,
+    { title: '中流通 - 管理后台' }
   )
 })
 
