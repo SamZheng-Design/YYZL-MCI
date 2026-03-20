@@ -9,10 +9,42 @@ app.get('/login', (c) => {
   return c.render(
     <div>
       <GlobalScripts />
-      {/* Full-screen gradient background */}
-      <div style="position:fixed;inset:0;background:linear-gradient(135deg,#7F1D1D 0%,#B91C1C 50%,#991B1B 100%);" />
 
-      <div style="position:relative;z-index:10;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px;">
+      {/* Desktop split layout wrapper — only visible ≥1025px */}
+      <div id="login-desktop-brand-panel" class="login-desktop-brand" style="display:none;">
+        <div class="login-desktop-brand-inner">
+          <svg width="64" height="64" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" style="margin-bottom:24px;">
+            <defs>
+              <linearGradient id="lb-gt" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#DC2626"/><stop offset="100%" stop-color="#fff"/></linearGradient>
+              <linearGradient id="lb-gb" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#DC2626"/></linearGradient>
+            </defs>
+            <circle cx="44" cy="28" r="22" fill="url(#lb-gt)" opacity="0.9"/>
+            <circle cx="36" cy="44" r="22" fill="url(#lb-gb)" opacity="0.7"/>
+          </svg>
+          <div style="color:white;font-size:40px;font-weight:800;letter-spacing:6px;font-family:'Noto Sans SC',sans-serif;">中流通</div>
+          <div style="color:rgba(255,255,255,0.65);font-size:16px;margin-top:12px;line-height:1.6;">基于收入分成模式的<br/>私董会项目投资协作平台</div>
+          <div style="display:flex;gap:32px;margin-top:36px;justify-content:center;">
+            <div style="text-align:center;">
+              <div style="font-size:28px;">🔗</div>
+              <div style="font-size:12px;color:rgba(255,255,255,0.5);margin-top:6px;">同学互联</div>
+            </div>
+            <div style="text-align:center;">
+              <div style="font-size:28px;">💰</div>
+              <div style="font-size:12px;color:rgba(255,255,255,0.5);margin-top:6px;">收入分成</div>
+            </div>
+            <div style="text-align:center;">
+              <div style="font-size:28px;">🛡️</div>
+              <div style="font-size:12px;color:rgba(255,255,255,0.5);margin-top:6px;">合规保障</div>
+            </div>
+          </div>
+          <div style="margin-top:40px;font-size:13px;color:rgba(255,255,255,0.3);font-style:italic;">Connect All Possibilities</div>
+        </div>
+      </div>
+
+      {/* Full-screen gradient background (mobile/tablet) */}
+      <div id="login-mobile-bg" style="position:fixed;inset:0;background:linear-gradient(135deg,#7F1D1D 0%,#B91C1C 50%,#991B1B 100%);" />
+
+      <div id="login-form-area" style="position:relative;z-index:10;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px;">
         {/* Glass card */}
         <div id="login-card" style="max-width:460px;width:90%;background:rgba(255,255,255,0.12);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.2);border-radius:24px;padding:40px 32px;opacity:0;transform:translateY(30px);animation:loginCardIn 600ms ease-out forwards;">
 
@@ -252,6 +284,27 @@ app.get('/login', (c) => {
   });
   codeInput.addEventListener('keydown',function(e){if(e.key==='Enter')loginBtn.click();});
   phoneInput.addEventListener('keydown',function(e){if(e.key==='Enter')codeInput.focus();});
+
+  // ── Desktop split layout ──
+  if(window.innerWidth >= 1025){
+    var wrapper = document.querySelector('#login-form-area').parentElement;
+    var brandPanel = document.getElementById('login-desktop-brand-panel');
+    var formArea = document.getElementById('login-form-area');
+    var mobileBg = document.getElementById('login-mobile-bg');
+    if(brandPanel && formArea){
+      // Create flex container
+      wrapper.style.display = 'flex';
+      wrapper.style.minHeight = '100vh';
+      // Show brand panel
+      brandPanel.style.display = 'flex';
+      // Make form area take right half
+      formArea.style.width = '50%';
+      formArea.style.position = 'relative';
+      formArea.style.background = 'linear-gradient(160deg, #7F1D1D 0%, #B91C1C 50%, #991B1B 100%)';
+      // Hide the fixed background
+      if(mobileBg) mobileBg.style.display = 'none';
+    }
+  }
 })();
 `}} />
     </div>,

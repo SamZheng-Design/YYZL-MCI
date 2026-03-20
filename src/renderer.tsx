@@ -1316,6 +1316,247 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
   .kpi-item { min-width: 50%; padding: 8px; }
   .kpi-item:not(:last-child)::after { display: none; }
 }
+
+/* ══════════════════════════════════════════════════════════
+   RESPONSIVE — Mobile (≤768px)
+   ══════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Desktop-only elements: hide */
+  .desktop-sidebar, .desktop-topbar { display: none !important; }
+
+  /* Content breathing room */
+  .app-container { max-width: 100%; box-shadow: none; }
+  .app-container > main { padding-left: 16px !important; padding-right: 16px !important; }
+
+  /* Navbar internal padding */
+  .app-navbar { padding: 0 16px; }
+
+  /* Welcome banner / flash bar margins */
+  .invest-overview-card { margin-left: 0 !important; margin-right: 0 !important; }
+  #repayment-flash-bar > div { margin-left: 0 !important; margin-right: 0 !important; border-radius: 12px; }
+  .initiator-note { margin-left: 0 !important; margin-right: 0 !important; }
+  .payback-banner { margin-left: 0 !important; margin-right: 0 !important; border-radius: 12px; }
+
+  /* Project cards spacing */
+  .bg-white.rounded-2xl.shadow-card { margin-bottom: 12px; }
+}
+
+/* ══════════════════════════════════════════════════════════
+   RESPONSIVE — Tablet (769px – 1024px)
+   ══════════════════════════════════════════════════════════ */
+@media (min-width: 769px) and (max-width: 1024px) {
+  /* Desktop-only elements: hide */
+  .desktop-sidebar, .desktop-topbar { display: none !important; }
+
+  /* Content area centered */
+  .app-container {
+    max-width: 680px; margin: 0 auto;
+    box-shadow: 0 0 40px rgba(0,0,0,0.06);
+  }
+  .app-container > main { padding-left: 24px !important; padding-right: 24px !important; }
+
+  /* Navbar: full width, but content centered */
+  .app-navbar {
+    max-width: 100%; padding: 0 24px;
+  }
+
+  /* TabBar follows content width */
+  .tab-bar {
+    max-width: 680px; left: 50%; transform: translateX(-50%);
+  }
+
+  /* Help button & nudge bar */
+  #help-float-btn { right: calc(50% - 340px + 16px); }
+  .nudge-bar { left: calc(50% - 340px + 16px); right: calc(50% - 340px + 16px); }
+  #faq-panel { max-width: 680px; left: 50%; right: auto; transform: translateX(-50%) translateY(100%); }
+  #faq-overlay.show #faq-panel { transform: translateX(-50%) translateY(0); }
+}
+
+/* ══════════════════════════════════════════════════════════
+   RESPONSIVE — Desktop (≥1025px)
+   ══════════════════════════════════════════════════════════ */
+@media (min-width: 1025px) {
+  /* ── Hide mobile elements ── */
+  .app-navbar { display: none !important; }
+  .app-navbar-admin { display: none !important; }
+  .tab-bar { display: none !important; }
+  .has-tabbar { padding-bottom: 0 !important; }
+
+  /* ── Global layout ── */
+  html, body { overflow: hidden; height: 100vh; }
+  .app-container {
+    max-width: none !important; box-shadow: none !important;
+    margin: 0 !important; margin-left: 240px !important;
+    min-height: 100vh; height: 100vh; overflow-y: auto;
+    position: relative;
+  }
+
+  /* ── Desktop Sidebar ── */
+  .desktop-sidebar {
+    display: flex !important; flex-direction: column;
+    position: fixed; left: 0; top: 0; bottom: 0;
+    width: 240px; z-index: 200;
+    background: linear-gradient(180deg, #1C1917 0%, #292524 100%);
+    color: #fff; overflow-y: auto;
+  }
+  .desktop-sidebar::-webkit-scrollbar { width: 0; }
+
+  .ds-brand {
+    padding: 28px 24px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .ds-brand-logo { display: flex; align-items: center; gap: 10px; }
+  .ds-brand-name { font-size: 20px; font-weight: 700; color: #fff; }
+  .ds-brand-sub { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 4px; }
+
+  .ds-nav {
+    flex: 1; padding: 16px 12px; display: flex; flex-direction: column; gap: 4px;
+  }
+  .ds-nav-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px; border-radius: 10px;
+    color: rgba(255,255,255,0.6); font-size: 15px;
+    cursor: pointer; transition: all 0.2s ease;
+    text-decoration: none; border: none; background: none; width: 100%;
+    position: relative;
+  }
+  .ds-nav-item:hover {
+    background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.85);
+  }
+  .ds-nav-item.ds-active {
+    background: rgba(185,28,28,0.15); color: #FFFFFF; font-weight: 600;
+  }
+  .ds-nav-item.ds-active::before {
+    content: ''; position: absolute; left: 0; top: 8px; bottom: 8px;
+    width: 3px; background: #B91C1C; border-radius: 0 2px 2px 0;
+  }
+  .ds-nav-icon { width: 20px; text-align: center; font-size: 16px; flex-shrink: 0; }
+
+  .ds-stats {
+    padding: 16px 20px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+  .ds-stats-line {
+    font-size: 12px; color: rgba(255,255,255,0.35);
+    line-height: 1.8;
+  }
+
+  .ds-user {
+    padding: 16px 20px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .ds-user-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: #B91C1C; color: #fff; font-size: 14px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .ds-user-info { flex: 1; min-width: 0; }
+  .ds-user-name { font-size: 14px; color: #fff; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ds-user-role { font-size: 12px; color: rgba(255,255,255,0.4); }
+  .ds-user-switch {
+    font-size: 12px; color: rgba(255,255,255,0.5); cursor: pointer;
+    background: none; border: none; padding: 4px 8px; flex-shrink: 0;
+    transition: color 0.2s;
+  }
+  .ds-user-switch:hover { color: rgba(255,255,255,0.8); }
+
+  /* ── Desktop Top Bar ── */
+  .desktop-topbar {
+    display: flex !important; align-items: center; justify-content: space-between;
+    position: fixed; top: 0; left: 240px; right: 0; z-index: 100;
+    height: 60px; padding: 0 32px;
+    background: rgba(250,250,249,0.85);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid #E7E5E4;
+  }
+  .dt-title { font-size: 18px; font-weight: 600; color: #1C1917; }
+  .dt-actions { display: flex; align-items: center; gap: 12px; }
+  .dt-demo-btn {
+    font-size: 12px; color: #B91C1C; background: rgba(185,28,28,0.08);
+    border-radius: 8px; padding: 6px 12px; cursor: pointer; border: none;
+    font-weight: 500; transition: background 0.2s;
+  }
+  .dt-demo-btn:hover { background: rgba(185,28,28,0.15); }
+  .dt-bell {
+    position: relative; width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; background: none; border: none; transition: background 0.2s;
+  }
+  .dt-bell:hover { background: rgba(0,0,0,0.04); }
+  .dt-bell-dot {
+    position: absolute; top: 2px; right: 2px;
+    min-width: 16px; height: 16px; background: #DC2626;
+    color: #fff; font-size: 10px; font-weight: 700; border-radius: 8px;
+    text-align: center; line-height: 16px; padding: 0 3px; display: none;
+  }
+
+  /* ── Content area ── */
+  .app-container > main,
+  .app-container > .page-enter {
+    max-width: 1200px;
+    padding: 84px 32px 32px !important;
+  }
+  .app-container > main.max-w-lg { max-width: 1200px; }
+
+  /* Filter bar sticky offset adjusted (fixed topbar at 60px) */
+  .filter-bar { top: 60px; }
+  .rep-tab-bar { top: 60px; }
+  #admin-tabs { top: 60px; }
+
+  /* Help button & nudge for desktop */
+  #help-float-btn { bottom: 24px; right: 32px; }
+  .nudge-bar { bottom: 24px; left: 272px; right: 32px; }
+  #faq-panel { max-width: 480px; left: auto; right: 32px; transform: translateY(100%); border-radius: 20px 20px 0 0; }
+  #faq-overlay.show #faq-panel { transform: translateY(0); }
+
+  /* ── Login page: no sidebar ── */
+  body.is-login-page .desktop-sidebar { display: none !important; }
+  body.is-login-page .desktop-topbar { display: none !important; }
+  body.is-login-page .app-container {
+    margin-left: 0 !important; max-width: none !important;
+    height: auto; overflow: visible;
+  }
+  body.is-login-page { overflow: auto; height: auto; }
+
+  /* Login split layout */
+  .login-desktop-split {
+    display: flex !important; min-height: 100vh;
+  }
+  .login-desktop-brand {
+    display: flex !important; width: 50%; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: linear-gradient(160deg, #7F1D1D 0%, #B91C1C 50%, #991B1B 100%);
+    padding: 60px 40px; position: relative; overflow: hidden;
+  }
+  .login-desktop-brand::before {
+    content: '';
+    position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+    background: radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.06) 0%, transparent 50%);
+    pointer-events: none;
+  }
+  .login-desktop-brand-inner { position: relative; z-index: 1; text-align: center; max-width: 400px; }
+  .login-desktop-form {
+    width: 50%; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(160deg, #7F1D1D 0%, #B91C1C 50%, #991B1B 100%);
+    padding: 40px;
+  }
+
+  /* ── Guide page: no sidebar ── */
+  body.is-guide-page .desktop-sidebar { display: none !important; }
+  body.is-guide-page .desktop-topbar { display: none !important; }
+  body.is-guide-page .app-container,
+  body.is-guide-page .guide-page-wrap {
+    margin-left: 0 !important; max-width: none !important;
+    height: auto; overflow: visible;
+  }
+  body.is-guide-page { overflow: auto; height: auto; }
+  body.is-guide-page .guide-timeline { max-width: 900px; margin: 0 auto; }
+  body.is-guide-page .guide-section-title { max-width: 900px; margin-left: auto; margin-right: auto; }
+  body.is-guide-page .guide-step-grid {
+    display: grid !important; grid-template-columns: repeat(2, 1fr); gap: 24px;
+  }
+}
 `,
           }}
         />
@@ -1426,8 +1667,204 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
 
         {/* ══ Page Content (hidden until splash finishes) ══ */}
         <div id="zlc-page-wrap">
+          {/* ══ Desktop Sidebar (hidden on mobile/tablet via CSS) ══ */}
+          <aside class="desktop-sidebar" id="desktop-sidebar" style="display:none;">
+            <div class="ds-brand">
+              <div class="ds-brand-logo">
+                <svg width="28" height="28" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+                  <defs>
+                    <linearGradient id="ds-gt" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#DC2626"/><stop offset="100%" stop-color="#B91C1C"/></linearGradient>
+                    <linearGradient id="ds-gb" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#991B1B"/><stop offset="100%" stop-color="#DC2626"/></linearGradient>
+                  </defs>
+                  <circle cx="44" cy="28" r="22" fill="url(#ds-gt)"/>
+                  <circle cx="36" cy="44" r="22" fill="url(#ds-gb)" opacity="0.85"/>
+                </svg>
+                <span class="ds-brand-name">中流通</span>
+              </div>
+              <div class="ds-brand-sub">滴灌通 × 一亿中流</div>
+            </div>
+            <nav class="ds-nav" id="ds-nav-menu">
+              {/* Populated by JS based on role */}
+            </nav>
+            <div class="ds-stats" id="ds-stats">
+              {/* Populated by JS */}
+            </div>
+            <div class="ds-user" id="ds-user-area">
+              <div class="ds-user-avatar" id="ds-user-avatar">?</div>
+              <div class="ds-user-info">
+                <div class="ds-user-name" id="ds-user-name">用户</div>
+                <div class="ds-user-role" id="ds-user-role">学员</div>
+              </div>
+              <button class="ds-user-switch" id="ds-user-switch">切换</button>
+            </div>
+          </aside>
+
+          {/* ══ Desktop Top Bar (hidden on mobile/tablet via CSS) ══ */}
+          <div class="desktop-topbar" id="desktop-topbar" style="display:none;">
+            <div class="dt-title" id="dt-page-title">首页</div>
+            <div class="dt-actions">
+              <button class="dt-demo-btn" id="dt-demo-btn" style="display:none;">📖 演示</button>
+              <button class="dt-bell" id="dt-bell" onclick="window.location.href='/notifications'">
+                <i class="fas fa-bell" style="font-size:18px;color:#78716C;"></i>
+                <span class="dt-bell-dot" id="dt-bell-dot"></span>
+              </button>
+              <button id="dt-user-btn" style="width:32px;height:32px;border-radius:50%;background:#B91C1C;color:white;font-size:14px;font-weight:700;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;"></button>
+            </div>
+          </div>
+
           {children}
         </div>
+
+        {/* ══ Desktop Sidebar + TopBar init logic ══ */}
+        <script dangerouslySetInnerHTML={{__html: `
+(function(){
+  // Only run on desktop (≥1025px)
+  if(window.innerWidth < 1025) return;
+
+  var path = window.location.pathname;
+
+  // Mark body for login/guide pages
+  if(path === '/login') { document.body.classList.add('is-login-page'); return; }
+  if(path.indexOf('/guide') === 0) { document.body.classList.add('is-guide-page'); return; }
+
+  // Show sidebar and topbar
+  var sidebar = document.getElementById('desktop-sidebar');
+  var topbar = document.getElementById('desktop-topbar');
+  if(sidebar) sidebar.style.display = '';
+  if(topbar) topbar.style.display = '';
+
+  // ── Get user data ──
+  var u = null, cu = null;
+  try { u = JSON.parse(localStorage.getItem('zlc_user')); } catch(e){}
+  try { cu = JSON.parse(localStorage.getItem('zlc_current_user')); } catch(e){}
+  var role = (cu && cu.role) ? cu.role : 'member';
+
+  // ── Build nav menu ──
+  var memberTabs = [
+    { icon:'🏠', label:'首页', href:'/', key:'/' },
+    { icon:'🏛', label:'项目大厅', href:'/projects', key:'/projects' },
+    { icon:'➕', label:'发起项目', href:'/create', key:'/create' },
+    { icon:'💰', label:'回款', href:'/repayments', key:'/repayments' },
+    { icon:'👤', label:'我的', href:'/profile', key:'/profile' }
+  ];
+  var teacherTabs = [
+    { icon:'📋', label:'我的班级', href:'/teacher', key:'/teacher' },
+    { icon:'🏛', label:'项目大厅', href:'/projects', key:'/projects' },
+    { icon:'➕', label:'发起项目', href:'/create', key:'/create' },
+    { icon:'💰', label:'回款', href:'/repayments', key:'/repayments' },
+    { icon:'👤', label:'我的', href:'/profile', key:'/profile' }
+  ];
+  var adminTabs = [
+    { icon:'📊', label:'管理工作台', href:'/admin', key:'/admin' },
+    { icon:'⚙️', label:'个人设置', href:'/profile', key:'/profile' }
+  ];
+
+  var tabs = role === 'admin' ? adminTabs : (role === 'teacher' ? teacherTabs : memberTabs);
+  var navEl = document.getElementById('ds-nav-menu');
+  if(navEl){
+    var html = '';
+    tabs.forEach(function(t){
+      var isActive = path === t.key || (t.key !== '/' && path.indexOf(t.key) === 0);
+      // Special: for home, exact match only
+      if(t.key === '/' && path !== '/') isActive = false;
+      html += '<a class="ds-nav-item' + (isActive ? ' ds-active' : '') + '" href="' + t.href + '">';
+      html += '<span class="ds-nav-icon">' + t.icon + '</span>';
+      html += '<span>' + t.label + '</span></a>';
+    });
+    navEl.innerHTML = html;
+  }
+
+  // ── Stats ──
+  var statsEl = document.getElementById('ds-stats');
+  if(statsEl){
+    // Fetch stats from API
+    fetch('/api/projects').then(function(r){return r.json();}).then(function(d){
+      if(!d.ok) return;
+      var projects = d.projects || [];
+      var active = projects.filter(function(p){return p.status==='open'||p.status==='active'||p.status==='funded';}).length;
+      var totalAmt = 0;
+      projects.forEach(function(p){ totalAmt += (p.targetAmount || 0); });
+      fetch('/api/members').then(function(r2){return r2.json();}).then(function(d2){
+        var memberCount = (d2.ok && d2.members) ? d2.members.length : 0;
+        statsEl.innerHTML = '<div class="ds-stats-line">📦 ' + active + ' 个进行中项目</div>'
+          + '<div class="ds-stats-line">👥 ' + memberCount + ' 位学员</div>'
+          + '<div class="ds-stats-line">💰 累计融资 ¥' + Math.round(totalAmt) + '万</div>';
+      });
+    }).catch(function(){});
+  }
+
+  // ── User area ──
+  if(u){
+    var avatarEl = document.getElementById('ds-user-avatar');
+    var nameEl = document.getElementById('ds-user-name');
+    var roleEl = document.getElementById('ds-user-role');
+    if(avatarEl) avatarEl.textContent = u.name ? u.name.charAt(0) : '?';
+    if(nameEl) nameEl.textContent = u.name || '用户';
+    var roleMap = {member:'学员',teacher:'老师',admin:'管理员'};
+    if(roleEl) roleEl.textContent = roleMap[role] || '学员';
+  }
+  var switchBtn = document.getElementById('ds-user-switch');
+  if(switchBtn){
+    switchBtn.addEventListener('click', function(){
+      localStorage.removeItem('zlc_current_user');
+      localStorage.removeItem('zlc_user');
+      localStorage.removeItem('zlc_token');
+      window.location.href = '/login';
+    });
+  }
+
+  // ── Page title ──
+  var titleMap = {
+    '/': '首页', '/projects': '项目大厅', '/create': '发起项目',
+    '/repayments': '回款', '/profile': '我的', '/admin': '管理工作台',
+    '/teacher': '我的班级', '/notifications': '通知中心',
+    '/investments': '我的投资'
+  };
+  var titleEl = document.getElementById('dt-page-title');
+  if(titleEl){
+    var pageTitle = titleMap[path];
+    if(!pageTitle && path.indexOf('/projects/') === 0) pageTitle = '项目详情';
+    if(!pageTitle && path.indexOf('/contract') === 0) pageTitle = '合同签署';
+    if(!pageTitle && path.indexOf('/revenue') === 0) pageTitle = '收入报告';
+    if(!pageTitle && path.indexOf('/share') === 0) pageTitle = '分享';
+    titleEl.textContent = pageTitle || '中流通';
+  }
+
+  // ── Demo button ──
+  var demoBtn = document.getElementById('dt-demo-btn');
+  if(demoBtn && cu){
+    var guideMap = { member:'/guide/member', teacher:'/guide/teacher', admin:'/guide/admin' };
+    var guideHref = guideMap[role] || '/guide/member';
+    demoBtn.style.display = 'inline-block';
+    demoBtn.addEventListener('click', function(){ window.location.href = guideHref; });
+  }
+
+  // ── Bell unread ──
+  var bellDot = document.getElementById('dt-bell-dot');
+  if(bellDot && u){
+    var allNotifs = [];
+    try { allNotifs = JSON.parse(localStorage.getItem('zlc_notifications') || '[]'); } catch(e){}
+    var myNotifs = allNotifs.filter(function(n){
+      if(n.targetRole === null && n.targetId === null) return true;
+      if(n.targetId === u.id) return true;
+      if(n.targetRole === u.role && n.targetId === null) return true;
+      return false;
+    });
+    var unreadCount = myNotifs.filter(function(n){ return !n.read; }).length;
+    if(unreadCount > 0){
+      bellDot.style.display = 'block';
+      bellDot.textContent = unreadCount > 99 ? '99+' : String(unreadCount);
+    }
+  }
+
+  // ── Desktop user btn ──
+  var dtUserBtn = document.getElementById('dt-user-btn');
+  if(dtUserBtn && u){
+    dtUserBtn.textContent = u.name ? u.name.charAt(0) : '?';
+    dtUserBtn.addEventListener('click', function(){ window.location.href = '/profile'; });
+  }
+})();
+`}} />
 
         {/* ══ Splash dismiss logic ══ */}
         <script dangerouslySetInnerHTML={{__html: `
