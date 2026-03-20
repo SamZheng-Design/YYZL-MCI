@@ -1911,6 +1911,472 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
     border-radius: 16px !important;
     max-height: 80vh !important;
   }
+
+  /* ════════════════════════════════════════════════════════════
+     DESKTOP CARD TYPOGRAPHY & LAYOUT REFINEMENTS (19C)
+     All styles below are DESKTOP-ONLY (≥1025px).
+     No HTML structure, data bindings, or event logic is changed.
+     ════════════════════════════════════════════════════════════ */
+
+  /* ──────────────────────────────────────
+     一、可复用组件：状态标签颜色映射
+     ────────────────────────────────────── */
+  .tag-recruiting {
+    font-size: 11px !important; font-weight: 500 !important;
+    color: #B45309 !important; background: rgba(180,83,9,0.08) !important;
+    padding: 3px 10px !important; border-radius: 6px !important;
+    border: none !important;
+  }
+  .tag-active {
+    font-size: 11px !important; font-weight: 500 !important;
+    color: #15803D !important; background: rgba(21,128,61,0.08) !important;
+    padding: 3px 10px !important; border-radius: 6px !important;
+    border: none !important;
+  }
+  .tag-completed {
+    font-size: 11px !important; font-weight: 500 !important;
+    color: #1D4ED8 !important; background: rgba(29,78,216,0.08) !important;
+    padding: 3px 10px !important; border-radius: 6px !important;
+    border: none !important;
+  }
+  .tag-terminated {
+    font-size: 11px !important; font-weight: 500 !important;
+    color: #78716C !important; background: #F5F5F4 !important;
+    padding: 3px 10px !important; border-radius: 6px !important;
+    border: none !important;
+  }
+  .tag-draft {
+    font-size: 11px !important; font-weight: 500 !important;
+    color: #78716C !important; background: #F5F5F4 !important;
+    padding: 3px 10px !important; border-radius: 6px !important;
+    border: 1px dashed #D6D3D1 !important;
+  }
+
+  /* ──────────────────────────────────────
+     一、可复用组件：数据指标容器
+     ────────────────────────────────────── */
+  .data-metric-box {
+    background: #FAFAF9 !important;
+    border-radius: 10px !important;
+    padding: 14px 0 !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr 1fr !important;
+  }
+  .data-metric-box > *:nth-child(2) {
+    border-left: 1px solid #E7E5E4;
+    border-right: 1px solid #E7E5E4;
+  }
+  .data-metric-box > * {
+    text-align: center !important;
+  }
+  .data-metric-box .dm-value {
+    font-size: 18px; font-weight: 700; color: #1C1917;
+  }
+  .data-metric-box .dm-value .dm-prefix,
+  .data-metric-box .dm-value .dm-suffix {
+    font-size: 13px; font-weight: 400;
+  }
+  .data-metric-box .dm-label {
+    font-size: 11px; color: #A8A29E; margin-top: 4px;
+  }
+
+  /* ──────────────────────────────────────
+     一、电脑端卡片基础样式（所有白色卡片共享）
+     ────────────────────────────────────── */
+  .dk-home-project-grid > a,
+  .dk-project-list > a,
+  #panel-invest .bg-white,
+  #panel-initiate .bg-white,
+  .teacher-card,
+  .admin-section {
+    padding: 24px 28px !important;
+    background: #FFFFFF !important;
+    border-radius: 14px !important;
+    border: 1px solid #F0EFED !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04) !important;
+    transition: all 0.25s ease !important;
+  }
+  .dk-home-project-grid > a:hover,
+  .dk-project-list > a:hover,
+  .teacher-card:hover,
+  .admin-section:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08) !important;
+  }
+  .dk-home-project-grid > a:active,
+  .dk-project-list > a:active,
+  .teacher-card:active,
+  .admin-section:active {
+    transform: translateY(0) !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
+  }
+
+  /* ──────────────────────────────────────
+     二、项目卡片（首页、大厅、我的发起、我的投资）
+     ────────────────────────────────────── */
+
+  /* 区域 A – 发起人信息行 */
+  .dk-home-project-grid > a > div:first-child,
+  .dk-project-list > a > div:first-child {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    padding-bottom: 14px !important;
+  }
+  /* 头像圆形 40px */
+  .dk-home-project-grid > a > div:first-child > div:first-child,
+  .dk-project-list > a > div:first-child > div:first-child {
+    width: 40px !important; height: 40px !important;
+    font-size: 14px !important;
+  }
+  /* 姓名样式 */
+  .dk-home-project-grid > a > div:first-child .text-text-primary,
+  .dk-project-list > a > div:first-child .text-text-primary {
+    font-size: 15px !important; font-weight: 600 !important; color: #1C1917 !important;
+  }
+  /* 公司名 */
+  .dk-home-project-grid > a > div:first-child .text-text-tertiary,
+  .dk-project-list > a > div:first-child .text-text-tertiary {
+    font-size: 13px !important; color: #78716C !important;
+  }
+
+  /* 区域 B – 项目核心信息 */
+  /* 项目名称 */
+  .dk-home-project-grid > a > .font-semibold.text-text-title,
+  .dk-project-list > a > .font-semibold.text-text-title {
+    font-size: 17px !important; font-weight: 700 !important; color: #1C1917 !important;
+    line-height: 1.4 !important; margin-bottom: 10px !important;
+    display: -webkit-box !important; -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important; overflow: hidden !important;
+  }
+
+  /* 标签行 */
+  .dk-home-project-grid > a > .flex.items-center.gap-2,
+  .dk-project-list > a > .flex.items-center.gap-2 {
+    display: flex !important; gap: 8px !important;
+    flex-wrap: wrap !important; margin-bottom: 14px !important;
+  }
+  /* 行业标签 */
+  .dk-home-project-grid > a .bg-brand-soft,
+  .dk-project-list > a .bg-brand-soft {
+    font-size: 11px !important; font-weight: 500 !important;
+    color: #B91C1C !important;
+    background: rgba(185,28,28,0.06) !important;
+    padding: 3px 10px !important; border-radius: 6px !important;
+  }
+
+  /* 区域 C – 进度与操作 */
+  /* 进度条容器 */
+  .dk-home-project-grid > a .progress-bar,
+  .dk-project-list > a .progress-bar {
+    height: 6px !important;
+    background: #F0EFED !important;
+    border-radius: 3px !important;
+  }
+  .dk-home-project-grid > a .progress-fill,
+  .dk-project-list > a .progress-fill {
+    border-radius: 3px !important;
+    background: linear-gradient(90deg, #B91C1C, #DC2626) !important;
+    transition: width 0.6s ease !important;
+  }
+  /* 进度百分比文字 */
+  .dk-home-project-grid > a .font-semibold.text-gold-dark,
+  .dk-project-list > a .font-semibold.text-gold-dark {
+    font-size: 13px !important; font-weight: 600 !important; color: #B91C1C !important;
+  }
+
+  /* ──────────────────────────────────────
+     三、回款记录行（首页回款动态 + 回款页列表）
+     ────────────────────────────────────── */
+  /* 首页回款动态容器 */
+  .dk-home-right .bg-white.rounded-2xl.shadow-card {
+    padding: 0 !important;
+    border-radius: 14px !important;
+    border: 1px solid #F0EFED !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04) !important;
+    overflow: hidden !important;
+  }
+  /* 每行回款记录 */
+  .dk-home-right .bg-white.rounded-2xl.shadow-card > div {
+    padding: 14px 24px !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    transition: background 0.15s !important;
+  }
+  .dk-home-right .bg-white.rounded-2xl.shadow-card > div:hover {
+    background: #FAFAF9 !important;
+  }
+  /* 日期 */
+  .dk-home-right .text-text-tertiary[style*="min-width"] {
+    font-size: 12px !important; color: #A8A29E !important;
+    min-width: 72px !important;
+  }
+  /* 项目名称 */
+  .dk-home-right .text-text-primary.font-medium {
+    font-size: 14px !important; font-weight: 500 !important; color: #1C1917 !important;
+    overflow: hidden !important; text-overflow: ellipsis !important;
+    white-space: nowrap !important; max-width: 320px !important;
+  }
+  /* 金额 */
+  .dk-home-right .font-semibold[style*="color:#16a34a"] {
+    font-size: 16px !important; font-weight: 700 !important;
+    text-align: right !important; min-width: 100px !important;
+  }
+
+  /* 首页回款动态标题行 */
+  .dk-home-right > section > h3 {
+    font-size: 15px !important; font-weight: 600 !important; color: #1C1917 !important;
+    margin-bottom: 14px !important;
+  }
+
+  /* ──────────────────────────────────────
+     四、合同卡片（投资详情页中的独立卡片形态）
+     ────────────────────────────────────── */
+  .contract-card {
+    padding: 22px 28px !important;
+    border-radius: 14px !important;
+    border: 1px solid #F0EFED !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04) !important;
+  }
+  .contract-title {
+    font-size: 20px !important; font-weight: 700 !important;
+  }
+  .contract-no {
+    font-size: 12px !important; color: #A8A29E !important;
+    font-family: monospace !important; letter-spacing: 0.5px !important;
+  }
+
+  /* ──────────────────────────────────────
+     五、KPI 统计卡片（首页投资概览、管理后台、老师工作台）
+     ────────────────────────────────────── */
+  /* 首页四格统计卡 */
+  .dk-home-stats > div {
+    padding: 20px 24px !important;
+    background: #FFFFFF !important;
+    border-radius: 12px !important;
+    border: 1px solid #F0EFED !important;
+    min-height: 100px !important;
+    transition: box-shadow 0.25s ease !important;
+  }
+  .dk-home-stats > div:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06) !important;
+  }
+  .dk-home-stats > div > .font-extrabold {
+    font-size: 28px !important; font-weight: 700 !important;
+    color: #1C1917 !important; line-height: 1.2 !important;
+  }
+  .dk-home-stats > div > .text-text-tertiary {
+    font-size: 12px !important; color: #A8A29E !important;
+    margin-top: 8px !important;
+  }
+
+  /* 管理后台 KPI 6卡片 */
+  .dk-admin-main .admin-kpi-grid > div {
+    padding: 20px 24px !important;
+    background: #FFFFFF !important;
+    border-radius: 12px !important;
+    border: 1px solid #F0EFED !important;
+    min-height: 100px !important;
+    transition: box-shadow 0.25s ease !important;
+  }
+  .dk-admin-main .admin-kpi-grid > div:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06) !important;
+  }
+  /* 管理后台 KPI 顶部装饰线 */
+  .dk-admin-main .admin-kpi-grid > div:nth-child(1) { border-top: 3px solid #B91C1C !important; }
+  .dk-admin-main .admin-kpi-grid > div:nth-child(2) { border-top: 3px solid #D97706 !important; }
+  .dk-admin-main .admin-kpi-grid > div:nth-child(3) { border-top: 3px solid #2563EB !important; }
+  .dk-admin-main .admin-kpi-grid > div:nth-child(4) { border-top: 3px solid #16A34A !important; }
+  .dk-admin-main .admin-kpi-grid > div:nth-child(5) { border-top: 3px solid #7C3AED !important; }
+  .dk-admin-main .admin-kpi-grid > div:nth-child(6) { border-top: 3px solid #0891B2 !important; }
+
+  /* 老师工作台统计条 */
+  #teacher-stats-bar {
+    border-radius: 12px !important;
+    border: 1px solid #F0EFED !important;
+    overflow: hidden !important;
+  }
+  #teacher-stats-bar > div {
+    padding: 20px 24px !important;
+    min-height: 100px !important;
+  }
+
+  /* 投资概览卡片 */
+  .invest-overview-card {
+    padding: 20px 24px !important;
+    border-radius: 14px !important;
+    border: 1px solid #F0EFED !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04) !important;
+    transition: box-shadow 0.25s ease !important;
+  }
+  .invest-overview-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06) !important;
+  }
+  .invest-overview-total {
+    font-size: 28px !important; font-weight: 700 !important; line-height: 1.2 !important;
+  }
+  .invest-overview-repaid {
+    font-size: 20px !important; font-weight: 700 !important;
+  }
+  .invest-overview-label {
+    font-size: 12px !important; color: #A8A29E !important; margin-top: 8px !important;
+  }
+
+  /* ──────────────────────────────────────
+     六、学员卡片（老师工作台班级学员）
+     ────────────────────────────────────── */
+  .class-student-row {
+    padding: 20px 24px !important;
+    display: flex !important; align-items: center !important; gap: 14px !important;
+  }
+  .class-student-row > div:first-child {
+    width: 44px !important; height: 44px !important;
+  }
+
+  /* ──────────────────────────────────────
+     七、引荐请求卡片（老师工作台引荐列表）
+     ────────────────────────────────────── */
+  .ref-request-item {
+    padding: 20px 24px !important;
+  }
+  /* 顶部行 */
+  .ref-person-row {
+    display: flex !important; align-items: center !important; gap: 10px !important;
+  }
+  .ref-avatar {
+    width: 36px !important; height: 36px !important;
+    font-size: 13px !important;
+  }
+  /* 留言块 */
+  .ref-msg-block {
+    font-size: 13px !important; color: #57534E !important;
+    margin-top: 12px !important;
+    line-height: 1.5 !important;
+    display: -webkit-box !important; -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important; overflow: hidden !important;
+  }
+  /* 操作按钮 */
+  .ref-btn-row {
+    margin-top: 16px !important; padding-top: 16px !important;
+    border-top: 1px solid #F5F5F4 !important;
+  }
+  .ref-btn-connected {
+    background: linear-gradient(135deg, #B91C1C, #991B1B) !important;
+    color: #FFFFFF !important; padding: 8px 24px !important;
+    border-radius: 8px !important; font-size: 13px !important; font-weight: 500 !important;
+    transition: all 0.2s !important;
+  }
+  .ref-btn-connected:hover {
+    background: linear-gradient(135deg, #991B1B, #7F1D1D) !important;
+  }
+
+  /* ──────────────────────────────────────
+     八、通知消息行（/notifications 页面）
+     ────────────────────────────────────── */
+  #notification-list {
+    background: #FFFFFF !important;
+    border-radius: 14px !important;
+    border: 1px solid #F0EFED !important;
+    overflow: hidden !important;
+    margin: 16px !important;
+    min-height: auto !important;
+  }
+  /* 每行通知 */
+  #notification-list > div {
+    padding: 16px 24px !important;
+    border-bottom: 1px solid #F5F5F4 !important;
+    transition: background 0.15s !important;
+    cursor: pointer !important;
+  }
+  #notification-list > div:last-child {
+    border-bottom: none !important;
+  }
+  #notification-list > div:hover {
+    background: #FAFAF9 !important;
+  }
+
+  /* ──────────────────────────────────────
+     九、回款速报条（首页绿色横幅）
+     ────────────────────────────────────── */
+  #repayment-flash-bar > div {
+    padding: 18px 28px !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    border-radius: 14px !important;
+  }
+
+  /* ──────────────────────────────────────
+     十、分享卡片预览（弹窗内的品牌推介卡）
+     ────────────────────────────────────── */
+  #share-overlay #share-panel {
+    max-width: 480px !important;
+    border-radius: 16px !important;
+  }
+  /* 分享面板内部卡片间距 */
+  #share-overlay #share-panel > div {
+    padding: 28px !important;
+  }
+
+  /* ──────────────────────────────────────
+     十一、空状态展示（无数据时）
+     ────────────────────────────────────── */
+  .empty-state {
+    max-width: 360px !important;
+    margin: 60px auto !important;
+    text-align: center !important;
+  }
+  .empty-state-icon {
+    font-size: 48px !important;
+    margin-bottom: 16px !important;
+  }
+  .empty-state-text {
+    font-size: 16px !important;
+    font-weight: 500 !important;
+    color: #57534E !important;
+  }
+  .empty-state-btn {
+    margin-top: 20px !important;
+  }
+  /* 网格内的空状态也居中 */
+  .dk-project-list .empty-state,
+  .dk-home-project-grid .empty-state {
+    grid-column: 1 / -1 !important;
+    max-width: 360px !important;
+    margin: 60px auto !important;
+  }
+
+  /* ──────────────────────────────────────
+     十二、Quick Action 卡片优化
+     ────────────────────────────────────── */
+  .quick-card {
+    padding: 24px 28px !important;
+    border-radius: 14px !important;
+    height: auto !important;
+    min-height: 100px !important;
+  }
+
+  /* ──────────────────────────────────────
+     追加：Payback 庆祝横幅优化
+     ────────────────────────────────────── */
+  .payback-banner {
+    padding: 18px 28px !important;
+    border-radius: 14px !important;
+    margin: 0 0 16px !important;
+  }
+
+  /* ──────────────────────────────────────
+     追加：Menu Row (Profile) 优化
+     ────────────────────────────────────── */
+  .menu-row {
+    padding: 16px 24px !important;
+    transition: background 0.15s, transform 0.15s !important;
+  }
+  .menu-row:hover {
+    background: #FAFAF9 !important;
+    transform: translateX(2px) !important;
+  }
 }
 `,
           }}
