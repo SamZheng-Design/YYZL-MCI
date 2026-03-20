@@ -27,7 +27,7 @@ app.get('/repayments', (c) => {
       <GlobalScripts />
       <Navbar />
 
-      <main class="max-w-lg mx-auto">
+      <main class="max-w-lg mx-auto dk-repayments-main">
         {/* Title */}
         <section class="px-4 pt-4 pb-0">
           <h1 class="font-bold text-text-title" style="font-size:22px;font-weight:700;color:#1C1917;font-family:'Noto Sans SC',sans-serif;">回款中心</h1>
@@ -45,10 +45,10 @@ app.get('/repayments', (c) => {
         </div>
 
         {/* 我的投资 Content */}
-        <div id="panel-invest" class="px-4 pt-4 pb-4" />
+        <div id="panel-invest" class="px-4 pt-4 pb-4 dk-repayments-content" />
 
         {/* 我的发起 Content */}
-        <div id="panel-initiate" class="px-4 pt-4 pb-4" style="display:none;" />
+        <div id="panel-initiate" class="px-4 pt-4 pb-4 dk-repayments-content" style="display:none;" />
       </main>
 
       {/* Contract Full-text Modal for repayments page */}

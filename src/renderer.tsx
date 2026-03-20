@@ -1556,6 +1556,361 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
   body.is-guide-page .guide-step-grid {
     display: grid !important; grid-template-columns: repeat(2, 1fr); gap: 24px;
   }
+
+  /* ════════════════════════════════════════════════════════
+     DESKTOP CONTENT LAYOUT OPTIMIZATIONS
+     All below only active at ≥1025px
+     ════════════════════════════════════════════════════════ */
+
+  /* ── Global: clickable card hover (desktop only) ── */
+  .dk-clickable-card {
+    transition: all 0.25s ease !important;
+    cursor: pointer;
+  }
+  .dk-clickable-card:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08) !important;
+  }
+  .dk-clickable-card:active {
+    transform: translateY(0) !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
+  }
+  /* Apply hover to all project cards in lists */
+  #project-list > a,
+  .dk-home-project-grid > a,
+  .dk-repayments-content a[href^="/investments/"],
+  .teacher-card,
+  .admin-section,
+  .menu-row {
+    transition: all 0.25s ease;
+  }
+  #project-list > a:hover,
+  .dk-home-project-grid > a:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  }
+  #project-list > a:active,
+  .dk-home-project-grid > a:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+
+  /* ═══════════════════════════════════════
+     I. HOME PAGE — Two Column Layout
+     ═══════════════════════════════════════ */
+  .dk-home-main {
+    display: grid !important;
+    grid-template-columns: 1fr 380px !important;
+    grid-template-rows: auto auto 1fr !important;
+    gap: 24px !important;
+    max-width: 1200px !important;
+    align-items: start;
+  }
+  .dk-home-welcome {
+    grid-column: 1 / 3 !important;
+    margin-bottom: 0 !important;
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;
+  }
+  .dk-home-greeting {
+    font-size: 24px !important;
+  }
+  .dk-home-share-input {
+    margin: 0 !important; flex-shrink: 0; width: 360px;
+  }
+  .dk-home-left {
+    grid-column: 1 / 2;
+    grid-row: 2 / 4;
+    min-width: 0;
+  }
+  .dk-home-right {
+    grid-column: 2 / 3;
+    grid-row: 2 / 4;
+    position: sticky;
+    top: 84px;
+    align-self: start;
+  }
+  .dk-home-project-grid {
+    display: grid !important; grid-template-columns: repeat(2, 1fr) !important; gap: 16px !important;
+    flex-direction: initial !important;
+  }
+  .dk-home-project-grid > a {
+    padding: 20px !important;
+  }
+  .dk-home-stats {
+    grid-template-columns: repeat(4, 1fr) !important;
+  }
+
+  /* ═══════════════════════════════════════
+     II. PROJECT HALL — Three Column Grid
+     ═══════════════════════════════════════ */
+  .dk-projects-main {
+    max-width: 1200px !important;
+  }
+  .dk-projects-filter {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    padding: 12px 16px !important;
+  }
+  .dk-projects-filter .filter-select {
+    flex: 0 0 auto !important;
+    min-width: 140px !important;
+  }
+  .dk-project-list {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 20px !important;
+    flex-direction: initial !important;
+  }
+  .dk-project-list > a {
+    padding: 20px !important;
+  }
+  .dk-empty-state {
+    grid-column: 1 / -1;
+    max-width: 400px !important;
+    margin: 0 auto !important;
+  }
+  /* Industry filter tags (flex-wrap) on desktop */
+  .dk-projects-main .kpi-banner {
+    flex-wrap: nowrap !important;
+  }
+  .dk-projects-main .kpi-item {
+    min-width: 0 !important;
+    padding: 0 8px !important;
+  }
+
+  /* ═══════════════════════════════════════
+     III. PROJECT DETAIL — Left/Right Split
+     ═══════════════════════════════════════ */
+  .dk-detail-main {
+    display: grid !important;
+    grid-template-columns: 1fr 360px !important;
+    gap: 24px 32px !important;
+    max-width: 1100px !important;
+    align-items: start;
+  }
+  /* Full row items */
+  .dk-detail-fullrow {
+    grid-column: 1 / -1 !important;
+  }
+  /* Left info column wrapper */
+  .dk-detail-left {
+    grid-column: 1 / 2;
+    grid-row: 2 / 20;
+    min-width: 0;
+  }
+  .dk-detail-left .dk-detail-info h1 {
+    font-size: 26px !important;
+  }
+  /* Right action column (sticky) */
+  .dk-detail-action-card {
+    grid-column: 2 / 3 !important;
+    grid-row: 2 / 3;
+    position: sticky !important;
+    top: 84px !important;
+    background: #fff !important;
+    border-radius: 16px !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06) !important;
+    padding: 24px !important;
+    align-self: start;
+    z-index: 10;
+  }
+  .dk-detail-action-card .grid-cols-3 {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .dk-detail-action-card .grid-cols-3 > div:last-child {
+    grid-column: 1 / -1;
+    text-align: center;
+  }
+  .dk-detail-action-owner {
+    display: block !important;
+  }
+  .dk-detail-action-card .btn-gold {
+    height: 48px !important;
+    background: linear-gradient(135deg, #DC2626, #B91C1C) !important;
+    font-size: 16px !important;
+  }
+  .dk-detail-action-card .btn-gold:hover {
+    background: linear-gradient(135deg, #B91C1C, #991B1B) !important;
+  }
+  /* Bottom items (investors, share buttons) flow in left col */
+  .dk-detail-bottom {
+    grid-column: 1 / 2;
+  }
+
+  /* ═══════════════════════════════════════
+     IV. REPAYMENTS — Left/Right Layout
+     ═══════════════════════════════════════ */
+  .dk-repayments-main {
+    max-width: 1200px !important;
+  }
+  .dk-repayments-content {
+    max-width: none !important;
+  }
+
+  /* ═══════════════════════════════════════
+     V. PROFILE — Horizontal Expand
+     ═══════════════════════════════════════ */
+  .dk-profile-main {
+    max-width: 900px !important;
+  }
+  .dk-profile-card {
+    text-align: left !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 24px !important;
+    padding: 24px 32px !important;
+  }
+  .dk-profile-card > #profile-avatar {
+    margin: 0 !important;
+    flex-shrink: 0;
+    width: 64px !important;
+    height: 64px !important;
+    font-size: 28px !important;
+  }
+  .dk-profile-card > #profile-name {
+    font-size: 20px !important;
+  }
+  .dk-profile-card > #edit-profile-btn {
+    margin-left: auto;
+    margin-top: 0 !important;
+  }
+
+  /* ═══════════════════════════════════════
+     VI. ADMIN — Wide Tables & KPIs
+     ═══════════════════════════════════════ */
+  .dk-admin-main {
+    max-width: 1200px !important;
+  }
+  /* KPI cards: 6 cols on desktop */
+  .dk-admin-main .admin-kpi-grid {
+    grid-template-columns: repeat(6, 1fr) !important;
+  }
+  /* Member/student list: table-style on desktop */
+  .dk-admin-main .admin-section {
+    padding: 24px !important;
+  }
+
+  /* ═══════════════════════════════════════
+     VII. TEACHER — Two Column
+     ═══════════════════════════════════════ */
+  .dk-teacher-main {
+    max-width: 1100px !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 24px !important;
+    align-items: start;
+  }
+  /* Welcome & stats span full width */
+  .dk-teacher-main > #teacher-welcome-card,
+  .dk-teacher-main > #teacher-stats-bar,
+  .dk-teacher-main > .teacher-header,
+  .dk-teacher-main > .teacher-footer {
+    grid-column: 1 / -1;
+  }
+  /* Stats bar horizontal */
+  .dk-teacher-main > #teacher-stats-bar {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+  }
+  /* Referral section left, classes & recommend right */
+  .dk-teacher-main > #referral-section {
+    grid-column: 1 / 2;
+  }
+  .dk-teacher-main > #classes-section,
+  .dk-teacher-main > #recommend-section {
+    grid-column: 2 / 3;
+  }
+
+  /* ═══════════════════════════════════════
+     VIII. MODAL & OVERLAY ADAPTATIONS
+     ═══════════════════════════════════════ */
+  /* Bottom sheets → centered modals on desktop.
+     Key: We must NOT override display:none, only adjust when shown. 
+     JS sets display:block/flex when opening; CSS converts bottom-sheet to center. */
+
+  /* Share sheet: when shown (display:block), convert to centered flex */
+  #share-overlay[style*="display:block"],
+  #share-overlay[style*="display: block"] {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    backdrop-filter: blur(4px) !important;
+    -webkit-backdrop-filter: blur(4px) !important;
+  }
+  #share-overlay #share-panel {
+    position: relative !important;
+    bottom: auto !important;
+    left: auto !important;
+    right: auto !important;
+    max-width: 480px !important;
+    max-height: 80vh !important;
+    width: 92% !important;
+    border-radius: 16px !important;
+  }
+
+  /* Recommend panel overlay */
+  #recommend-overlay[style*="display:block"],
+  #recommend-overlay[style*="display: block"] {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    backdrop-filter: blur(4px) !important;
+  }
+  #recommend-overlay #recommend-panel {
+    position: relative !important;
+    bottom: auto !important;
+    left: auto !important;
+    right: auto !important;
+    max-width: 520px !important;
+    max-height: 80vh !important;
+    width: 92% !important;
+    border-radius: 16px !important;
+  }
+
+  /* Member detail overlay → centered modal */
+  #member-detail-overlay[style*="display:block"],
+  #member-detail-overlay[style*="display: block"],
+  #member-detail-overlay[style*="display:flex"],
+  #member-detail-overlay[style*="display: flex"] {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    backdrop-filter: blur(4px) !important;
+  }
+  #member-detail-overlay > div {
+    max-width: 640px !important;
+    width: 92% !important;
+    border-radius: 16px !important;
+    max-height: 80vh !important;
+    overflow-y: auto !important;
+    position: relative !important;
+    bottom: auto !important;
+  }
+
+  /* FAQ panel → right-side modal card */
+  #faq-panel {
+    max-width: 480px !important;
+    border-radius: 16px !important;
+    max-height: 80vh !important;
+  }
+
+  /* Referral overlay → centered with blur */
+  #referral-overlay[style*="display:flex"],
+  #referral-overlay[style*="display: flex"] {
+    backdrop-filter: blur(4px) !important;
+  }
+  #referral-overlay #referral-modal {
+    max-width: 480px !important;
+  }
+
+  /* Contract modal → centered on desktop */
+  #rep-contract-modal[style*="display:block"] #rep-contract-modal-sheet,
+  #rep-contract-modal[style*="display: block"] #rep-contract-modal-sheet {
+    max-width: 640px !important;
+    margin: 10vh auto 0 !important;
+    border-radius: 16px !important;
+    max-height: 80vh !important;
+  }
 }
 `,
           }}

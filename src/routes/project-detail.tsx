@@ -104,22 +104,24 @@ app.get('/projects/:id', (c) => {
       <GlobalScripts />
       <Navbar />
 
-      <main class="px-4 pt-3 pb-8 max-w-lg mx-auto page-enter">
+      <main class="px-4 pt-3 pb-8 max-w-lg mx-auto page-enter dk-detail-main">
         {/* Back link */}
-        <a href="/projects" class="back-link mb-4 inline-flex">
+        <a href="/projects" class="back-link mb-4 inline-flex dk-detail-fullrow">
           <i class="fas fa-arrow-left" style="font-size:13px;" /> 返回项目大厅
         </a>
 
         {/* From share banner — shown via JS if ?from=share */}
-        <div id="share-from-banner" style="display:none;background:#EFF6FF;color:#2563EB;border-radius:8px;padding:8px 12px;font-size:12px;margin-bottom:12px;font-weight:500;">
+        <div id="share-from-banner" class="dk-detail-fullrow" style="display:none;background:#EFF6FF;color:#2563EB;border-radius:8px;padding:8px 12px;font-size:12px;margin-bottom:12px;font-weight:500;">
           🔗 通过分享码查看
         </div>
 
         {/* Relation Tag — rendered via client JS based on current user's classId */}
-        <div id="detail-relation-tag" style="display:none;margin-bottom:12px;" />
+        <div id="detail-relation-tag" class="dk-detail-fullrow" style="display:none;margin-bottom:12px;" />
 
-        {/* 1. Project Header Card */}
-        <div class="bg-white rounded-2xl shadow-card p-5 mb-4">
+        {/* LEFT COLUMN: information area */}
+        <div class="dk-detail-left">
+          {/* 1. Project Header Card */}
+          <div class="bg-white rounded-2xl shadow-card p-5 mb-4 dk-detail-info">
           <div class="flex items-center justify-between mb-3">
             <span class="bg-brand-soft text-brand px-2.5 py-0.5 rounded font-semibold" style="font-size:11px;">{proj.industry}</span>
             <StatusBadge status={proj.status} />
@@ -270,9 +272,13 @@ app.get('/projects/:id', (c) => {
           </div>
         </div>
 
+        {/* Close left column wrapper (dk-detail-left) before the action card */}
+        </div>
+
+        {/* RIGHT COLUMN: Action area (sticky on desktop) */}
         {/* 4. Participate Calculator (open only, not owner) */}
         {proj.status === 'open' && remainShares > 0 && (
-          <div id="participate-calculator" class="calc-card shadow-card p-5 mb-4">
+          <div id="participate-calculator" class="calc-card shadow-card p-5 mb-4 dk-detail-action-card">
             <h3 class="font-semibold text-text-title mb-4" style="font-size:16px;">
               <i class="fas fa-calculator text-gold mr-2" style="font-size:14px;" />
               我要参与
@@ -302,7 +308,19 @@ app.get('/projects/:id', (c) => {
             </div>
             {/* Calculator plain-language hint */}
             <div id="calc-plain-hint" style="font-size:12px;line-height:1.6;color:#78716C;margin-bottom:16px;" />
-            <button id="participate-btn" class="btn-gold" style="font-size:16px;">
+            {/* Owner info (desktop) */}
+            <div class="dk-detail-action-owner" style="display:none;margin-bottom:16px;">
+              <div class="flex items-center gap-3 p-3 rounded-xl" style="background:#FAFAF9;">
+                <div class="flex items-center justify-center rounded-full bg-brand text-white font-bold flex-shrink-0" style="width:36px;height:36px;font-size:14px;">
+                  {owner.name.charAt(0)}
+                </div>
+                <div>
+                  <div class="font-semibold text-text-title" style="font-size:14px;">{owner.name}</div>
+                  <div class="text-text-secondary" style="font-size:12px;">{owner.company} · {owner.cohort}</div>
+                </div>
+              </div>
+            </div>
+            <button id="participate-btn" class="btn-gold" style="font-size:16px;height:48px;">
               确认参与 ¥{proj.sharePrice}万
             </button>
             <p id="owner-hint" class="text-center text-text-tertiary mt-3" style="font-size:12px;display:none;">
@@ -312,7 +330,7 @@ app.get('/projects/:id', (c) => {
         )}
 
         {/* 5. Investors */}
-        <div class="bg-white rounded-2xl shadow-card p-5 mb-4">
+        <div class="bg-white rounded-2xl shadow-card p-5 mb-4 dk-detail-bottom">
           <h3 class="font-semibold text-text-title mb-3" style="font-size:16px;">
             <i class="fas fa-users text-brand-dark mr-2" style="font-size:14px;" />
             已参与学员
@@ -329,7 +347,7 @@ app.get('/projects/:id', (c) => {
         </div>
 
         {/* 6. Share / Referral Buttons */}
-        <div style="margin-bottom:16px;">
+        <div class="dk-detail-bottom" style="margin-bottom:16px;">
           <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
             <div style="flex:1;height:1px;background:#D6D3D1;" />
             <span style="font-size:12px;color:#A8A29E;white-space:nowrap;">或者</span>
@@ -349,8 +367,8 @@ app.get('/projects/:id', (c) => {
       </main>
 
       {/* Share Sheet Overlay (Task 1 — Premium Share Card) */}
-      <div id="share-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:1000;">
-        <div id="share-panel" style="position:absolute;bottom:0;left:0;right:0;background:#fff;border-radius:24px 24px 0 0;padding:24px;transform:translateY(100%);transition:transform 300ms ease-out;max-height:85vh;overflow-y:auto;">
+      <div id="share-overlay" class="dk-modal-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:1000;">
+        <div id="share-panel" class="dk-modal-panel" style="position:absolute;bottom:0;left:0;right:0;background:#fff;border-radius:24px 24px 0 0;padding:24px;transform:translateY(100%);transition:transform 300ms ease-out;max-height:85vh;overflow-y:auto;">
           {/* Drag indicator */}
           <div style="width:40px;height:4px;border-radius:2px;background:#D6D3D1;margin:0 auto 20px;" />
 

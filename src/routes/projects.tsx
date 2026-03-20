@@ -19,7 +19,7 @@ app.get('/projects', (c) => {
       <GlobalScripts />
       <Navbar />
 
-      <main class="max-w-lg mx-auto">
+      <main class="max-w-lg mx-auto dk-projects-main">
         {/* Title */}
         <section class="px-4 pt-4 pb-3 page-enter">
           <h1 class="font-bold text-text-title" style="font-size:22px;font-family:'Noto Sans SC',sans-serif;">项目大厅</h1>
@@ -37,7 +37,7 @@ app.get('/projects', (c) => {
         </section>
 
         {/* Filter Bar */}
-        <div class="filter-bar">
+        <div class="filter-bar dk-projects-filter">
           <select id="filter-industry" class="filter-select">
             {industries.map(ind => <option value={ind}>{ind}</option>)}
           </select>
@@ -56,10 +56,10 @@ app.get('/projects', (c) => {
         </div>
 
         {/* Project Cards — rendered via client JS for filtering */}
-        <section id="project-list" class="px-4 pt-4 pb-4 flex flex-col gap-4" />
+        <section id="project-list" class="px-4 pt-4 pb-4 flex flex-col gap-4 dk-project-list" />
 
         {/* Empty state (hidden by default) */}
-        <div id="empty-state" class="px-4 py-12 text-center" style="display:none;">
+        <div id="empty-state" class="px-4 py-12 text-center dk-empty-state" style="display:none;">
           <div class="flex items-center justify-center mb-3">
             <div class="flex items-center justify-center rounded-full bg-brand-soft" style="width:56px;height:56px;">
               <i class="fas fa-search text-brand" style="font-size:22px;" />

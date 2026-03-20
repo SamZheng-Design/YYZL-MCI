@@ -31,116 +31,121 @@ app.get('/', (c) => {
       <Navbar />
 
       {/* Content */}
-      <main class="px-4 pt-4 pb-4 max-w-lg mx-auto page-enter">
+      <main class="px-4 pt-4 pb-4 max-w-lg mx-auto page-enter dk-home-main">
 
-        {/* 1. Welcome */}
-        <section class="mb-5">
-          <h2 id="greeting" class="font-bold text-text-title" style="font-size:20px;font-family:'Noto Sans SC',sans-serif;" />
+        {/* 1. Welcome — spans full width on desktop */}
+        <section class="mb-5 dk-home-welcome">
+          <h2 id="greeting" class="font-bold text-text-title dk-home-greeting" style="font-size:20px;font-family:'Noto Sans SC',sans-serif;" />
           <p id="user-subtitle" class="text-text-secondary mt-0.5" style="font-size:14px;" />
-        </section>
-
-        {/* 1.5 Share Code Input */}
-        <section id="share-code-input" style="margin:0 0 12px 0;">
-          <div style="background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 1px 2px rgba(0,0,0,0.04);display:flex;align-items:center;gap:10px;">
-            <i class="fas fa-link" style="font-size:14px;color:#B91C1C;flex-shrink:0;" />
-            <input id="home-share-input" type="text" maxlength={6} placeholder="收到分享码？输入6位码查看项目" style="flex:1;background:transparent;border:none;outline:none;font-size:14px;color:#1C1917;font-family:inherit;" />
-            <button id="home-share-btn" style="flex-shrink:0;padding:6px 12px;background:rgba(185,28,28,0.08);border:none;border-radius:8px;color:#B91C1C;font-size:13px;font-weight:600;cursor:pointer;">查看</button>
-          </div>
-        </section>
-
-        {/* 1.8 Repayment Flash Bar (rendered by client JS) */}
-        <div id="repayment-flash-bar" />
-
-        {/* 1.9 Personal Investment Overview Card (Task 3 — rendered by client JS, member only) */}
-        <div id="invest-overview-card" />
-
-        {/* 2. Quick Actions */}
-        <section id="quick-actions" class="grid grid-cols-2 gap-3 mb-5">
-          <a href="/create" class="quick-card quick-card-brand">
-            <i class="fas fa-rocket" style="font-size:22px;" />
-            <span class="font-semibold" style="font-size:15px;">发起项目</span>
-          </a>
-          <a href="/projects" class="quick-card quick-card-gold">
-            <i class="fas fa-store" style="font-size:22px;" />
-            <span class="font-semibold" style="font-size:15px;">项目大厅</span>
-          </a>
-        </section>
-
-        {/* 3. My Stats */}
-        <section class="grid grid-cols-2 gap-3 mb-6">
-          {[
-            { id: 'stat-initiated', label: '已发起', suffix: '' },
-            { id: 'stat-invested', label: '已参与', suffix: '' },
-            { id: 'stat-total-inv', label: '总投资(万)', suffix: '' },
-            { id: 'stat-total-rep', label: '总回款(万)', suffix: '' },
-          ].map(s => (
-            <div class="bg-white rounded-xl shadow-card p-4">
-              <div id={s.id} class="font-extrabold text-text-title" style="font-size:24px;">—</div>
-              <div class="text-text-tertiary mt-1" style="font-size:12px;">{s.label}</div>
+          {/* 1.5 Share Code Input — inline on desktop welcome bar */}
+          <div id="share-code-input" class="dk-home-share-input" style="margin:8px 0 0 0;">
+            <div style="background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 1px 2px rgba(0,0,0,0.04);display:flex;align-items:center;gap:10px;">
+              <i class="fas fa-link" style="font-size:14px;color:#B91C1C;flex-shrink:0;" />
+              <input id="home-share-input" type="text" maxlength={6} placeholder="收到分享码？输入6位码查看项目" style="flex:1;background:transparent;border:none;outline:none;font-size:14px;color:#1C1917;font-family:inherit;" />
+              <button id="home-share-btn" style="flex-shrink:0;padding:6px 12px;background:rgba(185,28,28,0.08);border:none;border-radius:8px;color:#B91C1C;font-size:13px;font-weight:600;cursor:pointer;">查看</button>
             </div>
-          ))}
+          </div>
         </section>
 
-        {/* 4. Latest Projects */}
-        <section class="mb-6">
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="font-bold text-text-title" style="font-size:16px;">最新项目</h3>
-            <a href="/projects" class="text-brand font-medium" style="font-size:13px;text-decoration:none;">
-              查看全部 <i class="fas fa-arrow-right" style="font-size:11px;" />
+        {/* Left column content on desktop */}
+        <div class="dk-home-left">
+          {/* 1.8 Repayment Flash Bar (rendered by client JS) */}
+          <div id="repayment-flash-bar" />
+
+          {/* 1.9 Personal Investment Overview Card */}
+          <div id="invest-overview-card" />
+
+          {/* 2. Quick Actions */}
+          <section id="quick-actions" class="grid grid-cols-2 gap-3 mb-5">
+            <a href="/create" class="quick-card quick-card-brand dk-clickable-card">
+              <i class="fas fa-rocket" style="font-size:22px;" />
+              <span class="font-semibold" style="font-size:15px;">发起项目</span>
             </a>
-          </div>
-          <div class="flex flex-col gap-3">
-            {openProjects.map(proj => {
-              const owner = mockMembers.find(m => m.id === proj.ownerId)
-              const pct = Math.round((proj.raisedAmount / proj.targetAmount) * 100)
-              return (
-                <a href={`/projects/${proj.id}`} class="bg-white rounded-2xl shadow-card shadow-card-hover p-4 block" style="text-decoration:none;color:inherit;">
-                  {/* Row 1: Owner */}
-                  <div class="flex items-center gap-2.5 mb-2">
-                    <div class="flex items-center justify-center rounded-full bg-brand text-white font-bold" style="width:32px;height:32px;font-size:13px;">
-                      {owner?.name.charAt(0)}
-                    </div>
-                    <div>
-                      <span class="text-text-primary font-medium" style="font-size:14px;">{owner?.name}</span>
-                      <span class="text-text-tertiary ml-1.5" style="font-size:12px;">{owner?.company}</span>
-                    </div>
-                  </div>
-                  {/* Row 2: Name */}
-                  <div class="font-semibold text-text-title mb-2" style="font-size:15px;">{proj.name}</div>
-                  {/* Row 3: Tags */}
-                  <div class="flex items-center gap-2 flex-wrap mb-3">
-                    <span class="bg-brand-soft text-brand px-2.5 py-0.5 rounded-full font-medium" style="font-size:11px;">{proj.industry}</span>
-                    <span class="text-text-secondary" style="font-size:12px;">融资 {proj.targetAmount}万</span>
-                    <span class="text-text-secondary" style="font-size:12px;">分成 {proj.revenueShareRate}%</span>
-                  </div>
-                  {/* Row 4: Progress */}
-                  <div class="flex items-center gap-3">
-                    <div class="progress-bar flex-1">
-                      <div class="progress-fill" data-width={`${pct}%`} />
-                    </div>
-                    <span class="font-semibold text-gold-dark" style="font-size:13px;">{pct}%</span>
-                  </div>
-                </a>
-              )
-            })}
-          </div>
-        </section>
+            <a href="/projects" class="quick-card quick-card-gold dk-clickable-card">
+              <i class="fas fa-store" style="font-size:22px;" />
+              <span class="font-semibold" style="font-size:15px;">项目大厅</span>
+            </a>
+          </section>
 
-        {/* 5. Recent Repayments */}
-        <section class="mb-4">
-          <h3 class="font-bold text-text-title mb-3" style="font-size:16px;">回款动态</h3>
-          <div class="bg-white rounded-2xl shadow-card overflow-hidden">
-            {recentRepayments.map((r, i) => (
-              <div class={`flex items-center justify-between px-4 py-3 ${i < recentRepayments.length - 1 ? 'border-b border-surface-divider' : ''}`}>
-                <div class="flex items-center gap-3">
-                  <span class="text-text-tertiary" style="font-size:12px;min-width:62px;">{r.date.slice(5)}</span>
-                  <span class="text-text-primary font-medium" style="font-size:13px;">{r.projectName.length > 12 ? r.projectName.slice(0, 12) + '...' : r.projectName}</span>
-                </div>
-                <span class="font-semibold" style="font-size:14px;color:#16a34a;">+¥{r.amount.toFixed(2)}万</span>
+          {/* 3. My Stats */}
+          <section class="grid grid-cols-2 gap-3 mb-6 dk-home-stats">
+            {[
+              { id: 'stat-initiated', label: '已发起', suffix: '' },
+              { id: 'stat-invested', label: '已参与', suffix: '' },
+              { id: 'stat-total-inv', label: '总投资(万)', suffix: '' },
+              { id: 'stat-total-rep', label: '总回款(万)', suffix: '' },
+            ].map(s => (
+              <div class="bg-white rounded-xl shadow-card p-4">
+                <div id={s.id} class="font-extrabold text-text-title" style="font-size:24px;">—</div>
+                <div class="text-text-tertiary mt-1" style="font-size:12px;">{s.label}</div>
               </div>
             ))}
-          </div>
-        </section>
+          </section>
+
+          {/* 4. Latest Projects */}
+          <section class="mb-6 dk-home-projects">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="font-bold text-text-title" style="font-size:16px;">我参与的项目</h3>
+              <a href="/projects" class="text-brand font-medium" style="font-size:13px;text-decoration:none;">
+                查看全部 <i class="fas fa-arrow-right" style="font-size:11px;" />
+              </a>
+            </div>
+            <div class="flex flex-col gap-3 dk-home-project-grid">
+              {openProjects.map(proj => {
+                const owner = mockMembers.find(m => m.id === proj.ownerId)
+                const pct = Math.round((proj.raisedAmount / proj.targetAmount) * 100)
+                return (
+                  <a href={`/projects/${proj.id}`} class="bg-white rounded-2xl shadow-card p-4 block dk-clickable-card" style="text-decoration:none;color:inherit;">
+                    {/* Row 1: Owner */}
+                    <div class="flex items-center gap-2.5 mb-2">
+                      <div class="flex items-center justify-center rounded-full bg-brand text-white font-bold" style="width:32px;height:32px;font-size:13px;">
+                        {owner?.name.charAt(0)}
+                      </div>
+                      <div>
+                        <span class="text-text-primary font-medium" style="font-size:14px;">{owner?.name}</span>
+                        <span class="text-text-tertiary ml-1.5" style="font-size:12px;">{owner?.company}</span>
+                      </div>
+                    </div>
+                    {/* Row 2: Name */}
+                    <div class="font-semibold text-text-title mb-2" style="font-size:15px;">{proj.name}</div>
+                    {/* Row 3: Tags */}
+                    <div class="flex items-center gap-2 flex-wrap mb-3">
+                      <span class="bg-brand-soft text-brand px-2.5 py-0.5 rounded-full font-medium" style="font-size:11px;">{proj.industry}</span>
+                      <span class="text-text-secondary" style="font-size:12px;">融资 {proj.targetAmount}万</span>
+                      <span class="text-text-secondary" style="font-size:12px;">分成 {proj.revenueShareRate}%</span>
+                    </div>
+                    {/* Row 4: Progress */}
+                    <div class="flex items-center gap-3">
+                      <div class="progress-bar flex-1">
+                        <div class="progress-fill" data-width={`${pct}%`} />
+                      </div>
+                      <span class="font-semibold text-gold-dark" style="font-size:13px;">{pct}%</span>
+                    </div>
+                  </a>
+                )
+              })}
+            </div>
+          </section>
+        </div>
+
+        {/* Right column content on desktop (sticky sidebar) */}
+        <div class="dk-home-right">
+          {/* 5. Recent Repayments */}
+          <section class="mb-4">
+            <h3 class="font-bold text-text-title mb-3" style="font-size:16px;">回款动态</h3>
+            <div class="bg-white rounded-2xl shadow-card overflow-hidden">
+              {recentRepayments.map((r, i) => (
+                <div class={`flex items-center justify-between px-4 py-3 ${i < recentRepayments.length - 1 ? 'border-b border-surface-divider' : ''}`}>
+                  <div class="flex items-center gap-3">
+                    <span class="text-text-tertiary" style="font-size:12px;min-width:62px;">{r.date.slice(5)}</span>
+                    <span class="text-text-primary font-medium" style="font-size:13px;">{r.projectName.length > 12 ? r.projectName.slice(0, 12) + '...' : r.projectName}</span>
+                  </div>
+                  <span class="font-semibold" style="font-size:14px;color:#16a34a;">+¥{r.amount.toFixed(2)}万</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
       </main>
 
       <TabBar active="home" />

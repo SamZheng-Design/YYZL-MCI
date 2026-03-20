@@ -50,7 +50,7 @@ app.get('/admin', (c) => {
         <button class="admin-tab" data-tab="projects">项目</button>
       </div>
 
-      <main class="max-w-lg mx-auto pb-4">
+      <main class="max-w-lg mx-auto pb-4 dk-admin-main">
         {/* Tab Content Panels */}
         <div id="tab-overview" class="admin-tab-panel" style="opacity:1;" />
         <div id="tab-members" class="admin-tab-panel" style="display:none;opacity:0;" />
@@ -65,7 +65,7 @@ app.get('/admin', (c) => {
       <div id="batch-register-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1100;align-items:center;justify-content:center;" />
 
       {/* Member Detail Modal Overlay */}
-      <div id="member-detail-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:1100;" />
+      <div id="member-detail-overlay" class="dk-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:1100;" />
 
       <style dangerouslySetInnerHTML={{ __html: `
 .admin-tab{padding:14px 16px;font-size:14px;font-weight:500;color:#78716C;background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;transition:color 0.2s;}

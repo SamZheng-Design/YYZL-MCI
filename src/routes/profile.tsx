@@ -16,9 +16,9 @@ app.get('/profile', (c) => {
       <GlobalScripts />
       <Navbar />
 
-      <main class="px-4 pt-5 pb-4 max-w-lg mx-auto page-enter">
+      <main class="px-4 pt-5 pb-4 max-w-lg mx-auto page-enter dk-profile-main">
         {/* Profile Card */}
-        <div class="bg-white rounded-2xl shadow-card p-6 mb-5 text-center">
+        <div class="bg-white rounded-2xl shadow-card p-6 mb-5 text-center dk-profile-card">
           {/* Avatar placeholder */}
           <div id="profile-avatar" class="mx-auto flex items-center justify-center rounded-full bg-brand text-white font-bold mb-3" style="width:80px;height:80px;font-size:32px;font-family:'Noto Sans SC',sans-serif;">
             —

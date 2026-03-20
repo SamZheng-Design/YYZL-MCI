@@ -31,7 +31,7 @@ app.get('/teacher', (c) => {
         </div>
       </nav>
 
-      <main class="max-w-lg mx-auto px-4 pt-4 pb-8 page-enter">
+      <main class="max-w-lg mx-auto px-4 pt-4 pb-8 page-enter dk-teacher-main">
         {/* Welcome Card (Task 3 Enhancement 1) */}
         <div id="teacher-welcome-card" style="padding:20px 16px;margin-bottom:12px;" />
 
@@ -84,8 +84,8 @@ app.get('/teacher', (c) => {
       <TabBar active="teacher" />
 
       {/* Recommend Panel Overlay */}
-      <div id="recommend-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);z-index:1100;">
-        <div id="recommend-panel" style="position:absolute;bottom:0;left:0;right:0;background:#fff;border-radius:20px 20px 0 0;max-height:70vh;overflow-y:auto;padding:24px;transform:translateY(100%);transition:transform 300ms ease-out;">
+      <div id="recommend-overlay" class="dk-modal-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);z-index:1100;">
+        <div id="recommend-panel" class="dk-modal-panel" style="position:absolute;bottom:0;left:0;right:0;background:#fff;border-radius:20px 20px 0 0;max-height:70vh;overflow-y:auto;padding:24px;transform:translateY(100%);transition:transform 300ms ease-out;">
           <div style="width:40px;height:4px;border-radius:2px;background:#D6D3D1;margin:0 auto 20px;"></div>
           <div style="font-size:18px;font-weight:600;color:#1C1917;margin-bottom:16px;">选择要推荐的项目</div>
           <div id="recommend-project-list"></div>
