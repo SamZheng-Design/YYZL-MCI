@@ -1337,8 +1337,638 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
   .initiator-note { margin-left: 0 !important; margin-right: 0 !important; }
   .payback-banner { margin-left: 0 !important; margin-right: 0 !important; border-radius: 12px; }
 
-  /* Project cards spacing */
-  .bg-white.rounded-2xl.shadow-card { margin-bottom: 12px; }
+  /* ═══════════════════════════════════════════════════
+     MOBILE CARD REFINEMENTS (19C-2)
+     All styles below are MOBILE-ONLY (≤768px).
+     No HTML structure, data bindings, or events changed.
+     ═══════════════════════════════════════════════════ */
+
+  /* ──────────────────────────────────────
+     一、手机端卡片基础样式（所有白色卡片共享）
+     ────────────────────────────────────── */
+  .bg-white.rounded-2xl.shadow-card,
+  .bg-white.rounded-xl.shadow-card,
+  .dk-home-project-grid > a,
+  .dk-project-list > a,
+  #panel-invest .bg-white,
+  #panel-initiate .bg-white,
+  .teacher-card,
+  .admin-section {
+    padding: 18px 20px;
+    background: #FFFFFF;
+    border-radius: 12px;
+    border: 1px solid #F0EFED;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+    margin-bottom: 12px;
+  }
+  /* Mobile: no hover (touch devices) */
+  .bg-white.rounded-2xl.shadow-card:hover,
+  .bg-white.rounded-xl.shadow-card:hover,
+  .dk-home-project-grid > a:hover,
+  .dk-project-list > a:hover,
+  .teacher-card:hover,
+  .admin-section:hover {
+    transform: none !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.03) !important;
+  }
+  /* Mobile: active tap feedback */
+  .bg-white.rounded-2xl.shadow-card:active,
+  .bg-white.rounded-xl.shadow-card:active,
+  .dk-home-project-grid > a:active,
+  .dk-project-list > a:active,
+  .teacher-card:active,
+  .admin-section:active {
+    background: #FAFAF9 !important;
+    transition: background 0.1s !important;
+  }
+
+  /* ──────────────────────────────────────
+     二、项目卡片（首页、大厅、我的发起、我的投资）
+     ────────────────────────────────────── */
+
+  /* 区域 A – 发起人信息行 */
+  .dk-home-project-grid > a > div:first-child,
+  .dk-project-list > a > div:first-child,
+  #panel-invest .bg-white > div:first-child,
+  #panel-initiate .bg-white > div:first-child {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding-bottom: 12px !important;
+  }
+  /* 头像 36px */
+  .dk-home-project-grid > a > div:first-child > div:first-child,
+  .dk-project-list > a > div:first-child > div:first-child,
+  #panel-invest .bg-white > div:first-child > div:first-child,
+  #panel-initiate .bg-white > div:first-child > div:first-child {
+    width: 36px !important; height: 36px !important;
+    font-size: 13px !important; flex-shrink: 0;
+  }
+  /* 姓名 */
+  .dk-home-project-grid > a > div:first-child .text-text-primary,
+  .dk-project-list > a > div:first-child .text-text-primary,
+  #panel-invest .bg-white > div:first-child .text-text-primary,
+  #panel-initiate .bg-white > div:first-child .text-text-primary {
+    font-size: 14px !important; font-weight: 600 !important; color: #1C1917 !important;
+  }
+  /* 公司名 — with ellipsis for overflow */
+  .dk-home-project-grid > a > div:first-child .text-text-tertiary,
+  .dk-project-list > a > div:first-child .text-text-tertiary,
+  #panel-invest .bg-white > div:first-child .text-text-tertiary,
+  #panel-initiate .bg-white > div:first-child .text-text-tertiary {
+    font-size: 12px !important; color: #78716C !important;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    max-width: 60%;
+  }
+  /* 班期标签 (span in the info row with bg color) */
+  .dk-home-project-grid > a > div:first-child span[style*="background"],
+  .dk-project-list > a > div:first-child span[style*="background"] {
+    font-size: 10px; color: #78716C; background: #F5F5F4;
+    padding: 2px 6px; border-radius: 4px; margin-left: auto;
+    flex-shrink: 0; white-space: nowrap;
+  }
+
+  /* 区域 B – 项目核心信息 */
+  /* 项目名称 */
+  .dk-home-project-grid > a > .font-semibold.text-text-title,
+  .dk-project-list > a > .font-semibold.text-text-title,
+  #panel-invest .bg-white > .font-semibold,
+  #panel-initiate .bg-white > .font-semibold {
+    font-size: 16px !important; font-weight: 700 !important; color: #1C1917 !important;
+    line-height: 1.4 !important; margin-bottom: 8px !important;
+    display: -webkit-box !important; -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important; overflow: hidden !important;
+  }
+
+  /* 标签行 */
+  .dk-home-project-grid > a > .flex.items-center.gap-2,
+  .dk-project-list > a > .flex.items-center.gap-2 {
+    display: flex !important; gap: 6px !important;
+    flex-wrap: wrap !important; margin-bottom: 12px !important;
+  }
+  /* 行业标签 */
+  .dk-home-project-grid > a .bg-brand-soft,
+  .dk-project-list > a .bg-brand-soft {
+    font-size: 10px !important; font-weight: 500 !important;
+    color: #B91C1C !important;
+    background: rgba(185,28,28,0.06) !important;
+    padding: 3px 8px !important; border-radius: 5px !important;
+  }
+
+  /* 状态标签颜色映射 — 手机端 */
+  .tag-recruiting {
+    font-size: 10px !important; font-weight: 500 !important;
+    color: #B45309 !important; background: rgba(180,83,9,0.08) !important;
+    padding: 3px 8px !important; border-radius: 5px !important;
+    border: none !important;
+  }
+  .tag-active {
+    font-size: 10px !important; font-weight: 500 !important;
+    color: #15803D !important; background: rgba(21,128,61,0.08) !important;
+    padding: 3px 8px !important; border-radius: 5px !important;
+    border: none !important;
+  }
+  .tag-completed {
+    font-size: 10px !important; font-weight: 500 !important;
+    color: #1D4ED8 !important; background: rgba(29,78,216,0.08) !important;
+    padding: 3px 8px !important; border-radius: 5px !important;
+    border: none !important;
+  }
+  .tag-terminated {
+    font-size: 10px !important; font-weight: 500 !important;
+    color: #78716C !important; background: #F5F5F4 !important;
+    padding: 3px 8px !important; border-radius: 5px !important;
+    border: none !important;
+  }
+  .tag-draft {
+    font-size: 10px !important; font-weight: 500 !important;
+    color: #78716C !important; background: #F5F5F4 !important;
+    padding: 3px 8px !important; border-radius: 5px !important;
+    border: 1px dashed #D6D3D1 !important;
+  }
+
+  /* 数据指标容器（三列数据）— 手机端 */
+  .data-metric-box {
+    background: #FAFAF9 !important;
+    border-radius: 8px !important;
+    padding: 12px 0 !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr 1fr !important;
+  }
+  .data-metric-box > *:nth-child(2) {
+    border-left: 1px solid #E7E5E4;
+    border-right: 1px solid #E7E5E4;
+  }
+  .data-metric-box > * {
+    text-align: center !important;
+  }
+  .data-metric-box .dm-value {
+    font-size: 16px; font-weight: 700; color: #1C1917;
+  }
+  .data-metric-box .dm-value .dm-prefix,
+  .data-metric-box .dm-value .dm-suffix {
+    font-size: 11px; font-weight: 400;
+  }
+  .data-metric-box .dm-label {
+    font-size: 10px; color: #A8A29E; margin-top: 3px;
+  }
+
+  /* 区域 C – 进度与操作 */
+  /* 进度条 */
+  .dk-home-project-grid > a .progress-bar,
+  .dk-project-list > a .progress-bar,
+  #panel-invest .bg-white .progress-bar,
+  #panel-initiate .bg-white .progress-bar {
+    height: 5px !important;
+    background: #F0EFED !important;
+    border-radius: 2.5px !important;
+  }
+  .dk-home-project-grid > a .progress-fill,
+  .dk-project-list > a .progress-fill,
+  #panel-invest .bg-white .progress-fill,
+  #panel-initiate .bg-white .progress-fill {
+    border-radius: 2.5px !important;
+    background: linear-gradient(90deg, #B91C1C, #DC2626) !important;
+    transition: width 0.6s ease !important;
+  }
+  /* 进度百分比文字 */
+  .dk-home-project-grid > a .font-semibold.text-gold-dark,
+  .dk-project-list > a .font-semibold.text-gold-dark {
+    font-size: 12px !important; font-weight: 500 !important; color: #B91C1C !important;
+  }
+  /* "查看详情 →" text link within cards */
+  .dk-home-project-grid > a .text-brand.font-medium,
+  .dk-project-list > a .text-brand.font-medium {
+    font-size: 12px !important; color: #B91C1C !important; font-weight: 500 !important;
+  }
+  /* 浏览统计行 */
+  .dk-home-project-grid > a .text-text-tertiary[style*="font-size:11px"],
+  .dk-project-list > a .text-text-tertiary[style*="font-size:11px"] {
+    font-size: 10px !important; color: #A8A29E !important;
+  }
+
+  /* ──────────────────────────────────────
+     三、回款记录行（回款页、首页回款动态）
+     ────────────────────────────────────── */
+  /* 首页回款动态容器 */
+  .dk-home-right .bg-white.rounded-2xl.shadow-card {
+    padding: 0 !important;
+    border-radius: 12px !important;
+    border: 1px solid #F0EFED !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.03) !important;
+    overflow: hidden !important;
+    margin-bottom: 12px !important;
+  }
+  /* 每行回款记录 */
+  .dk-home-right .bg-white.rounded-2xl.shadow-card > div {
+    padding: 12px 20px !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    border-bottom: 1px solid #F5F5F4 !important;
+    min-height: 44px !important;
+  }
+  .dk-home-right .bg-white.rounded-2xl.shadow-card > div:last-child {
+    border-bottom: none !important;
+  }
+  .dk-home-right .bg-white.rounded-2xl.shadow-card > div:active {
+    background: #FAFAF9 !important;
+  }
+  /* 日期 */
+  .dk-home-right .text-text-tertiary[style*="min-width"] {
+    font-size: 11px !important; color: #A8A29E !important;
+    min-width: 56px !important;
+  }
+  /* 项目名称 */
+  .dk-home-right .text-text-primary.font-medium {
+    font-size: 13px !important; font-weight: 500 !important; color: #1C1917 !important;
+    overflow: hidden !important; text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    max-width: calc(100vw - 200px) !important;
+  }
+  /* 金额 */
+  .dk-home-right .font-semibold[style*="color:#16a34a"] {
+    font-size: 15px !important; font-weight: 700 !important;
+    color: #16A34A !important;
+    text-align: right !important; flex-shrink: 0 !important;
+  }
+
+  /* 首页回款动态标题行 */
+  .dk-home-right > section > .flex.items-center.justify-between,
+  .dk-home-right > section > h3 {
+    padding: 0 20px !important;
+    margin-bottom: 10px !important;
+    display: flex !important; justify-content: space-between !important; align-items: center !important;
+  }
+  .dk-home-right > section > h3,
+  .dk-home-right > section > .flex h3 {
+    font-size: 14px !important; font-weight: 600 !important; color: #1C1917 !important;
+  }
+  .dk-home-right > section .text-brand.font-medium {
+    font-size: 12px !important; color: #B91C1C !important;
+  }
+
+  /* ──────────────────────────────────────
+     四、合同卡片（我的合同 Tab、投资详情页）
+     ────────────────────────────────────── */
+  .contract-card {
+    padding: 16px 20px !important;
+    border-radius: 12px !important;
+    border: 1px solid #F0EFED !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.03) !important;
+  }
+  .contract-no {
+    font-size: 11px !important; color: #A8A29E !important;
+    font-family: monospace !important;
+  }
+  .contract-title {
+    font-size: 14px !important; font-weight: 600 !important; color: #1C1917 !important;
+  }
+
+  /* ──────────────────────────────────────
+     五、KPI 统计卡片（首页投资概览、管理后台、老师工作台）
+     ────────────────────────────────────── */
+  /* 首页统计卡 — 2列 */
+  .dk-home-stats > div {
+    padding: 16px 18px !important;
+    background: #FFFFFF !important;
+    border-radius: 10px !important;
+    border: 1px solid #F0EFED !important;
+    min-height: 80px !important;
+  }
+  .dk-home-stats > div > .font-extrabold {
+    font-size: 22px !important; font-weight: 700 !important;
+    color: #1C1917 !important; line-height: 1.2 !important;
+  }
+  .dk-home-stats > div > .text-text-tertiary {
+    font-size: 11px !important; color: #A8A29E !important;
+    margin-top: 6px !important;
+  }
+
+  /* 管理后台 KPI — 2列3行 */
+  .admin-kpi-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+  }
+  .admin-kpi-card,
+  .admin-kpi-grid > div {
+    padding: 16px 18px !important;
+    background: #FFFFFF !important;
+    border-radius: 10px !important;
+    border: 1px solid #F0EFED !important;
+    min-height: 80px !important;
+    text-align: center !important;
+  }
+  .admin-kpi-val {
+    font-size: 22px !important; font-weight: 700 !important;
+    color: #1C1917 !important; line-height: 1.2 !important;
+  }
+  .admin-kpi-label {
+    font-size: 11px !important; color: #A8A29E !important;
+    margin-top: 6px !important;
+  }
+  /* 管理后台 KPI 顶部装饰线保持 */
+  .admin-kpi-grid > div:nth-child(1) { border-top: 3px solid #B91C1C !important; }
+  .admin-kpi-grid > div:nth-child(2) { border-top: 3px solid #D97706 !important; }
+  .admin-kpi-grid > div:nth-child(3) { border-top: 3px solid #2563EB !important; }
+  .admin-kpi-grid > div:nth-child(4) { border-top: 3px solid #16A34A !important; }
+  .admin-kpi-grid > div:nth-child(5) { border-top: 3px solid #7C3AED !important; }
+  .admin-kpi-grid > div:nth-child(6) { border-top: 3px solid #0891B2 !important; }
+
+  /* 老师工作台统计条 */
+  #teacher-stats-bar {
+    border-radius: 10px !important;
+    border: 1px solid #F0EFED !important;
+    overflow: hidden !important;
+  }
+  #teacher-stats-bar > div {
+    padding: 16px 18px !important;
+    min-height: 80px !important;
+    text-align: center !important;
+  }
+
+  /* 投资概览卡片 */
+  .invest-overview-card {
+    padding: 18px 20px !important;
+    border-radius: 12px !important;
+    border: 1px solid #F0EFED !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.03) !important;
+  }
+  .invest-overview-total {
+    font-size: 22px !important; font-weight: 700 !important; line-height: 1.2 !important;
+  }
+  .invest-overview-repaid {
+    font-size: 18px !important; font-weight: 700 !important;
+  }
+  .invest-overview-label {
+    font-size: 11px !important; color: #A8A29E !important; margin-top: 6px !important;
+  }
+
+  /* ──────────────────────────────────────
+     六、学员卡片（管理后台学员 Tab、老师工作台班级学员列表）
+     ────────────────────────────────────── */
+  .class-student-row {
+    padding: 16px 20px !important;
+    display: flex !important; align-items: center !important; gap: 10px !important;
+    font-size: 13px !important;
+    min-height: 44px !important;
+  }
+  .class-student-row > div:first-child {
+    width: 40px !important; height: 40px !important; flex-shrink: 0;
+  }
+
+  /* ──────────────────────────────────────
+     七、引荐请求卡片（老师工作台引荐列表）
+     ────────────────────────────────────── */
+  .ref-request-item {
+    padding: 16px 20px !important;
+  }
+  /* 顶部行 */
+  .ref-person-row {
+    display: flex !important; align-items: center !important; gap: 8px !important;
+    margin-bottom: 4px !important;
+  }
+  .ref-avatar {
+    width: 32px !important; height: 32px !important;
+    font-size: 11px !important; flex-shrink: 0;
+  }
+  /* 留言块 */
+  .ref-msg-block {
+    font-size: 12px !important; color: #57534E !important;
+    margin-top: 10px !important; line-height: 1.5 !important;
+    display: -webkit-box !important; -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important; overflow: hidden !important;
+  }
+  /* 操作按钮行 */
+  .ref-btn-row {
+    margin-top: 12px !important; padding-top: 12px !important;
+    border-top: 1px solid #F5F5F4 !important;
+  }
+  .ref-btn-connected {
+    width: 100% !important;
+    background: linear-gradient(135deg, #B91C1C, #991B1B) !important;
+    color: #FFFFFF !important; padding: 10px 0 !important;
+    border-radius: 10px !important; font-size: 14px !important; font-weight: 500 !important;
+    text-align: center !important;
+    min-height: 44px !important;
+  }
+  .ref-btn-connected:active {
+    background: linear-gradient(135deg, #991B1B, #7F1D1D) !important;
+  }
+  .ref-btn-connected:hover {
+    transform: none !important;
+  }
+  .ref-btn-decline {
+    display: none !important;
+  }
+
+  /* ──────────────────────────────────────
+     八、通知消息行（/notifications 页面）
+     ────────────────────────────────────── */
+  #notification-list {
+    background: #FFFFFF !important;
+    border-radius: 12px !important;
+    border: 1px solid #F0EFED !important;
+    overflow: hidden !important;
+    margin: 0 16px !important;
+  }
+  /* 每行通知 */
+  #notification-list > div,
+  #notification-list > .notif-item {
+    padding: 14px 20px !important;
+    border-bottom: 1px solid #F5F5F4 !important;
+    min-height: 44px !important;
+    position: relative !important;
+  }
+  #notification-list > div:last-child,
+  #notification-list > .notif-item:last-child {
+    border-bottom: none !important;
+  }
+  #notification-list > div:active,
+  #notification-list > .notif-item:active {
+    background: #FAFAF9 !important;
+  }
+  /* 通知标题 */
+  #notification-list .notif-item > div > div:first-child span:first-child {
+    font-size: 13px !important; font-weight: 500 !important;
+    overflow: hidden !important; text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+  /* 通知内容预览 */
+  #notification-list .notif-item > div > div:nth-child(2) {
+    font-size: 12px !important; color: #78716C !important;
+    margin-top: 3px !important; line-height: 1.5 !important;
+    display: -webkit-box !important; -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important; overflow: hidden !important;
+  }
+  /* 通知时间 */
+  #notification-list .notif-item > div > div:last-child {
+    font-size: 10px !important; color: #A8A29E !important;
+    margin-top: 4px !important;
+  }
+
+  /* ──────────────────────────────────────
+     九、回款速报条（首页绿色横幅）
+     ────────────────────────────────────── */
+  #repayment-flash-bar > div {
+    padding: 14px 20px !important;
+    border-radius: 10px !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  /* 第一行：标签+金额 */
+  #repayment-flash-bar > div > div:first-child {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: baseline !important;
+  }
+  /* 第二行：项目数+详情 */
+  #repayment-flash-bar > div > div:nth-child(2) {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-top: 6px !important;
+  }
+
+  /* ──────────────────────────────────────
+     十、分享卡片预览（底部弹出面板内的品牌推介卡）
+     ────────────────────────────────────── */
+  #share-overlay #share-panel {
+    border-radius: 24px 24px 0 0 !important;
+    max-height: 85vh !important;
+  }
+  #share-overlay #share-panel > div {
+    padding: 20px !important;
+  }
+
+  /* ──────────────────────────────────────
+     十一、空状态展示（无数据时）
+     ────────────────────────────────────── */
+  .empty-state {
+    padding: 40px 20px !important;
+    text-align: center !important;
+  }
+  .empty-state-icon {
+    font-size: 40px !important;
+    margin-bottom: 12px !important;
+  }
+  .empty-state-text {
+    font-size: 15px !important; font-weight: 500 !important;
+    color: #57534E !important;
+  }
+  .empty-state-btn {
+    margin-top: 16px !important;
+    padding: 10px 24px !important;
+    border-radius: 10px !important;
+    font-size: 14px !important;
+    min-height: 44px !important;
+  }
+
+  /* ──────────────────────────────────────
+     十二、触摸优化（手机端专属）
+     ────────────────────────────────────── */
+  /* 确保按钮和可点击行最小触摸面积 44px */
+  .btn-primary, .btn-secondary, .btn-gold,
+  .modal-btn, .ref-btn,
+  .empty-state-btn,
+  .filter-select {
+    min-height: 44px !important;
+  }
+  .menu-row {
+    min-height: 44px !important;
+  }
+  /* 文字链接加大点击热区 */
+  .dk-home-project-grid > a .text-brand,
+  .dk-project-list > a .text-brand,
+  .back-link {
+    padding: 8px 12px !important;
+    margin: -8px -12px !important;
+  }
+  /* 筛选标签 */
+  .filter-select {
+    min-height: 32px !important;
+    padding: 6px 28px 6px 10px !important;
+  }
+
+  /* ──────────────────────────────────────
+     追加：quick-card 紧凑化
+     ────────────────────────────────────── */
+  .quick-card {
+    border-radius: 12px !important;
+    padding: 16px 18px !important;
+    height: 88px !important;
+  }
+  .quick-card:hover {
+    transform: none !important;
+    box-shadow: none !important;
+  }
+  .quick-card:active {
+    opacity: 0.92;
+    transition: opacity 0.1s;
+  }
+
+  /* ──────────────────────────────────────
+     追加：KPI banner 紧凑化
+     ────────────────────────────────────── */
+  .kpi-banner {
+    border-radius: 12px !important;
+    padding: 16px 8px !important;
+  }
+  .kpi-val {
+    font-size: 18px !important;
+  }
+  .kpi-label {
+    font-size: 10px !important;
+  }
+
+  /* ──────────────────────────────────────
+     追加：Payback 庆祝横幅紧凑化
+     ────────────────────────────────────── */
+  .payback-banner {
+    padding: 14px 20px !important;
+    border-radius: 12px !important;
+  }
+  .payback-banner .banner-title {
+    font-size: 16px !important;
+  }
+  .payback-banner .banner-sub {
+    font-size: 12px !important;
+  }
+
+  /* ──────────────────────────────────────
+     追加：Menu Row 紧凑化
+     ────────────────────────────────────── */
+  .menu-row:hover {
+    transform: none !important;
+  }
+  .menu-row:active {
+    background: #FAFAF9 !important;
+    transition: background 0.1s !important;
+  }
+
+  /* ──────────────────────────────────────
+     追加：Shadow card hover disable on mobile
+     ────────────────────────────────────── */
+  .shadow-card-hover:hover {
+    transform: none !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.03) !important;
+  }
+  .dk-clickable-card:hover {
+    transform: none !important;
+    box-shadow: none !important;
+  }
+
+  /* ──────────────────────────────────────
+     追加：320px 极窄屏保护
+     ────────────────────────────────────── */
+  @media (max-width: 340px) {
+    .kpi-banner { flex-wrap: wrap; }
+    .kpi-item { min-width: 50%; padding: 6px 4px; }
+    .kpi-item:not(:last-child)::after { display: none; }
+    .admin-kpi-grid { grid-template-columns: 1fr !important; }
+    .dk-home-stats { grid-template-columns: 1fr !important; }
+  }
 }
 
 /* ══════════════════════════════════════════════════════════
