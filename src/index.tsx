@@ -217,6 +217,31 @@ app.get('/api/data/share-code/:code', async (c) => {
   return c.json({ ok: true, data: proj })
 })
 
+// Invite codes API
+app.get('/api/data/invite-codes', async (c) => {
+  const db = c.env.DB
+  const codes = await db.prepare(
+    `SELECT ic.*, u.name as used_by_name FROM invite_codes ic LEFT JOIN users u ON ic.used_by = u.id ORDER BY ic.created_at DESC LIMIT 100`
+  ).all<any>()
+  return c.json({ ok: true, data: (codes.results || []).map((c: any) => ({
+    id: c.id, code: c.code, createdBy: c.created_by, usedBy: c.used_by,
+    usedByName: c.used_by_name, usedAt: c.used_at, expiresAt: c.expires_at,
+    createdAt: c.created_at,
+  }))})
+})
+
+// Audit logs API
+app.get('/api/data/audit-logs', async (c) => {
+  const db = c.env.DB
+  const logs = await db.prepare(
+    'SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT 100'
+  ).all<any>()
+  return c.json({ ok: true, data: (logs.results || []).map((l: any) => ({
+    id: l.id, userId: l.user_id, action: l.action, entityType: l.entity_type,
+    entityId: l.entity_id, detail: l.detail, createdAt: l.created_at,
+  }))})
+})
+
 
 // ══════════════════════════════════════════════════════════
 // Admin Write API (管理后台 + 学员操作)

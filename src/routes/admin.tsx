@@ -52,6 +52,9 @@ app.get('/admin', async (c) => {
         <button class="admin-tab" data-tab="classes">班级</button>
         <button class="admin-tab" data-tab="teachers">老师</button>
         <button class="admin-tab" data-tab="projects">项目</button>
+        <button class="admin-tab" data-tab="review">审核</button>
+        <button class="admin-tab" data-tab="invites">邀请码</button>
+        <button class="admin-tab" data-tab="audit">日志</button>
       </div>
 
       <main class="max-w-lg mx-auto pb-4 dk-admin-main">
@@ -62,6 +65,9 @@ app.get('/admin', async (c) => {
         <div id="tab-classes" class="admin-tab-panel" style="display:none;opacity:0;" />
         <div id="tab-teachers" class="admin-tab-panel" style="display:none;opacity:0;" />
         <div id="tab-projects" class="admin-tab-panel" style="display:none;opacity:0;" />
+        <div id="tab-review" class="admin-tab-panel" style="display:none;opacity:0;" />
+        <div id="tab-invites" class="admin-tab-panel" style="display:none;opacity:0;" />
+        <div id="tab-audit" class="admin-tab-panel" style="display:none;opacity:0;" />
       </main>
 
       <TabBar active="admin" />
@@ -127,7 +133,10 @@ app.get('/admin', async (c) => {
     members: document.getElementById('tab-members'),
     classes: document.getElementById('tab-classes'),
     teachers: document.getElementById('tab-teachers'),
-    projects: document.getElementById('tab-projects')
+    projects: document.getElementById('tab-projects'),
+    review: document.getElementById('tab-review'),
+    invites: document.getElementById('tab-invites'),
+    audit: document.getElementById('tab-audit')
   };
   var currentTab = 'overview';
   var rendered = {};
@@ -164,6 +173,9 @@ app.get('/admin', async (c) => {
     else if(name==='classes') renderClasses();
     else if(name==='teachers') renderTeachersTab();
     else if(name==='projects') renderProjectsTab();
+    else if(name==='review') renderReviewTab();
+    else if(name==='invites') renderInvitesTab();
+    else if(name==='audit') renderAuditTab();
   }
 
   // Render initial tab
@@ -199,21 +211,8 @@ app.get('/admin', async (c) => {
       legendHTML += '<div style="display:flex;align-items:center;gap:4px;"><div style="width:10px;height:10px;border-radius:2px;background:'+statusColors[s]+';flex-shrink:0;"></div><span>'+(statusLabels[s]||s)+' '+statusCounts[s]+'</span></div>';
     });
 
-    var activities = [
-      {icon:'🎓',text:'张明远（第12期）发起了新项目「华南餐饮连锁联营」',time:'2小时前'},
-      {icon:'💰',text:'李芳华（第12期）参与投资「华南餐饮连锁联营」¥10万',time:'5小时前'},
-      {icon:'📊',text:'王建国（第14期）提交了收入报告「智能制造设备融资」',time:'1天前'},
-      {icon:'🤝',text:'刘老师 完成了一次引荐对接',time:'2天前'},
-      {icon:'✅',text:'项目「华南社区团购联营试点」已完成全部回款',time:'5天前'}
-    ];
-
-    var actHTML = activities.map(function(a){
-      return '<div style="padding:12px 16px;border-bottom:1px solid #F5F5F4;display:flex;align-items:center;gap:10px;">'
-        +'<span style="font-size:20px;flex-shrink:0;">'+a.icon+'</span>'
-        +'<span style="flex:1;font-size:13px;color:#44403C;">'+a.text+'</span>'
-        +'<span style="font-size:12px;color:#A8A29E;white-space:nowrap;flex-shrink:0;">'+a.time+'</span>'
-        +'</div>';
-    }).join('');
+    // Pending review count
+    var pendingReviewCount = MOCK_PROJECTS.filter(function(p){return p.status==='pending_review';}).length;
 
     var html = '<div style="padding:20px 16px 12px;"><p style="font-size:15px;color:#44403C;">管理员您好，以下是平台运营概况</p></div>';
 
@@ -234,15 +233,24 @@ app.get('/admin', async (c) => {
     });
     html += '</div>';
 
+    // Pending review alert
+    if(pendingReviewCount > 0){
+      html += '<div style="margin:16px 16px 0;padding:12px 16px;background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="switchTab(\\'review\\')">';
+      html += '<span style="font-size:20px;">⚠️</span>';
+      html += '<span style="font-size:14px;color:#B91C1C;font-weight:600;">有 ' + pendingReviewCount + ' 个项目待审核</span>';
+      html += '<i class="fas fa-chevron-right" style="margin-left:auto;color:#B91C1C;font-size:12px;"></i>';
+      html += '</div>';
+    }
+
     // Status bar
     html += '<div style="margin-top:20px;padding:0 16px;">';
     html += '<div style="height:32px;border-radius:8px;overflow:hidden;background:#F5F5F4;width:100%;display:flex;">'+barHTML+'</div>';
     html += '<div style="display:flex;gap:16px;margin-top:8px;flex-wrap:wrap;font-size:11px;color:#78716C;">'+legendHTML+'</div>';
     html += '</div>';
 
-    // Recent activities
+    // Recent activities — load from audit log API
     html += '<div style="margin-top:24px;padding:0 16px;"><div style="font-size:16px;font-weight:600;color:#1C1917;">最近平台动态</div></div>';
-    html += '<div style="margin-top:8px;">'+actHTML+'</div>';
+    html += '<div id="overview-activities" style="margin-top:8px;"><div style="text-align:center;padding:20px;color:#A8A29E;font-size:13px;">加载中...</div></div>';
 
     panels.overview.innerHTML = html;
 
@@ -263,6 +271,29 @@ app.get('/admin', async (c) => {
       }
       requestAnimationFrame(anim);
     });
+
+    // Load recent activities from audit logs
+    fetch('/api/data/audit-logs').then(function(r){return r.json();}).then(function(res){
+      var logs = (res.ok ? res.data : []).slice(0, 8);
+      var actEl = document.getElementById('overview-activities');
+      if(!actEl || logs.length === 0){ if(actEl) actEl.innerHTML = '<div style="text-align:center;padding:20px;color:#A8A29E;font-size:13px;">暂无动态</div>'; return; }
+      var iconMap = {create_project:'📁',review_project:'✅',participate_project:'💰',sign_contract:'✍️',submit_revenue_report:'📊',batch_register:'👥',create_referral:'🤝',settlement_import:'📥',generate_invite:'🎟️'};
+      var actionMap = {create_project:'发起了新项目',review_project:'审核了项目',participate_project:'参与了投资',sign_contract:'签署了合同',submit_revenue_report:'提交了营收报告',batch_register:'批量注册了学员',create_referral:'发起了引荐',settlement_import:'导入了分账数据',generate_invite:'生成了邀请码'};
+      var members = getMembers();
+      actEl.innerHTML = logs.map(function(l){
+        var icon = iconMap[l.action] || '📌';
+        var text = actionMap[l.action] || l.action;
+        var user = members.find(function(m){ return m.id === l.userId; });
+        var userName = user ? user.name : (l.userId || '系统');
+        var entityInfo = l.entityId ? ' · ' + (l.entityType||'') + ': ' + l.entityId : '';
+        var timeStr = l.createdAt || '';
+        return '<div style="padding:12px 16px;border-bottom:1px solid #F5F5F4;display:flex;align-items:center;gap:10px;">'
+          +'<span style="font-size:20px;flex-shrink:0;">'+icon+'</span>'
+          +'<span style="flex:1;font-size:13px;color:#44403C;">'+userName+' '+text+entityInfo+'</span>'
+          +'<span style="font-size:12px;color:#A8A29E;white-space:nowrap;flex-shrink:0;">'+timeStr+'</span>'
+          +'</div>';
+      }).join('');
+    }).catch(function(){});
   }
 
   // ══════════════════════════════════
@@ -815,6 +846,183 @@ app.get('/admin', async (c) => {
     });
     html += '</div>';
     panels.projects.innerHTML = html;
+  }
+
+  // ══════════════════════════════════
+  // TAB: Review (项目审核)
+  // ══════════════════════════════════
+  function renderReviewTab(){
+    var projects = MOCK_PROJECTS.slice();
+    var members = getMembers();
+    var statusMap = {pending_review:'待审核',open:'募集中',active:'运营中',completed:'已完成',draft:'草稿',funded:'已满额',terminated:'已终止'};
+    var pending = projects.filter(function(p){ return p.status === 'pending_review'; });
+    var reviewed = projects.filter(function(p){ return p.status !== 'pending_review' && p.status !== 'draft'; });
+
+    var html = '<div style="padding:16px;">';
+    html += '<h3 style="font-size:18px;font-weight:700;color:#1C1917;margin-bottom:16px;">项目审核</h3>';
+
+    // Pending section
+    html += '<div style="margin-bottom:24px;">';
+    html += '<div style="font-size:14px;font-weight:600;color:#B91C1C;margin-bottom:12px;">待审核 (' + pending.length + ')</div>';
+    if(pending.length === 0){
+      html += '<div style="text-align:center;padding:20px;color:#A8A29E;font-size:13px;">暂无待审核项目</div>';
+    } else {
+      pending.forEach(function(p){
+        var owner = members.find(function(m){return m.id===p.ownerId;}) || {name:'?'};
+        html += '<div class="review-card" id="review-' + p.id + '" style="background:#fff;border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid #FEE2E2;">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:start;">';
+        html += '<div><div style="font-size:15px;font-weight:600;color:#1C1917;">' + p.name + '</div>';
+        html += '<div style="font-size:12px;color:#78716C;margin-top:4px;">发起人: ' + owner.name + ' · ' + (p.industry||'') + '</div>';
+        html += '<div style="font-size:12px;color:#78716C;">目标: ¥' + p.targetAmount + '万 · ' + p.totalShares + '份 × ¥' + p.sharePrice + '万</div>';
+        if(p.description) html += '<div style="font-size:12px;color:#A8A29E;margin-top:6px;line-height:1.5;">' + p.description.slice(0,100) + (p.description.length>100?'...':'') + '</div>';
+        html += '</div></div>';
+        html += '<div style="display:flex;gap:8px;margin-top:12px;">';
+        html += '<button onclick="reviewProject(\\'' + p.id + '\\',\\'approved\\')" style="flex:1;padding:8px;background:#16A34A;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">通过</button>';
+        html += '<button onclick="reviewProject(\\'' + p.id + '\\',\\'rejected\\')" style="flex:1;padding:8px;background:#fff;color:#DC2626;border:1px solid #FECACA;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">驳回</button>';
+        html += '</div></div>';
+      });
+    }
+    html += '</div>';
+
+    // Recently reviewed
+    html += '<div style="font-size:14px;font-weight:600;color:#44403C;margin-bottom:12px;">已审核项目</div>';
+    var recentReviewed = reviewed.slice(0, 20);
+    recentReviewed.forEach(function(p){
+      var owner = members.find(function(m){return m.id===p.ownerId;}) || {name:'?'};
+      var badge = statusMap[p.status] || p.status;
+      var badgeColor = p.status==='open'?'#DC2626':p.status==='active'?'#16A34A':'#78716C';
+      html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #F5F5F4;">';
+      html += '<div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:500;color:#1C1917;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + p.name + '</div>';
+      html += '<div style="font-size:12px;color:#A8A29E;">' + owner.name + '</div></div>';
+      html += '<span style="font-size:11px;padding:2px 8px;border-radius:6px;background:' + badgeColor + '1a;color:' + badgeColor + ';font-weight:500;">' + badge + '</span>';
+      html += '</div>';
+    });
+    html += '</div>';
+    panels.review.innerHTML = html;
+  }
+
+  window.reviewProject = function(pid, decision){
+    var notePrompt = decision === 'rejected' ? prompt('请输入驳回理由:') : '';
+    if(decision === 'rejected' && notePrompt === null) return;
+
+    fetch('/api/admin/projects/' + pid + '/review', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ decision: decision, note: notePrompt || '', adminId: u.id })
+    }).then(function(r){return r.json();}).then(function(res){
+      if(res.ok){
+        showToast(decision === 'approved' ? '✅ 项目已通过审核' : '❌ 项目已驳回');
+        // Update local data
+        var proj = MOCK_PROJECTS.find(function(p){ return p.id === pid; });
+        if(proj) proj.status = decision === 'approved' ? 'open' : 'draft';
+        renderReviewTab();
+      } else {
+        showToast(res.error || '操作失败', 'error');
+      }
+    }).catch(function(){ showToast('网络错误', 'error'); });
+  };
+
+  // ══════════════════════════════════
+  // TAB: Invites (邀请码管理)
+  // ══════════════════════════════════
+  function renderInvitesTab(){
+    var html = '<div style="padding:16px;">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">';
+    html += '<h3 style="font-size:18px;font-weight:700;color:#1C1917;">邀请码管理</h3>';
+    html += '<button id="btn-gen-invite" style="padding:8px 16px;background:#B91C1C;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;"><i class="fas fa-plus" style="margin-right:4px;"></i>生成邀请码</button>';
+    html += '</div>';
+    html += '<div id="invite-list" style="font-size:13px;color:#A8A29E;text-align:center;padding:24px;">加载中...</div>';
+    html += '</div>';
+    panels.invites.innerHTML = html;
+
+    // Load invite codes
+    fetch('/api/data/invite-codes').then(function(r){return r.json();}).then(function(res){
+      var codes = (res.ok ? res.data : res) || [];
+      var listEl = document.getElementById('invite-list');
+      if(codes.length === 0){
+        listEl.innerHTML = '<div style="text-align:center;padding:32px 0;"><div style="font-size:48px;color:#D6D3D1;margin-bottom:12px;">🎟️</div><p style="font-size:14px;color:#A8A29E;">暂无邀请码</p></div>';
+        return;
+      }
+      var h = '';
+      codes.forEach(function(c){
+        var usedBadge = c.usedBy ? '<span style="color:#16A34A;font-size:11px;">✅ 已使用</span>' : '<span style="color:#D4A853;font-size:11px;">⏳ 未使用</span>';
+        var expiredBadge = c.expiresAt && new Date(c.expiresAt) < new Date() ? '<span style="color:#DC2626;font-size:11px;margin-left:6px;">已过期</span>' : '';
+        h += '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #F5F5F4;">';
+        h += '<div>';
+        h += '<div style="font-family:monospace;font-size:15px;font-weight:600;color:#1C1917;letter-spacing:2px;">' + c.code + '</div>';
+        h += '<div style="font-size:11px;color:#A8A29E;margin-top:2px;">' + (c.createdAt || '') + (c.usedBy ? ' · 使用者: ' + (c.usedByName||c.usedBy) : '') + '</div>';
+        h += '</div>';
+        h += '<div>' + usedBadge + expiredBadge + '</div>';
+        h += '</div>';
+      });
+      listEl.innerHTML = h;
+    }).catch(function(){
+      document.getElementById('invite-list').innerHTML = '<div style="color:#DC2626;text-align:center;padding:16px;">加载失败</div>';
+    });
+
+    // Generate new invite code
+    document.getElementById('btn-gen-invite').addEventListener('click', function(){
+      fetch('/api/admin/invite-codes/generate', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ adminId: u.id, count: 1 })
+      }).then(function(r){return r.json();}).then(function(res){
+        if(res.ok){
+          showToast('✅ 邀请码已生成: ' + (res.data && res.data.codes ? res.data.codes[0] : ''));
+          renderInvitesTab();
+        } else {
+          showToast(res.error || '生成失败', 'error');
+        }
+      }).catch(function(){ showToast('网络错误', 'error'); });
+    });
+  }
+
+  // ══════════════════════════════════
+  // TAB: Audit Log (审计日志)
+  // ══════════════════════════════════
+  function renderAuditTab(){
+    var html = '<div style="padding:16px;">';
+    html += '<h3 style="font-size:18px;font-weight:700;color:#1C1917;margin-bottom:16px;">审计日志</h3>';
+    html += '<div id="audit-list" style="font-size:13px;color:#A8A29E;text-align:center;padding:24px;">加载中...</div>';
+    html += '</div>';
+    panels.audit.innerHTML = html;
+
+    fetch('/api/data/audit-logs').then(function(r){return r.json();}).then(function(res){
+      var logs = (res.ok ? res.data : res) || [];
+      var listEl = document.getElementById('audit-list');
+      if(logs.length === 0){
+        listEl.innerHTML = '<div style="text-align:center;padding:32px 0;"><div style="font-size:48px;color:#D6D3D1;margin-bottom:12px;">📋</div><p style="font-size:14px;color:#A8A29E;">暂无审计日志</p></div>';
+        return;
+      }
+
+      var actionMap = {
+        'create_project':'创建项目','review_project':'审核项目','participate_project':'参与投资',
+        'sign_contract':'签署合同','submit_revenue_report':'提交营收报告','batch_register':'批量注册',
+        'create_referral':'发起引荐','settlement_import':'导入分账','generate_invite':'生成邀请码',
+      };
+
+      var h = '';
+      logs.forEach(function(log){
+        var actionText = actionMap[log.action] || log.action;
+        var iconMap = {create_project:'📁',review_project:'✅',participate_project:'💰',sign_contract:'✍️',submit_revenue_report:'📊',batch_register:'👥',create_referral:'🤝',settlement_import:'📥',generate_invite:'🎟️'};
+        var icon = iconMap[log.action] || '📌';
+        var detail = '';
+        try { var d = typeof log.detail === 'string' ? JSON.parse(log.detail) : log.detail; detail = JSON.stringify(d).slice(0,120); } catch(e){ detail = log.detail || ''; }
+
+        h += '<div style="padding:12px 0;border-bottom:1px solid #F5F5F4;">';
+        h += '<div style="display:flex;align-items:center;gap:8px;">';
+        h += '<span style="font-size:16px;">' + icon + '</span>';
+        h += '<span style="font-size:14px;font-weight:500;color:#1C1917;">' + actionText + '</span>';
+        h += '<span style="font-size:11px;color:#A8A29E;margin-left:auto;">' + (log.createdAt || '') + '</span>';
+        h += '</div>';
+        h += '<div style="font-size:12px;color:#78716C;margin-top:4px;">用户: ' + (log.userId || '?') + ' · ' + (log.entityType||'') + ': ' + (log.entityId||'') + '</div>';
+        if(detail) h += '<div style="font-size:11px;color:#A8A29E;margin-top:2px;word-break:break-all;max-height:40px;overflow:hidden;">' + detail + '</div>';
+        h += '</div>';
+      });
+      listEl.innerHTML = h;
+    }).catch(function(){
+      document.getElementById('audit-list').innerHTML = '<div style="color:#DC2626;text-align:center;padding:16px;">加载失败</div>';
+    });
   }
 
 })();

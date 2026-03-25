@@ -797,4 +797,37 @@ adminApi.get('/contracts/:id', async (c) => {
   }
 })
 
+// ══════════════════════════════════════════════════════════
+// 邀请码生成 API
+// ══════════════════════════════════════════════════════════
+
+/**
+ * POST /api/admin/invite-codes/generate
+ * Body: { adminId, count?: number }
+ */
+adminApi.post('/invite-codes/generate', async (c) => {
+  const db = c.env.DB
+  try {
+    const { adminId, count = 1 } = await c.req.json<{ adminId: string; count?: number }>()
+    const codes: string[] = []
+    for (let i = 0; i < Math.min(count, 20); i++) {
+      const code = generateInviteCode()
+      await db.prepare(
+        `INSERT INTO invite_codes (code, created_by, status) VALUES (?, ?, 'active')`
+      ).bind(code, adminId).run()
+      codes.push(code)
+    }
+
+    await logAudit(db, {
+      userId: adminId, action: 'generate_invite',
+      entityType: 'invite_code', entityId: codes.join(','),
+      detail: { count: codes.length },
+    })
+
+    return c.json({ ok: true, data: { codes }, message: `已生成 ${codes.length} 个邀请码` })
+  } catch (e: any) {
+    return c.json({ ok: false, error: '生成失败: ' + (e.message || '') }, 500)
+  }
+})
+
 export default adminApi
