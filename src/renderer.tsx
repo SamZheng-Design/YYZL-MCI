@@ -1,4 +1,5 @@
 import { jsxRenderer } from 'hono/jsx-renderer'
+import { aiAssistantCSS, AIAssistantScript } from './ai-assistant'
 
 export const renderer = jsxRenderer(({ children, title }) => {
   return (
@@ -3172,6 +3173,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
     transform: translateX(2px) !important;
   }
 }
+
+/* ══════════════════════════════════════════════════
+   AI Assistant Styles
+   ══════════════════════════════════════════════════ */
+${aiAssistantCSS}
 `,
           }}
         />
@@ -3503,6 +3509,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
             }, 3000);
           })();
         `}} />
+
+        {/* ══ AI Assistant (智能助理浮窗) ══ */}
+        <AIAssistantScript />
       </body>
     </html>
   )
