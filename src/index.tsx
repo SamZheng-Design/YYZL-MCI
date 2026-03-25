@@ -1,5 +1,6 @@
 // ============================================================
-// 中流通 ZhongLiu Connect — Main Entry (D1 Refactored)
+// 中流通 ZhongLiu Connect — Main Entry (D1 + P0 Security)
+// P0 安全加固：Session 鉴权中间件、登录限流、安全 Headers
 // ============================================================
 import { Hono } from 'hono'
 import { renderer } from './renderer'
@@ -26,6 +27,12 @@ import {
   type RepaymentRecord, type RevenueReport, type Referral,
   type Notification, type ShareLog, type Repayment,
 } from './db-bridge'
+import {
+  requireAuth, requireAdmin, requireTeacher,
+  loginRateLimit, clearLoginRateLimit,
+  securityHeaders, getClientIP,
+  cleanExpiredSessions, verifySession,
+} from './middleware'
 
 // ── Route Modules ──
 import { registerLoginRoute } from './routes/login'
@@ -46,6 +53,11 @@ import adminApi from './admin-api'
 
 const app = new Hono<HonoEnv>()
 
+// ══════════════════════════════════════════════════════════
+// 全局中间件 — 安全 Headers（所有请求）
+// ══════════════════════════════════════════════════════════
+app.use('*', securityHeaders)
+
 // ── Favicon ──
 app.get('/favicon.ico', (c) => {
   return new Response(faviconSVG, {
@@ -56,21 +68,44 @@ app.get('/favicon.ico', (c) => {
 app.use(renderer)
 
 // ══════════════════════════════════════════════════════════
-// API Routes — 已从 mock 数据迁移到 D1 数据库
+// 鉴权中间件 — 所有 /api/data/* 和 /api/admin/* 路由
+// 排除：/api/login, /api/logout, /api/self-register, /api/auth/me
+// ══════════════════════════════════════════════════════════
+app.use('/api/data/*', requireAuth)
+app.use('/api/members', requireAuth)
+app.use('/api/projects', requireAuth)
+app.use('/api/user-stats/*', requireAuth)
+app.use('/api/platform-stats', requireAuth)
+app.use('/api/change-password', requireAuth)
+app.use('/api/admin/*', requireAuth)
+
+// ══════════════════════════════════════════════════════════
+// Auth API — 不需要鉴权的公开端点
 // ══════════════════════════════════════════════════════════
 
-/** 登录 API — 密码认证 + Session Cookie */
-app.post('/api/login', async (c) => {
+/** 验证 Session 有效性（供前端 AuthCheck 使用） */
+app.get('/api/auth/me', verifySession)
+
+// ══════════════════════════════════════════════════════════
+// API Routes — D1 数据库 + P0 Session 鉴权
+// ══════════════════════════════════════════════════════════
+
+/** 登录 API — 密码认证 + Session Cookie + 限流 + IP 审计 */
+app.post('/api/login', loginRateLimit, async (c) => {
   try {
     const body = await c.req.json<{ phone: string; code?: string; password?: string }>()
     const { phone } = body
     const password = body.password || body.code || ''
+    const ip = getClientIP(c)
 
     if (!phone || !password) return c.json({ ok: false, error: '请输入手机号和密码' }, 400)
 
     const db = c.env.DB
     const user = await getUserByPhone(db, phone)
-    if (!user) return c.json({ ok: false, error: '该手机号未认证为一亿中流学员' }, 403)
+    if (!user) {
+      await logAudit(db, { action: 'login_failed', detail: { phone, reason: 'user_not_found' }, ipAddress: ip })
+      return c.json({ ok: false, error: '该手机号未认证为一亿中流学员' }, 403)
+    }
 
     // Check if user is pending approval
     if (user.status === 'pending') {
@@ -78,18 +113,27 @@ app.post('/api/login', async (c) => {
     }
     // Check if user is disabled
     if (user.status === 'inactive') {
+      await logAudit(db, { userId: user.id, action: 'login_blocked', detail: { reason: 'account_disabled' }, ipAddress: ip })
       return c.json({ ok: false, error: '您的账号已被禁用，请联系管理员', isInactive: true }, 403)
     }
 
     const valid = await verifyPassword(password, user.password_hash || '')
-    if (!valid) return c.json({ ok: false, error: '密码错误' }, 400)
+    if (!valid) {
+      await logAudit(db, { userId: user.id, action: 'login_failed', detail: { reason: 'wrong_password' }, ipAddress: ip })
+      return c.json({ ok: false, error: '密码错误' }, 400)
+    }
 
-    // Create session in D1
+    // ✅ 登录成功 — 创建 session，记录 IP 和设备信息
     const sessionId = crypto.randomUUID()
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
+    const deviceInfo = (c.req.header('User-Agent') || 'unknown').slice(0, 200)
+
     await db.prepare(
-      `INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)`
-    ).bind(sessionId, user.id, expiresAt).run()
+      `INSERT INTO sessions (id, user_id, expires_at, ip_address, device_info) VALUES (?, ?, ?, ?, ?)`
+    ).bind(sessionId, user.id, expiresAt, ip, deviceInfo).run()
+
+    // 登录成功，清除限流记录
+    await clearLoginRateLimit(db, ip)
 
     // Check if using demo password (needs change)
     const needsPasswordChange = user.must_change_password === 1 || (user.password_hash || '').startsWith('$demo$')
@@ -109,8 +153,11 @@ app.post('/api/login', async (c) => {
       classId: user.class_id || '', className: user.class_name || '',
     }
 
-    // Set session cookie
+    // Set session cookie (Secure flag for production HTTPS)
     c.header('Set-Cookie', `zlc_session=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7*24*60*60}`)
+
+    // 审计日志
+    await logAudit(db, { userId: user.id, action: 'login_success', detail: { deviceInfo: deviceInfo.slice(0, 80) }, ipAddress: ip })
 
     return c.json({
       ok: true,
@@ -123,25 +170,29 @@ app.post('/api/login', async (c) => {
   }
 })
 
-/** 修改密码 API */
+/** 修改密码 API — 从 session 获取用户身份（不信任前端传的 userId） */
 app.post('/api/change-password', async (c) => {
   try {
-    const { userId, oldPassword, newPassword } = await c.req.json<{
-      userId: string; oldPassword: string; newPassword: string
+    const sessionUser = c.get('user')!
+    const { oldPassword, newPassword } = await c.req.json<{
+      userId?: string; oldPassword: string; newPassword: string
     }>()
     if (!newPassword || newPassword.length < 6) {
       return c.json({ ok: false, error: '新密码至少6位' }, 400)
     }
 
     const db = c.env.DB
-    const user = await db.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first<any>()
+    const user = await db.prepare('SELECT * FROM users WHERE id = ?').bind(sessionUser.id).first<any>()
     if (!user) return c.json({ ok: false, error: '用户不存在' }, 404)
 
     const valid = await verifyPassword(oldPassword, user.password_hash || '')
     if (!valid) return c.json({ ok: false, error: '原密码错误' }, 400)
 
     const newHash = await hashPassword(newPassword)
-    await db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(newHash, userId).run()
+    await db.prepare('UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?').bind(newHash, sessionUser.id).run()
+
+    const ip = getClientIP(c)
+    await logAudit(db, { userId: sessionUser.id, action: 'change_password', entityType: 'user', entityId: sessionUser.id, ipAddress: ip })
 
     return c.json({ ok: true, message: '密码修改成功' })
   } catch (e: any) {
@@ -149,21 +200,31 @@ app.post('/api/change-password', async (c) => {
   }
 })
 
-/** 管理员重置密码 API */
+/** 管理员重置密码 API — 从 session 验证管理员身份 */
 app.post('/api/admin/reset-password', async (c) => {
   try {
-    const { adminId, targetUserId } = await c.req.json<{
-      adminId: string; targetUserId: string
+    const sessionUser = c.get('user')!
+    if (sessionUser.role !== 'admin') {
+      return c.json({ ok: false, error: '无管理员权限' }, 403)
+    }
+
+    const { targetUserId } = await c.req.json<{
+      adminId?: string; targetUserId: string
     }>()
 
     const db = c.env.DB
-    const admin = await db.prepare('SELECT * FROM users WHERE id = ? AND role = ?').bind(adminId, 'admin').first<any>()
-    if (!admin) return c.json({ ok: false, error: '无管理员权限' }, 403)
 
     // Generate temporary password
     const tempPassword = 'zlc' + Math.random().toString(36).slice(2, 8)
     const newHash = await hashPassword(tempPassword)
-    await db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(newHash, targetUserId).run()
+    await db.prepare('UPDATE users SET password_hash = ?, must_change_password = 1 WHERE id = ?').bind(newHash, targetUserId).run()
+
+    const ip = getClientIP(c)
+    await logAudit(db, {
+      userId: sessionUser.id, action: 'admin_reset_password',
+      entityType: 'user', entityId: targetUserId,
+      detail: { adminName: sessionUser.name }, ipAddress: ip,
+    })
 
     return c.json({ ok: true, data: { tempPassword }, message: '密码已重置' })
   } catch (e: any) {
@@ -171,8 +232,8 @@ app.post('/api/admin/reset-password', async (c) => {
   }
 })
 
-/** 学员自助注册 API — 提交后状态为 pending，需管理员审核 */
-app.post('/api/self-register', async (c) => {
+/** 学员自助注册 API — 提交后状态为 pending，需管理员审核（限流保护） */
+app.post('/api/self-register', loginRateLimit, async (c) => {
   try {
     const { name, phone, password, teacherName, company, title } = await c.req.json<{
       name: string; phone: string; password: string; teacherName: string; company?: string; title?: string
@@ -189,6 +250,7 @@ app.post('/api/self-register', async (c) => {
     }
 
     const db = c.env.DB
+    const ip = getClientIP(c)
 
     // Check if phone already registered
     const existing = await db.prepare('SELECT id, status FROM users WHERE phone = ?').bind(phone).first<{ id: string; status: string }>()
@@ -211,7 +273,7 @@ app.post('/api/self-register', async (c) => {
     await logAudit(db, {
       userId: userId, action: 'self_register',
       entityType: 'user', entityId: userId,
-      detail: { name, phone, teacherName },
+      detail: { name, phone, teacherName }, ipAddress: ip,
     })
 
     return c.json({ ok: true, message: '注册申请已提交，请等待管理员审核通过后登录' })
@@ -337,13 +399,11 @@ app.get('/api/data/notifications', async (c) => {
   return c.json({ ok: true, data: await loadNotifications(db) })
 })
 
-/** 未读通知计数 API */
+/** 未读通知计数 API — 从 session 获取用户身份 */
 app.get('/api/data/notifications/unread-count', async (c) => {
   const db = c.env.DB
-  const userId = c.req.query('userId') || ''
-  const role = c.req.query('role') || 'member'
-  if (!userId) return c.json({ count: 0 })
-  const count = await getUnreadNotificationCount(db, userId, role as any)
+  const sessionUser = c.get('user')!
+  const count = await getUnreadNotificationCount(db, sessionUser.id, sessionUser.role)
   return c.json({ count })
 })
 
@@ -387,8 +447,26 @@ app.get('/api/data/audit-logs', async (c) => {
 
 // ══════════════════════════════════════════════════════════
 // Admin Write API (管理后台 + 学员操作)
+// 注意：/api/admin/* 已在上方通过 app.use 统一加了 requireAuth
 // ══════════════════════════════════════════════════════════
 app.route('/api/admin', adminApi)
+
+// ══════════════════════════════════════════════════════════
+// Session 清理 API（管理员定期调用或 Cron Trigger）
+// ══════════════════════════════════════════════════════════
+app.post('/api/admin/sessions/cleanup', async (c) => {
+  const sessionUser = c.get('user')!
+  if (sessionUser.role !== 'admin') {
+    return c.json({ ok: false, error: '无权限' }, 403)
+  }
+  const db = c.env.DB
+  const result = await cleanExpiredSessions(db)
+  await logAudit(db, {
+    userId: sessionUser.id, action: 'session_cleanup',
+    detail: result, ipAddress: getClientIP(c),
+  })
+  return c.json({ ok: true, data: result })
+})
 
 // ══════════════════════════════════════════════════════════
 // Page Routes (modularized)

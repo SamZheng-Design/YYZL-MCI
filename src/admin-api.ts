@@ -1,6 +1,6 @@
 // ============================================================
 // 中流通 ZhongLiu Connect — Admin Write API Routes
-// 管理后台写入操作（分账导入、学员注册、项目审核等）
+// P0 安全加固：所有写操作从 session 获取用户身份
 // ============================================================
 import { Hono } from 'hono'
 import type { HonoEnv } from './types'
@@ -9,6 +9,7 @@ import {
   hashPassword, generateUserId, generateInviteCode, generateInitialPassword,
   generateProjectId, generateContractId,
 } from './db'
+import { getClientIP } from './middleware'
 
 const adminApi = new Hono<HonoEnv>()
 
@@ -23,6 +24,9 @@ const adminApi = new Hono<HonoEnv>()
  */
 adminApi.post('/settlement/import', async (c) => {
   const db = c.env.DB
+  const sessionUser = c.get('user')!
+  if (sessionUser.role !== 'admin') return c.json({ ok: false, error: '无管理员权限' }, 403)
+  const ip = getClientIP(c)
   try {
     const { rows, fileName, adminId } = await c.req.json<{
       rows: Array<{
@@ -108,9 +112,10 @@ adminApi.post('/settlement/import', async (c) => {
 
     // 5. 审计日志
     await logAudit(db, {
-      userId: adminId, action: 'settlement_import',
+      userId: sessionUser.id, action: 'settlement_import',
       entityType: 'settlement_batch', entityId: batchId,
       detail: { fileName, totalRecords: rows.length, processedCount, totalAmount, warnings },
+      ipAddress: ip,
     })
 
     // 6. 通知相关投资人
@@ -158,6 +163,9 @@ adminApi.get('/settlement/batches', async (c) => {
  */
 adminApi.post('/members/batch-register', async (c) => {
   const db = c.env.DB
+  const sessionUser = c.get('user')!
+  if (sessionUser.role !== 'admin') return c.json({ ok: false, error: '无管理员权限' }, 403)
+  const ip = getClientIP(c)
   try {
     const { members, adminId } = await c.req.json<{
       members: Array<{ name: string; phone: string; className: string }>
@@ -204,8 +212,9 @@ adminApi.post('/members/batch-register', async (c) => {
 
     // 审计日志
     await logAudit(db, {
-      userId: adminId, action: 'batch_register',
+      userId: sessionUser.id, action: 'batch_register',
       entityType: 'user', detail: { registered, skipped, totalAttempted: members.length },
+      ipAddress: ip,
     })
 
     return c.json({
@@ -228,6 +237,9 @@ adminApi.post('/members/batch-register', async (c) => {
  */
 adminApi.post('/projects/:id/review', async (c) => {
   const db = c.env.DB
+  const sessionUser = c.get('user')!
+  if (sessionUser.role !== 'admin') return c.json({ ok: false, error: '无管理员权限' }, 403)
+  const ip = getClientIP(c)
   const projectId = c.req.param('id')
   try {
     const { action, note, adminId } = await c.req.json<{
@@ -241,7 +253,7 @@ adminApi.post('/projects/:id/review', async (c) => {
     await db.prepare(`
       UPDATE projects SET status = ?, review_note = ?, reviewed_by = ?, reviewed_at = datetime('now'), updated_at = datetime('now')
       WHERE id = ?
-    `).bind(newStatus, note || null, adminId, projectId).run()
+    `).bind(newStatus, note || null, sessionUser.id, projectId).run()
 
     // 通知项目发起人
     await createNotification(db, {
@@ -256,9 +268,10 @@ adminApi.post('/projects/:id/review', async (c) => {
     })
 
     await logAudit(db, {
-      userId: adminId, action: `project_${action}`,
+      userId: sessionUser.id, action: `project_${action}`,
       entityType: 'project', entityId: projectId,
       detail: { note, previousStatus: (project as any).status, newStatus },
+      ipAddress: ip,
     })
 
     return c.json({ ok: true, message: action === 'approve' ? '项目已批准上线' : '项目已驳回' })
@@ -277,9 +290,14 @@ adminApi.post('/projects/:id/review', async (c) => {
  */
 adminApi.post('/projects/:id/participate', async (c) => {
   const db = c.env.DB
+  const sessionUser = c.get('user')!
+  const ip = getClientIP(c)
   const projectId = c.req.param('id')
   try {
-    const { userId, shares } = await c.req.json<{ userId: string; shares: number }>()
+    // 从 session 获取用户ID，同时兑容前端传的 userId（但优先用 session）
+    const body = await c.req.json<{ userId?: string; shares: number }>()
+    const userId = sessionUser.id
+    const shares = body.shares
 
     // 获取项目
     const project = await db.prepare('SELECT * FROM projects WHERE id = ?').bind(projectId).first<any>()
@@ -345,6 +363,7 @@ adminApi.post('/projects/:id/participate', async (c) => {
       userId, action: 'participate_project',
       entityType: 'project', entityId: projectId,
       detail: { shares, amount, contractId },
+      ipAddress: ip,
     })
 
     return c.json({
@@ -363,12 +382,22 @@ adminApi.post('/projects/:id/participate', async (c) => {
  */
 adminApi.post('/contracts/:id/sign', async (c) => {
   const db = c.env.DB
+  const sessionUser = c.get('user')!
+  const ip = getClientIP(c)
   const contractId = c.req.param('id')
   try {
-    const { userId, role } = await c.req.json<{ userId: string; role: 'initiator' | 'participant' }>()
+    const { role } = await c.req.json<{ userId?: string; role: 'initiator' | 'participant' }>()
 
     const contract = await db.prepare('SELECT * FROM contracts WHERE id = ?').bind(contractId).first<any>()
     if (!contract) return c.json({ ok: false, error: '合同不存在' }, 404)
+
+    // ✅ P0 安全：验证当前用户是否是合同当事人
+    if (role === 'initiator' && contract.initiator_id !== sessionUser.id) {
+      return c.json({ ok: false, error: '您不是该合同的发起人' }, 403)
+    }
+    if (role === 'participant' && contract.participant_id !== sessionUser.id) {
+      return c.json({ ok: false, error: '您不是该合同的参与人' }, 403)
+    }
 
     if (role === 'initiator') {
       await db.prepare(
@@ -389,9 +418,10 @@ adminApi.post('/contracts/:id/sign', async (c) => {
     }
 
     await logAudit(db, {
-      userId, action: 'sign_contract',
+      userId: sessionUser.id, action: 'sign_contract',
       entityType: 'contract', entityId: contractId,
-      detail: { role },
+      detail: { role, signedAt: new Date().toISOString() },
+      ipAddress: ip,
     })
 
     return c.json({ ok: true, message: '签署成功' })
@@ -406,9 +436,12 @@ adminApi.post('/contracts/:id/sign', async (c) => {
  */
 adminApi.post('/projects/create', async (c) => {
   const db = c.env.DB
+  const sessionUser = c.get('user')!
+  const ip = getClientIP(c)
   try {
     const data = await c.req.json<any>()
-    const { userId } = data
+    // ✅ P0：从 session 获取用户ID
+    const userId = sessionUser.id
 
     const user = await db.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first<any>()
     if (!user) return c.json({ ok: false, error: '用户不存在' }, 404)
@@ -445,6 +478,7 @@ adminApi.post('/projects/create', async (c) => {
       userId, action: 'create_project',
       entityType: 'project', entityId: projectId,
       detail: { name: data.name, targetAmount: data.targetAmount },
+      ipAddress: ip,
     })
 
     return c.json({
@@ -467,6 +501,8 @@ adminApi.post('/projects/create', async (c) => {
  */
 adminApi.post('/referrals/create', async (c) => {
   const db = c.env.DB
+  const sessionUser = c.get('user')!
+  const ip = getClientIP(c)
   try {
     const { projectId, requesterId, teacherId, message } = await c.req.json<{
       projectId: string; requesterId: string; teacherId: string; message?: string
@@ -495,9 +531,10 @@ adminApi.post('/referrals/create', async (c) => {
     })
 
     await logAudit(db, {
-      userId: requesterId, action: 'create_referral',
+      userId: sessionUser.id, action: 'create_referral',
       entityType: 'referral', entityId: refId,
       detail: { projectId, teacherId, message },
+      ipAddress: ip,
     })
 
     return c.json({ ok: true, data: { referralId: refId }, message: '引荐请求已发送' })
@@ -557,6 +594,8 @@ adminApi.post('/referrals/:id/handle', async (c) => {
  */
 adminApi.post('/revenue-report/submit', async (c) => {
   const db = c.env.DB
+  const sessionUser = c.get('user')!
+  const ip = getClientIP(c)
   try {
     const { projectId, reportedBy, period, totalRevenue, note } = await c.req.json<{
       projectId: string; reportedBy: string; period: string
@@ -637,9 +676,10 @@ adminApi.post('/revenue-report/submit', async (c) => {
     })
 
     await logAudit(db, {
-      userId: reportedBy, action: 'submit_revenue_report',
+      userId: sessionUser.id, action: 'submit_revenue_report',
       entityType: 'settlement_record', entityId: recordId,
       detail: { projectId, period, totalRevenue, shareTotal, contracts: repaymentDetails.length },
+      ipAddress: ip,
     })
 
     return c.json({
@@ -807,6 +847,9 @@ adminApi.get('/contracts/:id', async (c) => {
  */
 adminApi.post('/invite-codes/generate', async (c) => {
   const db = c.env.DB
+  const sessionUser = c.get('user')!
+  if (sessionUser.role !== 'admin') return c.json({ ok: false, error: '无管理员权限' }, 403)
+  const ip = getClientIP(c)
   try {
     const { adminId, count = 1 } = await c.req.json<{ adminId: string; count?: number }>()
     const codes: string[] = []
@@ -819,9 +862,10 @@ adminApi.post('/invite-codes/generate', async (c) => {
     }
 
     await logAudit(db, {
-      userId: adminId, action: 'generate_invite',
+      userId: sessionUser.id, action: 'generate_invite',
       entityType: 'invite_code', entityId: codes.join(','),
       detail: { count: codes.length },
+      ipAddress: ip,
     })
 
     return c.json({ ok: true, data: { codes }, message: `已生成 ${codes.length} 个邀请码` })
@@ -841,13 +885,12 @@ adminApi.post('/invite-codes/generate', async (c) => {
  */
 adminApi.post('/members/:id/toggle-status', async (c) => {
   const db = c.env.DB
+  const sessionUser = c.get('user')!
+  if (sessionUser.role !== 'admin') return c.json({ ok: false, error: '无管理员权限' }, 403)
+  const ip = getClientIP(c)
   const userId = c.req.param('id')
   try {
     const { adminId } = await c.req.json<{ adminId: string }>()
-
-    // Verify admin
-    const admin = await db.prepare('SELECT role FROM users WHERE id = ?').bind(adminId).first<{ role: string }>()
-    if (!admin || admin.role !== 'admin') return c.json({ ok: false, error: '无管理员权限' }, 403)
 
     // Get current status
     const user = await db.prepare('SELECT id, name, status FROM users WHERE id = ?').bind(userId).first<{ id: string; name: string; status: string }>()
@@ -857,9 +900,10 @@ adminApi.post('/members/:id/toggle-status', async (c) => {
     await db.prepare('UPDATE users SET status = ?, updated_at = datetime(\'now\') WHERE id = ?').bind(newStatus, userId).run()
 
     await logAudit(db, {
-      userId: adminId, action: 'toggle_user_status',
+      userId: sessionUser.id, action: 'toggle_user_status',
       entityType: 'user', entityId: userId,
       detail: { userName: user.name, from: user.status, to: newStatus },
+      ipAddress: ip,
     })
 
     return c.json({ ok: true, data: { newStatus }, message: newStatus === 'active' ? '已启用' : '已禁用' })
@@ -875,12 +919,12 @@ adminApi.post('/members/:id/toggle-status', async (c) => {
  */
 adminApi.post('/members/:id/approve', async (c) => {
   const db = c.env.DB
+  const sessionUser = c.get('user')!
+  if (sessionUser.role !== 'admin') return c.json({ ok: false, error: '无管理员权限' }, 403)
+  const ip = getClientIP(c)
   const userId = c.req.param('id')
   try {
     const { adminId } = await c.req.json<{ adminId: string }>()
-
-    const admin = await db.prepare('SELECT role FROM users WHERE id = ?').bind(adminId).first<{ role: string }>()
-    if (!admin || admin.role !== 'admin') return c.json({ ok: false, error: '无管理员权限' }, 403)
 
     const user = await db.prepare('SELECT id, name, status, phone FROM users WHERE id = ?').bind(userId).first<{ id: string; name: string; status: string; phone: string }>()
     if (!user) return c.json({ ok: false, error: '用户不存在' }, 404)
@@ -889,9 +933,10 @@ adminApi.post('/members/:id/approve', async (c) => {
     await db.prepare('UPDATE users SET status = \'active\', updated_at = datetime(\'now\') WHERE id = ?').bind(userId).run()
 
     await logAudit(db, {
-      userId: adminId, action: 'approve_registration',
+      userId: sessionUser.id, action: 'approve_registration',
       entityType: 'user', entityId: userId,
       detail: { userName: user.name, phone: user.phone },
+      ipAddress: ip,
     })
 
     // Create notification for the user
@@ -916,12 +961,12 @@ adminApi.post('/members/:id/approve', async (c) => {
  */
 adminApi.post('/members/:id/reject', async (c) => {
   const db = c.env.DB
+  const sessionUser = c.get('user')!
+  if (sessionUser.role !== 'admin') return c.json({ ok: false, error: '无管理员权限' }, 403)
+  const ip = getClientIP(c)
   const userId = c.req.param('id')
   try {
     const { adminId, reason } = await c.req.json<{ adminId: string; reason?: string }>()
-
-    const admin = await db.prepare('SELECT role FROM users WHERE id = ?').bind(adminId).first<{ role: string }>()
-    if (!admin || admin.role !== 'admin') return c.json({ ok: false, error: '无管理员权限' }, 403)
 
     const user = await db.prepare('SELECT id, name, status, phone FROM users WHERE id = ?').bind(userId).first<{ id: string; name: string; status: string; phone: string }>()
     if (!user) return c.json({ ok: false, error: '用户不存在' }, 404)
@@ -941,9 +986,10 @@ adminApi.post('/members/:id/reject', async (c) => {
     }
 
     await logAudit(db, {
-      userId: adminId, action: 'reject_registration',
+      userId: sessionUser.id, action: 'reject_registration',
       entityType: 'user', entityId: userId,
       detail: { userName: user.name, phone: user.phone, reason: reason || '' },
+      ipAddress: ip,
     })
 
     return c.json({ ok: true, message: '已拒绝 ' + user.name + ' 的注册申请' })
@@ -959,14 +1005,13 @@ adminApi.post('/members/:id/reject', async (c) => {
  */
 adminApi.post('/members/:id/update', async (c) => {
   const db = c.env.DB
+  const sessionUser = c.get('user')!
+  if (sessionUser.role !== 'admin') return c.json({ ok: false, error: '无管理员权限' }, 403)
   const userId = c.req.param('id')
   try {
     const { adminId, name, company, title, className, industry } = await c.req.json<{
       adminId: string; name?: string; company?: string; title?: string; className?: string; industry?: string
     }>()
-
-    const admin = await db.prepare('SELECT role FROM users WHERE id = ?').bind(adminId).first<{ role: string }>()
-    if (!admin || admin.role !== 'admin') return c.json({ ok: false, error: '无管理员权限' }, 403)
 
     const user = await db.prepare('SELECT id FROM users WHERE id = ?').bind(userId).first()
     if (!user) return c.json({ ok: false, error: '用户不存在' }, 404)

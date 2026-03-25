@@ -803,9 +803,35 @@ const AuthCheckScript = () => (
   <script dangerouslySetInnerHTML={{
     __html: `
 (function(){
+  // P0 安全升级：先检查 localStorage 缓存（避免白屏），再服务端验证 session
   var u = null;
   try { u = JSON.parse(localStorage.getItem('zlc_user')); } catch(e){}
-  if (!u) { window.location.href = '/login'; }
+  if (!u) { window.location.href = '/login'; return; }
+
+  // 异步验证服务端 session（cookie 自动携带）
+  fetch('/api/auth/me', { credentials: 'same-origin' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data.ok) {
+        // Session 失效 → 清除本地缓存，跳转登录
+        localStorage.removeItem('zlc_user');
+        localStorage.removeItem('zlc_member');
+        window.location.href = '/login?expired=1';
+      } else if (data.user) {
+        // 同步服务端最新用户信息到 localStorage
+        var cached = data.user;
+        cached.role = cached.role || 'member';
+        localStorage.setItem('zlc_user', JSON.stringify(cached));
+        // 如果需要改密码，跳到改密码流程
+        if (data.user.needsPasswordChange && !window.location.pathname.startsWith('/login')) {
+          // 仅提示，不强制跳转（保持当前行为）
+        }
+      }
+    })
+    .catch(function(err) {
+      console.warn('Session verify failed:', err);
+      // 网络错误不踢出（离线容忍）
+    });
 })();
 `}} />
 )
