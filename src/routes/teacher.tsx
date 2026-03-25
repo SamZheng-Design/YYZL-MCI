@@ -1,17 +1,17 @@
 // Route: /teacher
 import { Hono } from 'hono'
-import {
-  mockMembers, mockProjects, mockTeachers,
-} from '../data'
-import type { Member, Teacher, Project, Referral } from '../data'
+import type { HonoEnv } from '../types'
 import {
   GlobalScripts, LogoSVG, Navbar, TabBar,
 } from '../components'
 
-export function registerTeacherRoute(app: Hono) {
-app.get('/teacher', (c) => {
-  const allProjects = mockProjects
-  const allMembers = mockMembers
+export function registerTeacherRoute(app: Hono<HonoEnv>) {
+app.get('/teacher', async (c) => {
+  const db = c.env.DB
+  const { loadMembers, loadProjects, loadTeachers } = await import('../db-bridge')
+  const [allMembers, allProjects, allTeachers] = await Promise.all([
+    loadMembers(db), loadProjects(db), loadTeachers(db)
+  ])
 
   return c.render(
     <div class="app-container has-tabbar">
@@ -93,7 +93,7 @@ app.get('/teacher', (c) => {
       </div>
 
       <script dangerouslySetInnerHTML={{ __html: `
-window.__ZLC_TEACHERS__ = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, name:t.name, phone:t.phone, classIds:t.classIds })))};
+window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name:t.name, phone:t.phone, classIds:t.classIds })))};
 (function(){
   var u = null;
   try { u = JSON.parse(localStorage.getItem('zlc_user')); } catch(e){}
@@ -107,7 +107,7 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, nam
     id:m.id, name:m.name, company:m.company, industry:m.industry,
     classId:m.classId||'', className:m.className||'',
   })))};
-  var ALL_TEACHERS = ${JSON.stringify(mockTeachers.map(t => ({
+  var ALL_TEACHERS = ${JSON.stringify(allTeachers.map(t => ({
     id:t.id, name:t.name, classIds:t.classIds,
   })))};
 

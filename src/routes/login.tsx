@@ -1,10 +1,11 @@
 // Route: /login
 import { Hono } from 'hono'
+import type { HonoEnv } from '../types'
 import {
   GlobalScripts,
 } from '../components'
 
-export function registerLoginRoute(app: Hono) {
+export function registerLoginRoute(app: Hono<HonoEnv>) {
 app.get('/login', (c) => {
   return c.render(
     <div>

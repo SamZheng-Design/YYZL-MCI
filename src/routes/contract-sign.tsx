@@ -1,24 +1,26 @@
 // Route: /contracts/:id/sign
 import { Hono } from 'hono'
-import type { Project, Contract } from '../data'
-import {
-  mockMembers, mockProjects, mockContracts, generateContractHTML,
-} from '../data'
+import type { HonoEnv } from '../types'
 import {
   GlobalScripts, Navbar, AuthCheckScript,
 } from '../components'
 
-export function registerContractSignRoute(app: Hono) {
-app.get('/contracts/:id/sign', (c) => {
+export function registerContractSignRoute(app: Hono<HonoEnv>) {
+app.get('/contracts/:id/sign', async (c) => {
+  const db = c.env.DB
+  const { loadMembers, loadProjects, loadContracts, generateContractHTML } = await import('../db-bridge')
+  const [allMembers, allProjects, allContracts] = await Promise.all([
+    loadMembers(db), loadProjects(db), loadContracts(db)
+  ])
   const contractId = c.req.param('id')
 
   // Pre-generate contract HTML map for all known contracts (server-side)
   const contractHTMLMap: Record<string, string> = {}
-  for (const ct of mockContracts) {
-    const proj = mockProjects.find(p => p.id === ct.projectId)
+  for (const ct of allContracts) {
+    const proj = allProjects.find(p => p.id === ct.projectId)
     if (!proj) continue
-    const initiator = mockMembers.find(m => m.id === ct.initiatorId) || null
-    const participant = mockMembers.find(m => m.id === ct.participantId) || null
+    const initiator = allMembers.find(m => m.id === ct.initiatorId) || null
+    const participant = allMembers.find(m => m.id === ct.participantId) || null
     contractHTMLMap[ct.id] = generateContractHTML(ct, proj, participant, initiator)
   }
 

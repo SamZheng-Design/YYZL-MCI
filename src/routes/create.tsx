@@ -1,10 +1,11 @@
 // Route: /create
 import { Hono } from 'hono'
+import type { HonoEnv } from '../types'
 import {
   GlobalScripts, Navbar, TabBar, AuthCheckScript,
 } from '../components'
 
-export function registerCreateRoute(app: Hono) {
+export function registerCreateRoute(app: Hono<HonoEnv>) {
 app.get('/create', (c) => {
   const industries = ['餐饮连锁','智能制造','教育培训','物流供应链','美容健康','零售','SaaS','其他']
 

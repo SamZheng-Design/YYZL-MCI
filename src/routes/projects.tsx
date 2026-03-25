@@ -1,17 +1,19 @@
 // Route: /projects
 import { Hono } from 'hono'
-import {
-  mockMembers, mockProjects, mockContracts, mockRepaymentRecords, mockTeachers, getRelationTag, getRelevanceScore, getProjectStats,
-} from '../data'
-import type { Member, Teacher, Project, Contract, RepaymentRecord, RelationTag } from '../data'
+import type { HonoEnv } from '../types'
 import {
   GlobalScripts, Navbar, TabBar, AuthCheckScript, statusLabel,
 } from '../components'
 
-export function registerProjectsRoute(app: Hono) {
-app.get('/projects', (c) => {
-  const stats = getProjectStats()
-  const industries = ['全部', ...Array.from(new Set(mockProjects.map(p => p.industry)))]
+export function registerProjectsRoute(app: Hono<HonoEnv>) {
+app.get('/projects', async (c) => {
+  const db = c.env.DB
+  const { loadMembers, loadProjects, loadContracts, loadRepaymentRecords, loadTeachers, loadRepayments, getProjectStats, getRelationTag, getRelevanceScore } = await import('../db-bridge')
+  const [allMembers, allProjects, allContracts, allRepRecords, allTeachers, allRepayments] = await Promise.all([
+    loadMembers(db), loadProjects(db), loadContracts(db), loadRepaymentRecords(db), loadTeachers(db), loadRepayments(db)
+  ])
+  const stats = getProjectStats(allProjects, allRepayments)
+  const industries = ['全部', ...Array.from(new Set(allProjects.map(p => p.industry)))]
 
   return c.render(
     <div class="app-container has-tabbar">
@@ -74,9 +76,9 @@ app.get('/projects', (c) => {
 
       {/* Inject projects data + filter logic */}
       <script dangerouslySetInnerHTML={{ __html: `
-window.__ZLC_TEACHERS__ = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, name:t.name, phone:t.phone, classIds:t.classIds })))};
+window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name:t.name, phone:t.phone, classIds:t.classIds })))};
 (function(){
-  var PROJECTS = ${JSON.stringify(mockProjects.map(p => ({
+  var PROJECTS = ${JSON.stringify(allProjects.map(p => ({
     id:p.id, name:p.name, ownerId:p.ownerId, industry:p.industry,
     targetAmount:p.targetAmount, raisedAmount:p.raisedAmount,
     revenueShareRate:p.revenueShareRate, duration:p.duration,
@@ -86,10 +88,10 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, nam
     initiatorClassId:p.initiatorClassId||'', initiatorClassName:p.initiatorClassName||'',
     recommendedByTeacher:p.recommendedByTeacher||[],
   })))};
-  var MEMBERS = ${JSON.stringify(mockMembers.map(m => ({ id:m.id, name:m.name, company:m.company, cohort:m.cohort, classId:m.classId||'' })))};
-  var TEACHERS = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, name:t.name, classIds:t.classIds })))};
-  var CONTRACTS = ${JSON.stringify(mockContracts.map(c => ({ id:c.id, projectId:c.projectId, amount:c.amount, recoveryCap:c.recoveryCap, status:c.status })))};
-  var REP_RECORDS = ${JSON.stringify(mockRepaymentRecords.map(r => ({ contractId:r.contractId, cumulativeShare:r.cumulativeShare })))};
+  var MEMBERS = ${JSON.stringify(allMembers.map(m => ({ id:m.id, name:m.name, company:m.company, cohort:m.cohort, classId:m.classId||'' })))};
+  var TEACHERS = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name:t.name, classIds:t.classIds })))};
+  var CONTRACTS = ${JSON.stringify(allContracts.map(c => ({ id:c.id, projectId:c.projectId, amount:c.amount, recoveryCap:c.recoveryCap, status:c.status })))};
+  var REP_RECORDS = ${JSON.stringify(allRepRecords.map(r => ({ contractId:r.contractId, cumulativeShare:r.cumulativeShare })))};
 
   // Merge user-created projects from localStorage
   var userProjects = [];

@@ -1,25 +1,26 @@
 // Route: /investments/:contractId
 import { Hono } from 'hono'
-import {
-  mockMembers, mockContracts, mockRepaymentRecords,
-  mockProjects, generateContractHTML,
-} from '../data'
-import type { Member, Project, Contract, RepaymentRecord } from '../data'
+import type { HonoEnv } from '../types'
 import {
   GlobalScripts, Navbar, AuthCheckScript,
 } from '../components'
 
-export function registerInvestmentsRoute(app: Hono) {
-app.get('/investments/:contractId', (c) => {
+export function registerInvestmentsRoute(app: Hono<HonoEnv>) {
+app.get('/investments/:contractId', async (c) => {
+  const db = c.env.DB
+  const { loadMembers, loadProjects, loadContracts, loadRepaymentRecords, generateContractHTML } = await import('../db-bridge')
+  const [allMembers, allProjects, allContracts, allRepRecords] = await Promise.all([
+    loadMembers(db), loadProjects(db), loadContracts(db), loadRepaymentRecords(db)
+  ])
   const contractId = c.req.param('contractId')
 
   // Pre-generate contract HTML map for all known contracts (server-side)
   const contractHTMLMap: Record<string, string> = {}
-  for (const ct of mockContracts) {
-    const proj = mockProjects.find(p => p.id === ct.projectId)
+  for (const ct of allContracts) {
+    const proj = allProjects.find(p => p.id === ct.projectId)
     if (!proj) continue
-    const initiator = mockMembers.find(m => m.id === ct.initiatorId) || null
-    const participant = mockMembers.find(m => m.id === ct.participantId) || null
+    const initiator = allMembers.find(m => m.id === ct.initiatorId) || null
+    const participant = allMembers.find(m => m.id === ct.participantId) || null
     contractHTMLMap[ct.id] = generateContractHTML(ct, proj, participant, initiator)
   }
 
@@ -65,9 +66,9 @@ app.get('/investments/:contractId', (c) => {
   if (!u) return;
 
   var CONTRACT_ID = '${contractId}';
-  var CONTRACTS = ${JSON.stringify(mockContracts)};
-  var REP_RECORDS = ${JSON.stringify(mockRepaymentRecords)};
-  var MEMBERS = ${JSON.stringify(mockMembers.map(m => ({ id:m.id, name:m.name, company:m.company })))};
+  var CONTRACTS = ${JSON.stringify(allContracts)};
+  var REP_RECORDS = ${JSON.stringify(allRepRecords)};
+  var MEMBERS = ${JSON.stringify(allMembers.map(m => ({ id:m.id, name:m.name, company:m.company })))};
   var CONTRACT_HTML_MAP = ${JSON.stringify(contractHTMLMap)};
 
   // Merge localStorage data

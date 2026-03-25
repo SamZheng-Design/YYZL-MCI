@@ -1,15 +1,17 @@
 // Route: /initiated/:projectId/report
 import { Hono } from 'hono'
-import {
-  mockMembers, mockProjects, mockContracts, mockRevenueReports, mockRepaymentRecords,
-} from '../data'
-import type { Member, Project, Contract, RevenueReport, RepaymentRecord } from '../data'
+import type { HonoEnv } from '../types'
 import {
   GlobalScripts, Navbar, AuthCheckScript,
 } from '../components'
 
-export function registerRevenueReportRoute(app: Hono) {
-app.get('/initiated/:projectId/report', (c) => {
+export function registerRevenueReportRoute(app: Hono<HonoEnv>) {
+app.get('/initiated/:projectId/report', async (c) => {
+  const db = c.env.DB
+  const { loadMembers, loadProjects, loadContracts, loadRevenueReports, loadRepaymentRecords } = await import('../db-bridge')
+  const [allMembers, allProjects, allContracts, allRevReports, allRepRecords] = await Promise.all([
+    loadMembers(db), loadProjects(db), loadContracts(db), loadRevenueReports(db), loadRepaymentRecords(db)
+  ])
   const projectId = c.req.param('projectId')
 
   return c.render(
@@ -49,11 +51,11 @@ app.get('/initiated/:projectId/report', (c) => {
   if (!u) return;
 
   var PROJECT_ID = '${projectId}';
-  var CONTRACTS = ${JSON.stringify(mockContracts)};
-  var PROJECTS = ${JSON.stringify(mockProjects)};
-  var REV_REPORTS = ${JSON.stringify(mockRevenueReports)};
-  var REP_RECORDS = ${JSON.stringify(mockRepaymentRecords)};
-  var MEMBERS = ${JSON.stringify(mockMembers.map(m => ({ id:m.id, name:m.name, company:m.company })))};
+  var CONTRACTS = ${JSON.stringify(allContracts)};
+  var PROJECTS = ${JSON.stringify(allProjects)};
+  var REV_REPORTS = ${JSON.stringify(allRevReports)};
+  var REP_RECORDS = ${JSON.stringify(allRepRecords)};
+  var MEMBERS = ${JSON.stringify(allMembers.map(m => ({ id:m.id, name:m.name, company:m.company })))};
 
   // Merge localStorage
   var lsContracts = [];

@@ -1,18 +1,20 @@
 // Route: /
 import { Hono } from 'hono'
-import {
-  mockMembers, mockProjects, mockRepayments, mockContracts, mockRepaymentRecords, mockTeachers,
-} from '../data'
-import type { Member, Teacher, Project, Contract, RepaymentRecord } from '../data'
+import type { HonoEnv } from '../types'
 import {
   GlobalScripts, Navbar, TabBar, AuthCheckScript,
 } from '../components'
 
-export function registerHomeRoute(app: Hono) {
-app.get('/', (c) => {
+export function registerHomeRoute(app: Hono<HonoEnv>) {
+app.get('/', async (c) => {
+  const db = c.env.DB
+  const { loadMembers, loadProjects, loadRepayments, loadContracts, loadRepaymentRecords, loadTeachers } = await import('../db-bridge')
+  const [allMembers, allProjects, allRepayments, allContracts, allRepRecords, allTeachers] = await Promise.all([
+    loadMembers(db), loadProjects(db), loadRepayments(db), loadContracts(db), loadRepaymentRecords(db), loadTeachers(db)
+  ])
   // Pre-compute data for SSR (will be hydrated client-side with user-specific data)
-  const openProjects = mockProjects.filter(p => p.status === 'open').slice(0, 3)
-  const recentRepayments = mockRepayments.slice(0, 5)
+  const openProjects = allProjects.filter(p => p.status === 'open').slice(0, 3)
+  const recentRepayments = allRepayments.slice(0, 5)
 
   return c.render(
     <div class="app-container has-tabbar">
@@ -92,7 +94,7 @@ app.get('/', (c) => {
             </div>
             <div class="flex flex-col gap-3 dk-home-project-grid">
               {openProjects.map(proj => {
-                const owner = mockMembers.find(m => m.id === proj.ownerId)
+                const owner = allMembers.find(m => m.id === proj.ownerId)
                 const pct = Math.round((proj.raisedAmount / proj.targetAmount) * 100)
                 return (
                   <a href={`/projects/${proj.id}`} class="bg-white rounded-2xl shadow-card p-4 block dk-clickable-card" style="text-decoration:none;color:inherit;">
@@ -152,7 +154,7 @@ app.get('/', (c) => {
 
       {/* Client script — hydrate user-specific data */}
       <script dangerouslySetInnerHTML={{ __html: `
-window.__ZLC_TEACHERS__ = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, name:t.name, phone:t.phone, classIds:t.classIds })))};
+window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name:t.name, phone:t.phone, classIds:t.classIds })))};
 (function(){
   var u = null;
   try { u = JSON.parse(localStorage.getItem('zlc_user')); } catch(e){}
@@ -178,8 +180,8 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, nam
 
   // ── Repayment Flash Bar ──
   (function(){
-    var REP_RECORDS = ${JSON.stringify(mockRepaymentRecords)};
-    var CONTRACTS = ${JSON.stringify(mockContracts.map(c => ({ id:c.id, participantId:c.participantId })))};
+    var REP_RECORDS = ${JSON.stringify(allRepRecords)};
+    var CONTRACTS = ${JSON.stringify(allContracts.map(c => ({ id:c.id, participantId:c.participantId })))};
 
     // Dynamically patch latest 3 records' dates to today/yesterday for demo
     var today = new Date();
@@ -239,8 +241,8 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, nam
     try { cu = JSON.parse(localStorage.getItem('zlc_current_user')); } catch(e){}
     if(cu && (cu.role === 'admin' || cu.role === 'teacher')) return;
 
-    var ALL_CONTRACTS = ${JSON.stringify(mockContracts.map(c => ({ id:c.id, participantId:c.participantId, amount:c.amount, status:c.status, projectId:c.projectId })))};
-    var ALL_REP_RECORDS = ${JSON.stringify(mockRepaymentRecords.map(r => ({ contractId:r.contractId, participantId:r.participantId, shareAmount:r.shareAmount })))};
+    var ALL_CONTRACTS = ${JSON.stringify(allContracts.map(c => ({ id:c.id, participantId:c.participantId, amount:c.amount, status:c.status, projectId:c.projectId })))};
+    var ALL_REP_RECORDS = ${JSON.stringify(allRepRecords.map(r => ({ contractId:r.contractId, participantId:r.participantId, shareAmount:r.shareAmount })))};
 
     // Merge localStorage contracts
     var lsContracts = [];
@@ -319,7 +321,7 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, nam
   // Share code input
   var shareInput = document.getElementById('home-share-input');
   var shareBtn = document.getElementById('home-share-btn');
-  var SHARE_CODES = ${JSON.stringify(mockProjects.filter(p => p.shareCode).map(p => ({ code: p.shareCode, id: p.id })))};
+  var SHARE_CODES = ${JSON.stringify(allProjects.filter(p => p.shareCode).map(p => ({ code: p.shareCode, id: p.id })))};
 
   if(shareInput){
     shareInput.addEventListener('input', function(){

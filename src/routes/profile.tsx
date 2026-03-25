@@ -1,15 +1,15 @@
 // Route: /profile
 import { Hono } from 'hono'
-import {
-  mockTeachers,
-} from '../data'
-import type { Teacher } from '../data'
+import type { HonoEnv } from '../types'
 import {
   GlobalScripts, Navbar, TabBar, AuthCheckScript,
 } from '../components'
 
-export function registerProfileRoute(app: Hono) {
-app.get('/profile', (c) => {
+export function registerProfileRoute(app: Hono<HonoEnv>) {
+app.get('/profile', async (c) => {
+  const db = c.env.DB
+  const { loadTeachers } = await import('../db-bridge')
+  const allTeachers = await loadTeachers(db)
   return c.render(
     <div class="app-container has-tabbar">
       <AuthCheckScript />
@@ -90,7 +90,7 @@ app.get('/profile', (c) => {
       <TabBar active="profile" />
 
       <script dangerouslySetInnerHTML={{ __html: `
-window.__ZLC_TEACHERS__ = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, name:t.name, phone:t.phone, classIds:t.classIds })))};
+window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name:t.name, phone:t.phone, classIds:t.classIds })))};
 (function(){
   var u = null;
   try { u = JSON.parse(localStorage.getItem('zlc_user')); } catch(e){}

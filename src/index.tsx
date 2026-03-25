@@ -40,6 +40,7 @@ import { registerAdminRoute } from './routes/admin'
 import { registerTeacherRoute } from './routes/teacher'
 import { registerShareRoute } from './routes/share'
 import { registerNotificationsRoute } from './routes/notifications'
+import adminApi from './admin-api'
 
 const app = new Hono<HonoEnv>()
 
@@ -216,6 +217,11 @@ app.get('/api/data/share-code/:code', async (c) => {
   return c.json({ ok: true, data: proj })
 })
 
+
+// ══════════════════════════════════════════════════════════
+// Admin Write API (管理后台 + 学员操作)
+// ══════════════════════════════════════════════════════════
+app.route('/api/admin', adminApi)
 
 // ══════════════════════════════════════════════════════════
 // Page Routes (modularized)

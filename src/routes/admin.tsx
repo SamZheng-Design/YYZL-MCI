@@ -1,15 +1,18 @@
 // Route: /admin
 import { Hono } from 'hono'
 import {
-  mockMembers, mockProjects, mockContracts, mockRepaymentRecords, mockTeachers,
-} from '../data'
-import type { Member, Teacher, Project, Contract, RepaymentRecord } from '../data'
-import {
   GlobalScripts, LogoSVG, Navbar, TabBar, statusLabel,
 } from '../components'
+import type { HonoEnv } from '../types'
 
-export function registerAdminRoute(app: Hono) {
-app.get('/admin', (c) => {
+export function registerAdminRoute(app: Hono<HonoEnv>) {
+app.get('/admin', async (c) => {
+  // Load data from D1 via bridge
+  const db = c.env.DB
+  const { loadMembers, loadTeachers, loadProjects, loadContracts, loadRepaymentRecords } = await import('../db-bridge')
+  const [allMembers, allTeachers, allProjects, allContracts, allRepRecords] = await Promise.all([
+    loadMembers(db), loadTeachers(db), loadProjects(db), loadContracts(db), loadRepaymentRecords(db)
+  ])
   return c.render(
     <div class="app-container has-tabbar" style="background:#F8F7F6;">
       <GlobalScripts />
@@ -44,6 +47,7 @@ app.get('/admin', (c) => {
       {/* Tab Navigation */}
       <div id="admin-tabs" style="position:sticky;top:52px;z-index:40;background:rgba(255,255,255,0.97);border-bottom:1px solid rgba(0,0,0,0.06);display:flex;overflow-x:auto;white-space:nowrap;padding:0 16px;-webkit-overflow-scrolling:touch;">
         <button class="admin-tab admin-tab-active" data-tab="overview">总览</button>
+        <button class="admin-tab" data-tab="settlement">分账</button>
         <button class="admin-tab" data-tab="members">学员</button>
         <button class="admin-tab" data-tab="classes">班级</button>
         <button class="admin-tab" data-tab="teachers">老师</button>
@@ -53,6 +57,7 @@ app.get('/admin', (c) => {
       <main class="max-w-lg mx-auto pb-4 dk-admin-main">
         {/* Tab Content Panels */}
         <div id="tab-overview" class="admin-tab-panel" style="opacity:1;" />
+        <div id="tab-settlement" class="admin-tab-panel" style="display:none;opacity:0;" />
         <div id="tab-members" class="admin-tab-panel" style="display:none;opacity:0;" />
         <div id="tab-classes" class="admin-tab-panel" style="display:none;opacity:0;" />
         <div id="tab-teachers" class="admin-tab-panel" style="display:none;opacity:0;" />
@@ -85,12 +90,12 @@ app.get('/admin', (c) => {
   try { u = JSON.parse(localStorage.getItem('zlc_user')); } catch(e){}
   if (!u) u = cu;
 
-  // ── Data ──
-  var MOCK_MEMBERS = ${JSON.stringify(mockMembers)};
-  var MOCK_PROJECTS = ${JSON.stringify(mockProjects)};
-  var MOCK_CONTRACTS = ${JSON.stringify(mockContracts)};
-  var MOCK_REP_RECORDS = ${JSON.stringify(mockRepaymentRecords)};
-  var MOCK_TEACHERS = ${JSON.stringify(mockTeachers)};
+  // ── Data from D1 ──
+  var MOCK_MEMBERS = ${JSON.stringify(allMembers)};
+  var MOCK_PROJECTS = ${JSON.stringify(allProjects)};
+  var MOCK_CONTRACTS = ${JSON.stringify(allContracts)};
+  var MOCK_REP_RECORDS = ${JSON.stringify(allRepRecords)};
+  var MOCK_TEACHERS = ${JSON.stringify(allTeachers)};
 
   // Merge localStorage members
   function getMembers(){
@@ -125,6 +130,7 @@ app.get('/admin', (c) => {
   var tabs = document.querySelectorAll('.admin-tab');
   var panels = {
     overview: document.getElementById('tab-overview'),
+    settlement: document.getElementById('tab-settlement'),
     members: document.getElementById('tab-members'),
     classes: document.getElementById('tab-classes'),
     teachers: document.getElementById('tab-teachers'),
@@ -160,6 +166,7 @@ app.get('/admin', (c) => {
   // ── Render Tabs ──
   function renderTab(name){
     if(name==='overview') renderOverview();
+    else if(name==='settlement') renderSettlementTab();
     else if(name==='members') renderMembers();
     else if(name==='classes') renderClasses();
     else if(name==='teachers') renderTeachersTab();
@@ -262,6 +269,206 @@ app.get('/admin', (c) => {
         if(progress<1)requestAnimationFrame(anim);
       }
       requestAnimationFrame(anim);
+    });
+  }
+
+  // ══════════════════════════════════
+  // TAB: Settlement (分账管理)
+  // ══════════════════════════════════
+  function renderSettlementTab(){
+    var html = '<div style="padding:16px;">';
+
+    // Header + Import button
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">';
+    html += '<div><div style="font-size:18px;font-weight:700;color:#1C1917;">分账管理</div>';
+    html += '<div style="font-size:13px;color:#78716C;margin-top:2px;">导入分账数据、查看历史批次</div></div>';
+    html += '<button id="btn-import-csv" style="background:linear-gradient(135deg,#B91C1C,#991B1B);color:white;border:none;border-radius:10px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;box-shadow:0 2px 8px rgba(185,28,28,0.25);"><span style="font-size:16px;">📁</span> 导入CSV</button>';
+    html += '</div>';
+
+    // CSV Template tip
+    html += '<div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:12px;padding:14px;margin-bottom:16px;">';
+    html += '<div style="font-size:13px;font-weight:600;color:#92400E;margin-bottom:6px;">📋 CSV模板格式</div>';
+    html += '<div style="font-size:12px;color:#A16207;line-height:1.6;">列顺序：结算日期, 账期, 项目ID, 项目名称, 总营收, 分账比例, 分账总额, 投资人ID, 投资人姓名, 分账金额, 到账状态</div>';
+    html += '<button id="btn-download-template" style="margin-top:8px;background:white;border:1px solid #FDE68A;border-radius:6px;padding:4px 12px;font-size:12px;color:#92400E;cursor:pointer;">下载模板</button>';
+    html += '</div>';
+
+    // Import area (hidden by default)
+    html += '<div id="csv-import-area" style="display:none;background:white;border-radius:14px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:16px;">';
+    html += '<div style="font-size:15px;font-weight:600;color:#1C1917;margin-bottom:12px;">选择CSV文件</div>';
+    html += '<input type="file" id="csv-file-input" accept=".csv,.txt" style="font-size:14px;margin-bottom:12px;width:100%;">';
+    html += '<div id="csv-preview" style="display:none;">';
+    html += '<div style="font-size:14px;font-weight:600;color:#1C1917;margin-bottom:8px;">预览 <span id="csv-row-count" style="color:#B91C1C;"></span></div>';
+    html += '<div id="csv-table-wrap" style="max-height:300px;overflow:auto;border:1px solid #E7E5E4;border-radius:8px;margin-bottom:12px;"></div>';
+    html += '<div id="csv-warnings" style="display:none;background:#FEF2F2;border-radius:8px;padding:10px;margin-bottom:12px;font-size:12px;color:#B91C1C;"></div>';
+    html += '<div style="display:flex;gap:10px;">';
+    html += '<button id="csv-confirm-import" style="flex:1;background:linear-gradient(135deg,#B91C1C,#991B1B);color:white;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;">确认导入</button>';
+    html += '<button id="csv-cancel" style="flex:1;background:#F5F5F4;color:#78716C;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;">取消</button>';
+    html += '</div></div></div>';
+
+    // Summary stats
+    var totalSettlements = MOCK_REP_RECORDS.length;
+    var totalShareAmount = 0;
+    MOCK_REP_RECORDS.forEach(function(r){totalShareAmount += (r.shareAmount||0);});
+    var involvedProjects = [];
+    MOCK_REP_RECORDS.forEach(function(r){if(involvedProjects.indexOf(r.projectName)===-1)involvedProjects.push(r.projectName);});
+
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;">';
+    html += '<div style="background:white;border-radius:12px;padding:14px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,0.04);">';
+    html += '<div style="font-size:22px;font-weight:800;color:#B91C1C;">'+totalSettlements+'</div>';
+    html += '<div style="font-size:11px;color:#A8A29E;margin-top:2px;">回款记录</div></div>';
+    html += '<div style="background:white;border-radius:12px;padding:14px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,0.04);">';
+    html += '<div style="font-size:22px;font-weight:800;color:#16A34A;">¥'+totalShareAmount.toFixed(1)+'万</div>';
+    html += '<div style="font-size:11px;color:#A8A29E;margin-top:2px;">累计分账</div></div>';
+    html += '<div style="background:white;border-radius:12px;padding:14px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,0.04);">';
+    html += '<div style="font-size:22px;font-weight:800;color:#1C1917;">'+involvedProjects.length+'</div>';
+    html += '<div style="font-size:11px;color:#A8A29E;margin-top:2px;">涉及项目</div></div>';
+    html += '</div>';
+
+    // Recent records grouped by project
+    html += '<div style="font-size:16px;font-weight:600;color:#1C1917;margin-bottom:12px;">近期分账记录</div>';
+    var recentRecords = MOCK_REP_RECORDS.slice(0,30);
+    var projectGroups = {};
+    recentRecords.forEach(function(r){
+      if(!projectGroups[r.projectName]) projectGroups[r.projectName] = [];
+      projectGroups[r.projectName].push(r);
+    });
+
+    Object.keys(projectGroups).forEach(function(pn){
+      var items = projectGroups[pn];
+      var groupTotal = 0;
+      items.forEach(function(it){groupTotal += (it.shareAmount||0);});
+      html += '<div style="background:white;border-radius:14px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,0.04);margin-bottom:12px;">';
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">';
+      html += '<span style="font-size:14px;font-weight:600;color:#1C1917;">'+pn+'</span>';
+      html += '<span style="font-size:13px;font-weight:700;color:#16A34A;">¥'+groupTotal.toFixed(2)+'万</span>';
+      html += '</div>';
+      items.forEach(function(it){
+        var member = MOCK_MEMBERS.find(function(m){return m.id===it.participantId;}) || {name:'?'};
+        var statusColor = it.arrivalStatus==='arrived'?'#16A34A':'#F59E0B';
+        var statusText = it.arrivalStatus==='arrived'?'已到账':'处理中';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-top:1px solid #F5F5F4;font-size:13px;">';
+        html += '<div><span style="color:#1C1917;">'+member.name+'</span><span style="color:#A8A29E;margin-left:8px;">'+it.date+'</span></div>';
+        html += '<div style="display:flex;align-items:center;gap:8px;">';
+        html += '<span style="color:#1C1917;font-weight:600;">¥'+it.shareAmount+'万</span>';
+        html += '<span style="width:6px;height:6px;border-radius:50%;background:'+statusColor+';"></span>';
+        html += '<span style="font-size:11px;color:'+statusColor+';">'+statusText+'</span>';
+        html += '</div></div>';
+      });
+      html += '</div>';
+    });
+    html += '</div>';
+    panels.settlement.innerHTML = html;
+
+    // ── Event: Import CSV Button ──
+    document.getElementById('btn-import-csv').addEventListener('click',function(){
+      document.getElementById('csv-import-area').style.display='block';
+      document.getElementById('csv-import-area').scrollIntoView({behavior:'smooth'});
+    });
+
+    // ── Event: Download template ──
+    document.getElementById('btn-download-template').addEventListener('click',function(){
+      var header = '结算日期,账期,项目ID,项目名称,总营收(万),分账比例(%),分账总额(万),投资人ID,投资人姓名,分账金额(万),到账状态';
+      var sample = '2026-03-15,2026年3月,p-001,华南餐饮连锁联营,180,8.5,15.3,m-002,李芳华,5.1,arrived';
+      var csv = header+'\\n'+sample+'\\n';
+      var blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');a.href=url;a.download='分账导入模板.csv';a.click();
+      URL.revokeObjectURL(url);
+      showToast('模板已下载','success');
+    });
+
+    // ── Event: File select ──
+    var parsedRows = [];
+    document.getElementById('csv-file-input').addEventListener('change',function(e){
+      var file = e.target.files[0];
+      if(!file) return;
+      var reader = new FileReader();
+      reader.onload = function(evt){
+        var text = evt.target.result;
+        var lines = text.split(/\\n|\\r\\n?/).filter(function(l){return l.trim();});
+        if(lines.length<2){showToast('CSV文件至少需要表头+1行数据','error');return;}
+        // Skip header
+        parsedRows = [];
+        var warnings = [];
+        for(var i=1;i<lines.length;i++){
+          var cols = lines[i].split(',');
+          if(cols.length<10){warnings.push('第'+(i+1)+'行列数不足('+cols.length+'/11)');continue;}
+          parsedRows.push({
+            settlement_date: cols[0].trim(),
+            period: cols[1].trim(),
+            project_id: cols[2].trim(),
+            project_name: cols[3].trim(),
+            total_revenue: parseFloat(cols[4])||0,
+            share_rate: parseFloat(cols[5])||0,
+            total_share_amount: parseFloat(cols[6])||0,
+            participant_id: cols[7].trim(),
+            participant_name: cols[8].trim(),
+            share_amount: parseFloat(cols[9])||0,
+            arrival_status: (cols[10]||'arrived').trim()
+          });
+        }
+        // Show preview
+        document.getElementById('csv-preview').style.display='block';
+        document.getElementById('csv-row-count').textContent = parsedRows.length+'条记录';
+        var tableHtml = '<table style="width:100%;border-collapse:collapse;font-size:11px;">';
+        tableHtml += '<tr style="background:#F5F5F4;"><th style="padding:6px;text-align:left;">日期</th><th>项目</th><th>投资人</th><th style="text-align:right;">分账(万)</th><th>状态</th></tr>';
+        parsedRows.slice(0,20).forEach(function(r){
+          tableHtml += '<tr style="border-bottom:1px solid #F5F5F4;">';
+          tableHtml += '<td style="padding:6px;">'+r.settlement_date+'</td>';
+          tableHtml += '<td>'+r.project_name+'</td>';
+          tableHtml += '<td>'+r.participant_name+'</td>';
+          tableHtml += '<td style="text-align:right;font-weight:600;">'+r.share_amount+'</td>';
+          tableHtml += '<td>'+r.arrival_status+'</td></tr>';
+        });
+        if(parsedRows.length>20) tableHtml += '<tr><td colspan="5" style="padding:8px;text-align:center;color:#A8A29E;">...还有'+(parsedRows.length-20)+'条</td></tr>';
+        tableHtml += '</table>';
+        document.getElementById('csv-table-wrap').innerHTML = tableHtml;
+
+        if(warnings.length>0){
+          document.getElementById('csv-warnings').style.display='block';
+          document.getElementById('csv-warnings').innerHTML = '⚠️ '+warnings.join('<br>');
+        } else {
+          document.getElementById('csv-warnings').style.display='none';
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    // ── Event: Confirm import ──
+    document.getElementById('csv-confirm-import').addEventListener('click',function(){
+      if(parsedRows.length===0){showToast('没有可导入的数据','error');return;}
+      var btn = this;
+      btn.disabled=true;btn.textContent='导入中...';
+      fetch('/api/admin/settlement/import',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({rows:parsedRows, fileName:document.getElementById('csv-file-input').files[0].name, adminId:cu.id})
+      }).then(function(r){return r.json();}).then(function(d){
+        btn.disabled=false;btn.textContent='确认导入';
+        if(d.ok){
+          showToast('成功导入 '+d.data.processedCount+'/'+d.data.totalRecords+' 条记录','success');
+          if(d.data.warnings && d.data.warnings.length>0){
+            showToast('⚠️ '+d.data.warnings.length+' 条警告','info',6000);
+          }
+          document.getElementById('csv-import-area').style.display='none';
+          // Reload repayment data
+          fetch('/api/data/repayment-records').then(function(r){return r.json();}).then(function(rd){
+            if(rd.ok) MOCK_REP_RECORDS = rd.data;
+            rendered['settlement']=false;renderSettlementTab();rendered['settlement']=true;
+          });
+        } else {
+          showToast(d.error||'导入失败','error');
+        }
+      }).catch(function(){
+        btn.disabled=false;btn.textContent='确认导入';
+        showToast('网络错误','error');
+      });
+    });
+
+    // ── Event: Cancel ──
+    document.getElementById('csv-cancel').addEventListener('click',function(){
+      document.getElementById('csv-import-area').style.display='none';
+      parsedRows = [];
     });
   }
 
@@ -489,13 +696,10 @@ app.get('/admin', (c) => {
         className = document.getElementById('new-class-input').value.trim();
         if(!className){showToast('请输入班级名称','error');return;}
       }
-      var classId = 'class-'+className.replace(/[^\\u4e00-\\u9fa5a-zA-Z0-9]/g,'');
 
       var lines = textarea.value.split(/\\n|\\r\\n?/);
-      var allMembers = getMembers();
-      var added = 0;
-      var ts = Date.now();
-      lines.forEach(function(line,i){
+      var memberData = [];
+      lines.forEach(function(line){
         line = line.trim();
         if(!line) return;
         var parts = line.split(/\\s+/);
@@ -503,19 +707,35 @@ app.get('/admin', (c) => {
         var phone = parts[parts.length-1];
         if(!/^1[3-9]\\d{9}$/.test(phone)) return;
         var name = parts.slice(0,parts.length-1).join(' ');
-        var newId = 'm-new-'+String(ts+i);
-        allMembers.push({
-          id:newId,phone:phone,name:name,company:'',industry:'',title:'学员',
-          bio:'',cohort:className,status:'active',joinDate:new Date().toISOString().slice(0,10),
-          role:'member',classId:classId,className:className
-        });
-        added++;
+        memberData.push({name:name, phone:phone, className:className});
       });
-      saveMembers(allMembers);
-      overlay.style.display='none';
-      showToast('成功注册 '+added+' 位学员','success');
-      rendered['members']=false;
-      renderMembers(); rendered['members']=true;
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = '注册中...';
+      fetch('/api/admin/members/batch-register', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({members:memberData, adminId:cu.id})
+      }).then(function(r){return r.json();}).then(function(d){
+        if(d.ok){
+          overlay.style.display='none';
+          showToast(d.message || '注册成功','success');
+          if(d.data && d.data.initialPassword){
+            showToast('初始密码: '+d.data.initialPassword, 'info', 8000);
+          }
+          // Reload data from API
+          fetch('/api/data/members').then(function(r){return r.json();}).then(function(md){
+            if(md.ok) MOCK_MEMBERS = md.data;
+            rendered['members']=false;renderMembers();rendered['members']=true;
+          });
+        } else {
+          showToast(d.error||'注册失败','error');
+          submitBtn.disabled=false;submitBtn.textContent='确认注册 '+count+' 位';
+        }
+      }).catch(function(){
+        showToast('网络错误','error');
+        submitBtn.disabled=false;submitBtn.textContent='确认注册 '+count+' 位';
+      });
     });
   }
 

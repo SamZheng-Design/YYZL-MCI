@@ -1,17 +1,16 @@
 // Route: /projects/:id
 import { Hono } from 'hono'
-import {
-  mockMembers, mockProjects, mockContracts, mockTeachers, isSameClass, calculateRBF,
-} from '../data'
-import type { Member, Teacher, Project, Contract, Referral } from '../data'
+import type { HonoEnv } from '../types'
 import {
   GlobalScripts, Navbar, AuthCheckScript, StatusBadge, statusLabel,
 } from '../components'
 
-export function registerProjectDetailRoute(app: Hono) {
-app.get('/projects/:id', (c) => {
+export function registerProjectDetailRoute(app: Hono<HonoEnv>) {
+app.get('/projects/:id', async (c) => {
+  const db = c.env.DB
+  const { loadMembers, loadProjects, loadContracts, loadTeachers, loadProjectById, isSameClass, calculateRBF } = await import('../db-bridge')
   const id = c.req.param('id')
-  const proj = mockProjects.find(p => p.id === id)
+  const proj = await loadProjectById(db, id)
 
   // If project not found in mock data, serve a client-side lookup page
   if (!proj) {
@@ -91,11 +90,14 @@ app.get('/projects/:id', (c) => {
     )
   }
 
-  const owner = mockMembers.find(m => m.id === proj.ownerId)!
+  const [allMembers, allContracts, allTeachers] = await Promise.all([
+    loadMembers(db), loadContracts(db), loadTeachers(db)
+  ])
+  const owner = allMembers.find(m => m.id === proj.ownerId)!
   const rbf = calculateRBF(proj.targetAmount, proj.revenueShareRate, proj.estimatedMonthlyRevenue, proj.recoveryMultiple)
   const pct = Math.round((proj.raisedAmount / proj.targetAmount) * 100)
   const remainShares = proj.totalShares - proj.raisedShares
-  const investorMembers = proj.investors.map(iid => mockMembers.find(m => m.id === iid)).filter(Boolean) as Member[]
+  const investorMembers = proj.investors.map(iid => allMembers.find(m => m.id === iid)).filter(Boolean) as any[]
   const bgColors = ['#B91C1C','#D4A853','#991B1B','#B8860B','#7F1D1D']
 
   return c.render(
@@ -480,7 +482,7 @@ app.get('/projects/:id', (c) => {
 
       {/* Client script */}
       <script dangerouslySetInnerHTML={{ __html: `
-window.__ZLC_TEACHERS__ = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, name:t.name, phone:t.phone, classIds:t.classIds })))};
+window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name:t.name, phone:t.phone, classIds:t.classIds })))};
 (function(){
   var u = null;
   try { u = JSON.parse(localStorage.getItem('zlc_user')); } catch(e){}
@@ -502,9 +504,9 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, nam
     highlights: proj.highlights || [],
   })};
   var OWNER = ${JSON.stringify({ name: owner.name, className: owner.className || owner.cohort || '' })};
-  var MOCK_CONTRACTS_FOR_COUNT = ${JSON.stringify(mockContracts.filter(c => c.projectId === proj.id && c.status === 'active').length)};
-  var MEMBERS = ${JSON.stringify(mockMembers.map(m => ({ id:m.id, name:m.name, classId:m.classId||'' })))};
-  var TEACHERS = ${JSON.stringify(mockTeachers.map(t => ({ id:t.id, name:t.name, classIds:t.classIds })))};
+  var MOCK_CONTRACTS_FOR_COUNT = ${JSON.stringify(allContracts.filter(c => c.projectId === proj.id && c.status === 'active').length)};
+  var MEMBERS = ${JSON.stringify(allMembers.map(m => ({ id:m.id, name:m.name, classId:m.classId||'' })))};
+  var TEACHERS = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name:t.name, classIds:t.classIds })))};
 
   // Show from=share banner
   if(window.location.search.indexOf('from=share') !== -1){

@@ -1,11 +1,11 @@
 // Route: /notifications
 import { Hono } from 'hono'
-import type { Notification } from '../data'
+import type { HonoEnv } from '../types'
 import {
   GlobalScripts, AuthCheckScript,
 } from '../components'
 
-export function registerNotificationsRoute(app: Hono) {
+export function registerNotificationsRoute(app: Hono<HonoEnv>) {
 app.get('/notifications', (c) => {
   return c.render(
     <div class="app-container">

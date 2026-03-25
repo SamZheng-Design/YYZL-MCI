@@ -1,17 +1,16 @@
 // Route: /share/:code
 import { Hono } from 'hono'
-import {
-  findProjectByShareCode,
-} from '../data'
-import type { Project } from '../data'
+import type { HonoEnv } from '../types'
 import {
   GlobalScripts, LogoSVG, Navbar,
 } from '../components'
 
-export function registerShareRoute(app: Hono) {
-app.get('/share/:code', (c) => {
+export function registerShareRoute(app: Hono<HonoEnv>) {
+app.get('/share/:code', async (c) => {
+  const db = c.env.DB
+  const { loadProjectByShareCode } = await import('../db-bridge')
   const code = c.req.param('code').toUpperCase()
-  const project = findProjectByShareCode(code)
+  const project = await loadProjectByShareCode(db, code)
   if (project) {
     return c.redirect('/projects/' + project.id + '?from=share')
   }
