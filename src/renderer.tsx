@@ -467,13 +467,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
 }
 .back-link:hover { color: #B91C1C; }
 
-/* Detail card — unified card container for project detail */
+/* Detail card — unified card container for project detail & create */
 .detail-card {
   background: #fff;
   border-radius: 16px;
   padding: 20px;
-  margin-bottom: 14px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.03);
+  margin-bottom: 16px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05), 0 4px 12px rgba(0,0,0,0.03);
+  transition: box-shadow 0.2s ease;
 }
 .detail-card-header {
   display: flex;
@@ -544,7 +545,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
 /* ══════════════════════════════════════════════════
    Create Project — Stepper
    ══════════════════════════════════════════════════ */
-.stepper { display: flex; align-items: center; justify-content: center; gap: 0; padding: 20px 24px 24px; }
+.stepper {
+  display: flex; align-items: center; justify-content: center; gap: 0;
+  padding: 16px 24px;
+  background: #fff; border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.03);
+  margin-bottom: 16px;
+}
 .stepper-step { display: flex; align-items: center; gap: 0; }
 .stepper-dot {
   width: 32px; height: 32px; border-radius: 50%;

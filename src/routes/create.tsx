@@ -24,6 +24,12 @@ app.get('/create', (c) => {
       </div>
 
       <main class="max-w-lg mx-auto px-4 pt-2 pb-6 page-enter" id="create-main">
+        {/* Page title */}
+        <div style="text-align:center;padding:8px 0 4px;">
+          <h1 style="font-size:20px;font-weight:700;color:#1C1917;font-family:'Noto Sans SC',sans-serif;">发起项目</h1>
+          <p style="font-size:13px;color:#A8A29E;margin-top:4px;">填写项目信息，设定收入分成条款</p>
+        </div>
+
         {/* Stepper */}
         <div class="stepper" id="stepper">
           <div class="stepper-step">
@@ -51,10 +57,11 @@ app.get('/create', (c) => {
         {/* Step 1: Basic Info — Multi-card layout */}
         <div id="step-1" class="step-panel">
           {/* Card A: Project Basics */}
-          <div class="bg-white rounded-2xl shadow-card p-5 mb-4">
-            <h3 class="create-card-title">
-              <i class="fas fa-info-circle text-brand mr-2" style="font-size:14px;" />基本信息
-            </h3>
+          <div class="detail-card">
+            <div class="detail-card-header">
+              <i class="fas fa-info-circle detail-card-header-icon" style="background:linear-gradient(135deg,#FEE2E2,#FECDD3);color:#B91C1C;" />
+              <span>基本信息</span>
+            </div>
             <div class="mb-4">
               <label class="form-label">项目名称 <span class="req">*</span></label>
               <input id="f-name" type="text" class="form-input" placeholder="如：星火餐饮华南区20店扩张" maxlength={80} />
@@ -69,10 +76,11 @@ app.get('/create', (c) => {
           </div>
 
           {/* Card B: Project Description */}
-          <div class="bg-white rounded-2xl shadow-card p-5 mb-4">
-            <h3 class="create-card-title">
-              <i class="fas fa-align-left text-brand mr-2" style="font-size:14px;" />项目描述
-            </h3>
+          <div class="detail-card">
+            <div class="detail-card-header">
+              <i class="fas fa-align-left detail-card-header-icon" style="background:linear-gradient(135deg,#F0F9FF,#DBEAFE);color:#2563EB;" />
+              <span>项目描述</span>
+            </div>
             <div class="mb-4">
               <label class="form-label">项目简介 <span class="req">*</span></label>
               <textarea id="f-desc" class="form-textarea" placeholder="简述项目背景、核心优势和发展计划（200字以内）" maxlength={200} rows={3} />
@@ -88,10 +96,11 @@ app.get('/create', (c) => {
           </div>
 
           {/* Card C: Highlights & Detail */}
-          <div class="bg-white rounded-2xl shadow-card p-5 mb-4">
-            <h3 class="create-card-title">
-              <i class="fas fa-star mr-2" style="font-size:14px;color:#D4A853;" />项目亮点与详情
-            </h3>
+          <div class="detail-card">
+            <div class="detail-card-header">
+              <i class="fas fa-star detail-card-header-icon" style="background:linear-gradient(135deg,#FEF3C7,#FDE68A);color:#B45309;" />
+              <span>项目亮点与详情</span>
+            </div>
             {/* Highlights in tinted area */}
             <div style="background:#FAFAF9;border-radius:12px;padding:16px;margin-bottom:16px;">
               <label class="form-label" style="margin-bottom:10px;">核心亮点 <span style="font-size:12px;color:#A8A29E;">（选填，最多3条）</span></label>
@@ -117,10 +126,11 @@ app.get('/create', (c) => {
           </div>
 
           {/* Card D: Attachments */}
-          <div class="bg-white rounded-2xl shadow-card p-5 mb-2">
-            <h3 class="create-card-title">
-              <i class="fas fa-paperclip text-text-secondary mr-2" style="font-size:14px;" />附件资料 <span style="font-size:12px;color:#A8A29E;font-weight:400;">（选填）</span>
-            </h3>
+          <div class="detail-card">
+            <div class="detail-card-header">
+              <i class="fas fa-paperclip detail-card-header-icon" style="background:linear-gradient(135deg,#F5F5F4,#E7E5E4);color:#57534E;" />
+              <span>附件资料 <span style="font-size:12px;color:#A8A29E;font-weight:400;margin-left:4px;">（选填）</span></span>
+            </div>
             <div class="upload-zone" id="upload-zone">
               <i class="fas fa-cloud-upload-alt text-text-tertiary mb-2" style="font-size:28px;" />
               <p class="text-text-secondary" style="font-size:13px;">点击上传项目资料</p>
@@ -141,7 +151,7 @@ app.get('/create', (c) => {
         {/* Step 2: Terms */}
         <div id="step-2" class="step-panel" style="display:none;">
           {/* Reference Cases Card */}
-          <div class="case-toggle-card" id="case-toggle">
+          <div class="detail-card" id="case-toggle" style="padding:14px 18px;cursor:pointer;border:1px solid rgba(0,0,0,0.04);">
             <div class="case-toggle-header">
               <i class="fas fa-lightbulb" style="color:#F59E0B;font-size:14px;flex-shrink:0;" />
               <span style="flex:1;font-size:13px;color:#78716C;">不确定怎么填？查看同行案例参考</span>
@@ -178,10 +188,11 @@ app.get('/create', (c) => {
           </div>
 
           {/* Terms Card — with internal grouping */}
-          <div class="bg-white rounded-2xl shadow-card p-5">
-            <h3 class="create-card-title">
-              <i class="fas fa-file-contract text-brand mr-2" style="font-size:14px;" />条款设定
-            </h3>
+          <div class="detail-card">
+            <div class="detail-card-header">
+              <i class="fas fa-file-contract detail-card-header-icon" style="background:linear-gradient(135deg,#FEE2E2,#FECDD3);color:#B91C1C;" />
+              <span>条款设定</span>
+            </div>
 
             {/* Group 1: Funding */}
             <div class="create-terms-group">
@@ -276,10 +287,10 @@ app.get('/create', (c) => {
           </div>
 
           {/* Auto-calc card */}
-          <div class="auto-calc-card mt-4" id="auto-calc">
-            <div class="flex items-center gap-2 mb-3">
-              <i class="fas fa-calculator text-brand" style="font-size:13px;" />
-              <span class="font-semibold text-brand" style="font-size:14px;">自动计算</span>
+          <div class="detail-card" id="auto-calc" style="background:linear-gradient(135deg,#FEF2F2,#FFF1F2);border:1px solid #FECACA;">
+            <div class="detail-card-header" style="margin-bottom:12px;">
+              <i class="fas fa-calculator detail-card-header-icon" style="background:linear-gradient(135deg,#FEE2E2,#FECDD3);color:#B91C1C;" />
+              <span style="font-size:14px;color:#B91C1C;">自动计算</span>
             </div>
             <div class="auto-calc-grid">
               <div>
@@ -302,13 +313,15 @@ app.get('/create', (c) => {
           </div>
 
           {/* Example card */}
-          <div class="example-card mt-3" id="example-card">
-            <i class="fas fa-lightbulb mr-1" style="color:#D4A853;" />
-            <span id="example-text">填写条款后，此处会显示参与举例说明</span>
+          <div class="detail-card" id="example-card" style="background:#FFFBEB;border:1px solid #FDE68A;padding:16px 18px;">
+            <div style="display:flex;align-items:flex-start;gap:8px;">
+              <i class="fas fa-lightbulb" style="color:#D4A853;font-size:14px;margin-top:2px;flex-shrink:0;" />
+              <span id="example-text" style="font-size:13px;color:#78716C;line-height:1.6;">填写条款后，此处会显示参与举例说明</span>
+            </div>
           </div>
 
           {/* Plain language block for create page */}
-          <div id="create-plain-lang" class="plain-lang-block mt-3" style="display:none;" />
+          <div id="create-plain-lang" class="plain-lang-block" style="display:none;" />
 
           <div class="btn-row">
             <button class="btn-secondary" id="btn-prev-2"><i class="fas fa-arrow-left mr-1" style="font-size:12px;" /> 上一步</button>
@@ -318,10 +331,11 @@ app.get('/create', (c) => {
 
         {/* Step 3: Preview & Publish */}
         <div id="step-3" class="step-panel" style="display:none;">
-          <div class="bg-white rounded-2xl shadow-card p-5 mb-4">
-            <h3 class="font-semibold text-text-title mb-4" style="font-size:17px;font-family:'Noto Sans SC',sans-serif;">
-              <i class="fas fa-eye text-brand mr-2" style="font-size:14px;" />项目预览
-            </h3>
+          <div class="detail-card">
+            <div class="detail-card-header">
+              <i class="fas fa-eye detail-card-header-icon" style="background:linear-gradient(135deg,#ECFDF5,#D1FAE5);color:#16A34A;" />
+              <span>项目预览</span>
+            </div>
 
             {/* Preview content — filled by JS */}
             <div id="preview-content" />
