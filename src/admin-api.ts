@@ -282,11 +282,29 @@ adminApi.post('/projects/:id/review', async (c) => {
 
 // ══════════════════════════════════════════════════════════
 // 参与项目 + 生成合同 API (学员操作)
+// P1 升级：乐观锁防并发超卖 + 规范化合同编号
 // ══════════════════════════════════════════════════════════
+
+/**
+ * 生成规范化合同编号 ZLC-2026-P001-C003
+ */
+async function generateContractNumber(db: D1Database, projectId: string): Promise<string> {
+  const year = new Date().getFullYear()
+  const pNum = projectId.replace('p-', '').padStart(3, '0')
+
+  // 统计该项目已有多少合同
+  const count = await db.prepare(
+    'SELECT COUNT(*) as c FROM contracts WHERE project_id = ?'
+  ).bind(projectId).first<{ c: number }>()
+  const cNum = String((count?.c ?? 0) + 1).padStart(3, '0')
+
+  return `ZLC-${year}-P${pNum}-C${cNum}`
+}
 
 /**
  * POST /api/projects/:id/participate
  * Body: { userId, shares }
+ * P1 安全：乐观锁 + session 鉴权 + 并发超卖保护
  */
 adminApi.post('/projects/:id/participate', async (c) => {
   const db = c.env.DB
@@ -294,18 +312,33 @@ adminApi.post('/projects/:id/participate', async (c) => {
   const ip = getClientIP(c)
   const projectId = c.req.param('id')
   try {
-    // 从 session 获取用户ID，同时兑容前端传的 userId（但优先用 session）
     const body = await c.req.json<{ userId?: string; shares: number }>()
     const userId = sessionUser.id
     const shares = body.shares
+
+    // 基础校验
+    if (!shares || shares < 1) return c.json({ ok: false, error: '份额数必须大于0' }, 400)
 
     // 获取项目
     const project = await db.prepare('SELECT * FROM projects WHERE id = ?').bind(projectId).first<any>()
     if (!project) return c.json({ ok: false, error: '项目不存在' }, 404)
     if (project.status !== 'open') return c.json({ ok: false, error: '项目当前不接受投资' }, 400)
     if (shares < project.min_shares) return c.json({ ok: false, error: `最低参与${project.min_shares}份` }, 400)
-    if (project.raised_shares + shares > project.total_shares) {
-      return c.json({ ok: false, error: '剩余份额不足' }, 400)
+
+    // 防止投自己的项目
+    if (project.owner_id === userId) {
+      return c.json({ ok: false, error: '您不能参与自己发起的项目' }, 400)
+    }
+
+    // 管理员不可投资
+    if (sessionUser.role === 'admin') {
+      return c.json({ ok: false, error: '管理员不可参与投资' }, 400)
+    }
+
+    // 🔒 乐观锁检查：使用当前 raised_shares 作为版本号
+    const currentRaisedShares = project.raised_shares
+    if (currentRaisedShares + shares > project.total_shares) {
+      return c.json({ ok: false, error: `剩余份额不足（当前剩余 ${project.total_shares - currentRaisedShares} 份）` }, 400)
     }
 
     // 检查是否已参与
@@ -324,23 +357,34 @@ adminApi.post('/projects/:id/participate', async (c) => {
       'INSERT INTO project_investors (project_id, investor_id) VALUES (?, ?)'
     ).bind(projectId, userId).run()
 
-    // 更新项目募集进度
+    // 🔒 乐观锁更新：WHERE raised_shares = 旧值（防并发超卖）
     const amount = shares * project.share_price
     const newRaised = project.raised_amount + amount
-    const newRaisedShares = project.raised_shares + shares
+    const newRaisedShares = currentRaisedShares + shares
     const newStatus = newRaisedShares >= project.total_shares ? 'funded' : 'open'
 
-    await db.prepare(`
-      UPDATE projects SET raised_amount = ?, raised_shares = ?, status = ?, updated_at = datetime('now')
-      WHERE id = ?
-    `).bind(newRaised, newRaisedShares, newStatus, projectId).run()
+    const updateResult = await db.prepare(`
+      UPDATE projects
+      SET raised_amount = ?, raised_shares = ?, status = ?, updated_at = datetime('now')
+      WHERE id = ? AND raised_shares = ?
+    `).bind(newRaised, newRaisedShares, newStatus, projectId, currentRaisedShares).run()
+
+    // 如果乐观锁失败（并发冲突），回滚投资人记录
+    if (!updateResult.meta?.changes || updateResult.meta.changes === 0) {
+      await db.prepare(
+        'DELETE FROM project_investors WHERE project_id = ? AND investor_id = ?'
+      ).bind(projectId, userId).run()
+      return c.json({ ok: false, error: '份额已被其他人认购，请刷新后重试' }, 409)
+    }
 
     // 计算投资人个人份额比例和回收上限
     const shareRatio = +(shares / project.total_shares * project.revenue_share_rate).toFixed(2)
     const recoveryCap = +(amount * project.recovery_multiple).toFixed(2)
 
-    // 生成合同
+    // 生成合同（P1: 规范化合同编号 ZLC-YYYY-PXXX-CXXX）
     const contractId = await generateContractId(db)
+    const contractNumber = await generateContractNumber(db, projectId)
+
     await db.prepare(`
       INSERT INTO contracts (id, project_id, project_name, initiator_id, initiator_name, initiator_company, participant_id, participant_name, amount, shares, revenue_share_ratio, cooperation_term, recovery_cap, status)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
@@ -354,15 +398,25 @@ adminApi.post('/projects/:id/participate', async (c) => {
     // 通知发起人
     await createNotification(db, {
       type: 'participation', title: '新投资参与',
-      content: `${user.name} 参与了您的项目「${project.name}」，投资 ${amount} 万元`,
+      content: `${user.name} 参与了您的项目「${project.name}」，投资 ${amount} 万元（${contractNumber}）`,
       icon: '🤝', link: `/projects/${projectId}`,
       targetId: project.owner_id,
     })
 
+    // 如果满额，额外通知
+    if (newStatus === 'funded') {
+      await createNotification(db, {
+        type: 'system', title: '项目募集已满额',
+        content: `项目「${project.name}」已完成全部份额募集！共 ${project.total_shares} 份，总计 ¥${project.target_amount} 万`,
+        icon: '🎉', link: `/projects/${projectId}`,
+        targetId: project.owner_id,
+      })
+    }
+
     await logAudit(db, {
       userId, action: 'participate_project',
       entityType: 'project', entityId: projectId,
-      detail: { shares, amount, contractId },
+      detail: { shares, amount, contractId, contractNumber, newStatus },
       ipAddress: ip,
     })
 

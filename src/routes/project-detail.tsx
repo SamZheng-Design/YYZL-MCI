@@ -692,7 +692,8 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
         fetch('/api/admin/projects/' + PROJ.id + '/participate', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ userId: u.id, shares: n })
+          credentials: 'same-origin',
+          body: JSON.stringify({ shares: n })
         }).then(function(r){return r.json();}).then(function(d){
           if(!d.ok){
             showToast(d.error || '参与失败', 'error');

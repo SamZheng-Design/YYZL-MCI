@@ -8,6 +8,30 @@ const GlobalScripts = () => (
 // ── Data Init: D1 is now the source of truth ──
 // (mock localStorage seeding removed — all data loaded from D1)
 
+// ── P0 安全：全局 fetch 拦截器，确保所有 API 调用带 credentials + session 过期自动跳转 ──
+(function(){
+  var _origFetch = window.fetch;
+  window.fetch = function(url, opts) {
+    opts = opts || {};
+    // 对 /api/ 路径自动加 credentials
+    if (typeof url === 'string' && url.indexOf('/api/') !== -1) {
+      opts.credentials = opts.credentials || 'same-origin';
+    }
+    return _origFetch.call(this, url, opts).then(function(resp) {
+      // 如果任何 API 返回 401，说明 session 过期 → 跳转登录
+      if (resp.status === 401 && typeof url === 'string' && url.indexOf('/api/') !== -1 && url.indexOf('/api/auth/me') === -1 && url.indexOf('/api/login') === -1) {
+        localStorage.removeItem('zlc_user');
+        localStorage.removeItem('zlc_member');
+        if (window.location.pathname !== '/login') {
+          showToast('登录已过期，请重新登录', 'error', 3000);
+          setTimeout(function(){ window.location.href = '/login?expired=1'; }, 1500);
+        }
+      }
+      return resp;
+    });
+  };
+})();
+
 // ── Toast (reuse single element) ──
 var _toastEl = null, _toastTimer = null;
 function showToast(message, type, duration) {
