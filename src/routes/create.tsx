@@ -30,7 +30,7 @@ app.get('/create', (c) => {
           <p style="font-size:13px;color:#A8A29E;margin-top:4px;">填写项目信息，设定收入分成条款</p>
         </div>
 
-        {/* Stepper */}
+        {/* Stepper — 4 steps */}
         <div class="stepper" id="stepper">
           <div class="stepper-step">
             <div style="display:flex;flex-direction:column;align-items:center;">
@@ -49,7 +49,14 @@ app.get('/create', (c) => {
           <div class="stepper-step">
             <div style="display:flex;flex-direction:column;align-items:center;">
               <div class="stepper-dot stepper-dot-pending" id="dot-3">3</div>
-              <div class="stepper-label" id="label-3">预览发布</div>
+              <div class="stepper-label" id="label-3">企业与收款</div>
+            </div>
+          </div>
+          <div class="stepper-line stepper-line-pending" id="line-3" />
+          <div class="stepper-step">
+            <div style="display:flex;flex-direction:column;align-items:center;">
+              <div class="stepper-dot stepper-dot-pending" id="dot-4">4</div>
+              <div class="stepper-label" id="label-4">预览发布</div>
             </div>
           </div>
         </div>
@@ -248,7 +255,7 @@ app.get('/create', (c) => {
               </div>
             </div>
 
-            {/* Group 3: Returns & Reporting */}
+            {/* Group 3: Returns */}
             <div style="padding-top:16px;">
               <div class="create-terms-group-label"><i class="fas fa-chart-line mr-1.5" style="font-size:11px;color:#D4A853;" />回报预估</div>
               <div class="grid grid-cols-2 gap-3 mb-3">
@@ -263,25 +270,103 @@ app.get('/create', (c) => {
                   </div>
                 </div>
                 <div>
-                  <label class="form-label" style="display:flex;align-items:center;gap:4px;">回收倍数
-                    <span class="help-icon" data-help-id="recoveryMultiple">?</span>
+                  <label class="form-label" style="display:flex;align-items:center;gap:4px;">上报频率
+                    <span class="help-icon" data-help-id="reportFrequency">?</span>
                   </label>
-                  <div class="help-text">参与人最多能拿回投资额的多少倍。1.5倍意味着投10万最多拿回15万。达到上限后合同自动结束。</div>
-                  <div class="input-unit-wrap">
-                    <input id="f-multiple" type="number" class="form-input" placeholder="1.5" min={1} max={10} step={0.1} value="1.5" />
-                    <span class="input-unit">x</span>
-                  </div>
+                  <div class="help-text">你多久向参与人汇报一次项目收入。月报适合大部分项目，日报适合零售等每日有流水的项目。</div>
+                  <select id="f-freq" class="form-select">
+                    <option value="每自然月">每自然月</option>
+                    <option value="每自然周">每自然周</option>
+                    <option value="每自然日">每自然日</option>
+                  </select>
                 </div>
               </div>
-              <div>
-                <label class="form-label" style="display:flex;align-items:center;gap:4px;">上报频率
-                  <span class="help-icon" data-help-id="reportFrequency">?</span>
+            </div>
+
+            {/* Group 4: Exit Conditions — 退出方式 */}
+            <div class="create-terms-group">
+              <div class="create-terms-group-label"><i class="fas fa-door-open mr-1.5" style="font-size:11px;color:#D4A853;" />退出条件</div>
+              <div class="mb-3">
+                <label class="form-label" style="display:flex;align-items:center;gap:4px;">退出方式 <span class="req">*</span>
+                  <span class="help-icon" data-help-id="exitMode">?</span>
                 </label>
-                <div class="help-text">你多久向参与人汇报一次项目收入。月报适合大部分项目，日报适合零售等每日有流水的项目。</div>
-                <select id="f-freq" class="form-select">
-                  <option value="月报">月报</option>
-                  <option value="日报">日报</option>
-                </select>
+                <div class="help-text">决定合同何时终止。"先到为准"最常用：到期或达到封顶倍数，哪个先到就终止。</div>
+                <div style="display:flex;gap:8px;margin-top:4px;">
+                  <label class="radio-card" id="exit-both" style="flex:1;">
+                    <input type="radio" name="exitMode" value="both" checked />
+                    <div class="radio-card-content">
+                      <i class="fas fa-check-double" style="color:#B91C1C;font-size:14px;" />
+                      <span style="font-size:12px;font-weight:600;">先到为准</span>
+                      <span style="font-size:10px;color:#78716C;">期限或倍数</span>
+                    </div>
+                  </label>
+                  <label class="radio-card" id="exit-term" style="flex:1;">
+                    <input type="radio" name="exitMode" value="term_only" />
+                    <div class="radio-card-content">
+                      <i class="fas fa-calendar-alt" style="color:#2563EB;font-size:14px;" />
+                      <span style="font-size:12px;font-weight:600;">仅期限</span>
+                      <span style="font-size:10px;color:#78716C;">到期结束</span>
+                    </div>
+                  </label>
+                  <label class="radio-card" id="exit-cap" style="flex:1;">
+                    <input type="radio" name="exitMode" value="cap_only" />
+                    <div class="radio-card-content">
+                      <i class="fas fa-chart-line" style="color:#B45309;font-size:14px;" />
+                      <span style="font-size:12px;font-weight:600;">仅封顶</span>
+                      <span style="font-size:10px;color:#78716C;">达倍数结束</span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {/* 年化收益率 — 仅在有封顶条件时显示 */}
+              <div id="yield-rate-group">
+                <label class="form-label" style="display:flex;align-items:center;gap:4px;">年化收益率
+                  <span class="help-icon" data-help-id="annualYieldRate">?</span>
+                </label>
+                <div class="help-text">用于计算动态封顶倍数。封顶倍数 = 1 + 年化收益率 × 期限(月)/12。例如18%年化×24个月=1.36倍。</div>
+                <div style="display:flex;align-items:center;gap:12px;">
+                  <input id="f-yield-slider" type="range" class="terms-slider terms-slider-red" min="6" max="30" step="0.5" value="12" style="flex:1;" />
+                  <div class="input-unit-wrap" style="width:90px;flex-shrink:0;">
+                    <input id="f-yield" type="number" class="form-input" value="12" min={6} max={30} step={0.5} style="text-align:right;" />
+                    <span class="input-unit">%</span>
+                  </div>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:11px;color:#A8A29E;margin-top:2px;">
+                  <span>6%</span>
+                  <span id="yield-multiple-hint" style="color:#B91C1C;font-weight:600;" />
+                  <span>30%</span>
+                </div>
+              </div>
+
+              {/* 隐藏的回收倍数字段（兼容旧逻辑） */}
+              <input id="f-multiple" type="hidden" value="1.5" />
+
+              {/* 风控：亏损闭店条件（选填） */}
+              <div style="margin-top:16px;background:#FAFAF9;border-radius:10px;padding:14px;">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
+                  <i class="fas fa-shield-alt" style="color:#78716C;font-size:12px;" />
+                  <span style="font-size:12px;font-weight:600;color:#57534E;">亏损闭店条件（选填）</span>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="form-label" style="font-size:11px;">连续低收入月数</label>
+                    <select id="f-loss-months" class="form-select" style="font-size:13px;">
+                      <option value="">不设置</option>
+                      <option value="3">连续3个月</option>
+                      <option value="6">连续6个月</option>
+                      <option value="9">连续9个月</option>
+                      <option value="12">连续12个月</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="form-label" style="font-size:11px;">收入门槛（万元/月）</label>
+                    <div class="input-unit-wrap">
+                      <input id="f-loss-amount" type="number" class="form-input" placeholder="如 5" min={0} step={0.1} style="font-size:13px;" />
+                      <span class="input-unit" style="font-size:11px;">万</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -296,6 +381,14 @@ app.get('/create', (c) => {
               <div>
                 <div class="auto-calc-item-label">总份额数</div>
                 <div class="auto-calc-item-value" id="calc-shares">—</div>
+              </div>
+              <div>
+                <div class="auto-calc-item-label">锚点 k值</div>
+                <div class="auto-calc-item-value" id="calc-k" style="font-size:14px;">—</div>
+              </div>
+              <div>
+                <div class="auto-calc-item-label">等效封顶倍数</div>
+                <div class="auto-calc-item-value" id="calc-cap-multiple">—</div>
               </div>
               <div>
                 <div class="auto-calc-item-label">回收上限</div>
@@ -329,8 +422,136 @@ app.get('/create', (c) => {
           </div>
         </div>
 
-        {/* Step 3: Preview & Publish */}
+        {/* Step 3: Enterprise Info & Payment */}
         <div id="step-3" class="step-panel" style="display:none;">
+          {/* Enterprise Info Card */}
+          <div class="detail-card">
+            <div class="detail-card-header">
+              <i class="fas fa-building detail-card-header-icon" style="background:linear-gradient(135deg,#DBEAFE,#BFDBFE);color:#2563EB;" />
+              <span>企业主体信息</span>
+            </div>
+            <div class="mb-4">
+              <label class="form-label">企业全称 <span class="req">*</span></label>
+              <input id="f-company-full" type="text" class="form-input" placeholder="如：深圳市星火餐饮管理有限公司" />
+            </div>
+            <div class="grid grid-cols-2 gap-3 mb-4">
+              <div>
+                <label class="form-label">统一社会信用代码 <span class="req">*</span></label>
+                <input id="f-credit-code" type="text" class="form-input" placeholder="18位信用代码" maxlength={18} />
+              </div>
+              <div>
+                <label class="form-label">负责人类型</label>
+                <select id="f-rep-type" class="form-select">
+                  <option value="法定代表人">法定代表人</option>
+                  <option value="负责人">负责人</option>
+                  <option value="执行事务合伙人">执行事务合伙人</option>
+                </select>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mb-4">
+              <div>
+                <label class="form-label">法定代表人 <span class="req">*</span></label>
+                <input id="f-legal-rep" type="text" class="form-input" placeholder="姓名" />
+              </div>
+              <div>
+                <label class="form-label">实际控制人</label>
+                <input id="f-controller" type="text" class="form-input" placeholder="姓名（选填）" />
+              </div>
+            </div>
+            <div class="mb-4">
+              <label class="form-label">实控人身份证号</label>
+              <input id="f-controller-id" type="text" class="form-input" placeholder="18位身份证号码（选填）" maxlength={18} />
+            </div>
+            <div class="mb-4">
+              <label class="form-label">注册地址 <span class="req">*</span></label>
+              <input id="f-reg-addr" type="text" class="form-input" placeholder="营业执照上的注册地址" />
+            </div>
+            <div>
+              <label class="form-label">经营地址</label>
+              <input id="f-biz-addr" type="text" class="form-input" placeholder="实际经营地址（选填，如与注册地址相同可不填）" />
+            </div>
+          </div>
+
+          {/* Data Transmission Card */}
+          <div class="detail-card">
+            <div class="detail-card-header">
+              <i class="fas fa-exchange-alt detail-card-header-icon" style="background:linear-gradient(135deg,#FEF3C7,#FDE68A);color:#B45309;" />
+              <span>数据传输方式</span>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mb-4">
+              <div>
+                <label class="form-label">传输方式</label>
+                <select id="f-transmit" class="form-select">
+                  <option value="手工上报">手工上报</option>
+                  <option value="自动对接(SaaS)">自动对接(SaaS)</option>
+                  <option value="API推送">API推送</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label">分账方式</label>
+                <select id="f-payment-mode" class="form-select">
+                  <option value="手动分账">手动分账</option>
+                  <option value="自动分账">自动分账</option>
+                  <option value="平台代扣">平台代扣</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Bank Account Card */}
+          <div class="detail-card">
+            <div class="detail-card-header">
+              <i class="fas fa-university detail-card-header-icon" style="background:linear-gradient(135deg,#ECFDF5,#D1FAE5);color:#16A34A;" />
+              <span>收款银行账户</span>
+            </div>
+            <div class="mb-4">
+              <label class="form-label">收款户名 <span class="req">*</span></label>
+              <input id="f-bank-name-acct" type="text" class="form-input" placeholder="与企业全称一致" />
+            </div>
+            <div class="mb-4">
+              <label class="form-label">银行账号 <span class="req">*</span></label>
+              <input id="f-bank-number" type="text" class="form-input" placeholder="银行账号" />
+            </div>
+            <div class="grid grid-cols-2 gap-3 mb-4">
+              <div>
+                <label class="form-label">开户银行 <span class="req">*</span></label>
+                <select id="f-bank-name" class="form-select">
+                  <option value="">请选择</option>
+                  <option value="中国银行">中国银行</option>
+                  <option value="中国工商银行">中国工商银行</option>
+                  <option value="中国建设银行">中国建设银行</option>
+                  <option value="中国农业银行">中国农业银行</option>
+                  <option value="交通银行">交通银行</option>
+                  <option value="招商银行">招商银行</option>
+                  <option value="中信银行">中信银行</option>
+                  <option value="兴业银行">兴业银行</option>
+                  <option value="民生银行">民生银行</option>
+                  <option value="平安银行">平安银行</option>
+                  <option value="浦发银行">浦发银行</option>
+                  <option value="光大银行">光大银行</option>
+                  <option value="华夏银行">华夏银行</option>
+                  <option value="其他">其他</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label">开户支行</label>
+                <input id="f-bank-branch" type="text" class="form-input" placeholder="如：深圳南山支行" />
+              </div>
+            </div>
+            <div>
+              <label class="form-label">纳税人识别号</label>
+              <input id="f-taxpayer" type="text" class="form-input" placeholder="开票用纳税人识别号（选填）" />
+            </div>
+          </div>
+
+          <div class="btn-row">
+            <button class="btn-secondary" id="btn-prev-3"><i class="fas fa-arrow-left mr-1" style="font-size:12px;" /> 上一步</button>
+            <button class="btn-primary" id="btn-next-3">下一步 <i class="fas fa-arrow-right ml-1" style="font-size:12px;" /></button>
+          </div>
+        </div>
+
+        {/* Step 4: Preview & Publish */}
+        <div id="step-4" class="step-panel" style="display:none;">
           <div class="detail-card">
             <div class="detail-card-header">
               <i class="fas fa-eye detail-card-header-icon" style="background:linear-gradient(135deg,#ECFDF5,#D1FAE5);color:#16A34A;" />
@@ -342,7 +563,7 @@ app.get('/create', (c) => {
           </div>
 
           <div class="btn-row" style="flex-wrap:wrap;">
-            <button class="btn-secondary" id="btn-prev-3" style="flex:0 0 auto;width:auto;padding:0 20px;">
+            <button class="btn-secondary" id="btn-prev-4" style="flex:0 0 auto;width:auto;padding:0 20px;">
               <i class="fas fa-arrow-left mr-1" style="font-size:12px;" /> 上一步
             </button>
             <button class="btn-secondary" id="btn-draft" style="flex:1;">
@@ -376,26 +597,29 @@ app.get('/create', (c) => {
   try { u = JSON.parse(localStorage.getItem('zlc_user')); } catch(e){}
   if (!u) return;
 
-  // Step navigation
+  // Step navigation — 4 steps
   var currentStep = 1;
-  var panels = [null, document.getElementById('step-1'), document.getElementById('step-2'), document.getElementById('step-3')];
+  var TOTAL_STEPS = 4;
+  var panels = [null, document.getElementById('step-1'), document.getElementById('step-2'), document.getElementById('step-3'), document.getElementById('step-4')];
 
   function updateStepper(){
-    for(var i=1;i<=3;i++){
+    for(var i=1;i<=TOTAL_STEPS;i++){
       var dot = document.getElementById('dot-'+i);
       var label = document.getElementById('label-'+i);
+      if(!dot || !label) continue;
       dot.className = 'stepper-dot ' + (i < currentStep ? 'stepper-dot-done' : i === currentStep ? 'stepper-dot-active' : 'stepper-dot-pending');
       dot.textContent = i < currentStep ? '\\u2713' : i;
       label.className = 'stepper-label ' + (i < currentStep ? 'stepper-label-done' : i === currentStep ? 'stepper-label-active' : '');
     }
-    for(var i=1;i<=2;i++){
+    for(var i=1;i<=TOTAL_STEPS-1;i++){
       var line = document.getElementById('line-'+i);
+      if(!line) continue;
       line.className = 'stepper-line ' + (i < currentStep ? 'stepper-line-done' : 'stepper-line-pending');
     }
   }
 
   function goStep(n, direction){
-    if(n < 1 || n > 3) return;
+    if(n < 1 || n > TOTAL_STEPS) return;
     var oldPanel = panels[currentStep];
     var newPanel = panels[n];
     if(!oldPanel || !newPanel) return;
@@ -427,6 +651,57 @@ app.get('/create', (c) => {
   var fRevenue = document.getElementById('f-revenue');
   var fMultiple = document.getElementById('f-multiple');
   var fFreq = document.getElementById('f-freq');
+  // 退出条件
+  var fYieldSlider = document.getElementById('f-yield-slider');
+  var fYield = document.getElementById('f-yield');
+  var fLossMonths = document.getElementById('f-loss-months');
+  var fLossAmount = document.getElementById('f-loss-amount');
+  // Step 3 fields
+  var fCompanyFull = document.getElementById('f-company-full');
+  var fCreditCode = document.getElementById('f-credit-code');
+  var fRepType = document.getElementById('f-rep-type');
+  var fLegalRep = document.getElementById('f-legal-rep');
+  var fController = document.getElementById('f-controller');
+  var fControllerId = document.getElementById('f-controller-id');
+  var fRegAddr = document.getElementById('f-reg-addr');
+  var fBizAddr = document.getElementById('f-biz-addr');
+  var fTransmit = document.getElementById('f-transmit');
+  var fPaymentMode = document.getElementById('f-payment-mode');
+  var fBankNameAcct = document.getElementById('f-bank-name-acct');
+  var fBankNumber = document.getElementById('f-bank-number');
+  var fBankName = document.getElementById('f-bank-name');
+  var fBankBranch = document.getElementById('f-bank-branch');
+  var fTaxpayer = document.getElementById('f-taxpayer');
+
+  // 退出方式联动
+  function getExitMode(){
+    var radios = document.querySelectorAll('input[name="exitMode"]');
+    for(var i=0;i<radios.length;i++){ if(radios[i].checked) return radios[i].value; }
+    return 'both';
+  }
+  // 年化收益率滑块联动
+  if(fYieldSlider && fYield){
+    fYieldSlider.addEventListener('input', function(){
+      fYield.value = fYieldSlider.value;
+      updateAutoCalc();
+    });
+    fYield.addEventListener('change', function(){
+      var v = Math.max(6, Math.min(30, parseFloat(fYield.value) || 12));
+      fYield.value = v;
+      fYieldSlider.value = v;
+      updateAutoCalc();
+    });
+  }
+  // 退出方式切换
+  var exitRadios = document.querySelectorAll('input[name="exitMode"]');
+  exitRadios.forEach(function(r){
+    r.addEventListener('change', function(){
+      var em = getExitMode();
+      var yieldGroup = document.getElementById('yield-rate-group');
+      if(yieldGroup) yieldGroup.style.display = (em === 'term_only') ? 'none' : 'block';
+      updateAutoCalc();
+    });
+  });
 
   // Char count
   var descCount = document.getElementById('desc-count');
@@ -513,23 +788,39 @@ app.get('/create', (c) => {
   if(typeof initHelpIcons === 'function') initHelpIcons();
 
   // Step 2 auto-calc
-  var calcFields = [fAmount, fRate, fDuration, fMinamt, fRevenue, fMultiple];
+  var calcFields = [fAmount, fRate, fDuration, fMinamt, fRevenue];
   function updateAutoCalc(){
     var amount = parseFloat(fAmount.value) || 0;
     var rate = parseFloat(fRate.value) || 0;
     var minamt = parseFloat(fMinamt.value) || 0;
     var revenue = parseFloat(fRevenue.value) || 0;
-    var multiple = parseFloat(fMultiple.value) || 1.5;
+    var duration = parseInt(fDuration.value) || 0;
+    var yieldRate = parseFloat(fYield.value) || 12;
+    var exitMode = getExitMode();
 
+    // 计算份额和锚点
     var shares = minamt > 0 ? Math.floor(amount / minamt) : 0;
-    var cap = amount * multiple;
+    var k = rate > 0 ? amount / rate : 0;
+    // 动态封顶倍数（年化率 × 期限）
+    var capMultiple = 1 + (yieldRate / 100) * (duration / 12);
+    var cap = amount * capMultiple;
+    // 更新隐藏的 recovery_multiple 字段（兼容旧逻辑）
+    if(fMultiple) fMultiple.value = capMultiple.toFixed(4);
     var monthly = revenue * (rate / 100);
     var payback = monthly > 0 ? Math.ceil(amount / monthly) : 0;
 
     document.getElementById('calc-shares').textContent = shares > 0 ? shares + ' 份' : '—';
+    document.getElementById('calc-k').textContent = k > 0 ? k.toFixed(2) + '万/1%' : '—';
+    document.getElementById('calc-cap-multiple').textContent = capMultiple > 0 ? capMultiple.toFixed(2) + 'x' : '—';
     document.getElementById('calc-cap2').textContent = cap > 0 ? '¥' + cap.toFixed(1) + '万' : '—';
     document.getElementById('calc-monthly2').textContent = monthly > 0 ? '¥' + monthly.toFixed(2) + '万' : '—';
     document.getElementById('calc-payback').textContent = payback > 0 ? payback + ' 个月' : '—';
+
+    // 年化滑块提示
+    var yieldHint = document.getElementById('yield-multiple-hint');
+    if(yieldHint && duration > 0){
+      yieldHint.textContent = '等效 ' + capMultiple.toFixed(2) + 'x';
+    }
 
     // Example
     var exampleEl = document.getElementById('example-text');
@@ -576,22 +867,28 @@ app.get('/create', (c) => {
       showToast('请填写：' + errors.join('、'), 'error');
       return;
     }
-    buildPreview();
+    // 自动带入企业信息（如果用户有公司信息）
+    if(fCompanyFull && !fCompanyFull.value && u.company) fCompanyFull.value = u.company;
+    if(fBankNameAcct && !fBankNameAcct.value && u.company) fBankNameAcct.value = u.company;
     goStep(3, 'right');
   });
 
-  // Step 3 preview builder
+  // Step 4 preview builder
   function buildPreview(){
     var amount = parseFloat(fAmount.value) || 0;
     var rate = parseFloat(fRate.value) || 0;
     var duration = parseInt(fDuration.value) || 0;
     var minamt = parseFloat(fMinamt.value) || 0;
     var revenue = parseFloat(fRevenue.value) || 0;
-    var multiple = parseFloat(fMultiple.value) || 1.5;
+    var yieldRate = parseFloat(fYield.value) || 12;
+    var exitMode = getExitMode();
+    var capMultiple = 1 + (yieldRate / 100) * (duration / 12);
     var shares = minamt > 0 ? Math.floor(amount / minamt) : 0;
-    var cap = amount * multiple;
+    var cap = amount * capMultiple;
     var monthly = revenue * (rate / 100);
     var payback = monthly > 0 ? Math.ceil(amount / monthly) : 0;
+
+    var exitModeLabel = exitMode === 'both' ? '先到为准（期限/倍数）' : exitMode === 'term_only' ? '仅期限到期' : '仅封顶倍数';
 
     var html = '';
     // Header
@@ -599,31 +896,22 @@ app.get('/create', (c) => {
     html += '<span style="background:#FEE2E2;color:#B91C1C;padding:2px 10px;border-radius:6px;font-size:12px;font-weight:600;">' + (fIndustry.value||'') + '</span>';
     html += '<span class="badge badge-open">募集中</span>';
     html += '</div>';
-    // Name
     html += '<h2 style="font-size:20px;font-weight:700;color:#292524;margin-bottom:12px;font-family:\\'Noto Sans SC\\',sans-serif;">' + fName.value + '</h2>';
-    // HighlightText (if any)
     if(fHighlightText.value.trim()){
       html += '<div style="font-size:14px;color:#B91C1C;font-style:italic;margin-bottom:12px;line-height:1.5;">' + fHighlightText.value.trim() + '</div>';
     }
     // Owner
     html += '<div style="display:flex;align-items:center;gap:10px;padding:12px;background:#FAFAF9;border-radius:12px;margin-bottom:12px;">';
     html += '<div style="width:40px;height:40px;border-radius:50%;background:#B91C1C;color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;">' + (u.name||'?').charAt(0) + '</div>';
-    html += '<div><div style="font-size:14px;font-weight:600;color:#1C1917;">' + u.name + ' <span style="font-size:12px;color:#78716C;font-weight:400;">· ' + (u.title||'') + '</span></div>';
-    html += '<div style="font-size:12px;color:#78716C;">' + (u.company||'') + ' · ' + (u.cohort||'') + '</div></div></div>';
-    // Description
+    html += '<div><div style="font-size:14px;font-weight:600;color:#1C1917;">' + u.name + '</div>';
+    html += '<div style="font-size:12px;color:#78716C;">' + (fCompanyFull.value || u.company || '') + '</div></div></div>';
     html += '<p style="font-size:14px;line-height:1.7;color:#292524;margin-bottom:16px;">' + fDesc.value + '</p>';
-    if(fDetail.value.trim()){
-      html += '<p style="font-size:13px;line-height:1.7;color:#78716C;margin-bottom:16px;">' + fDetail.value + '</p>';
-    }
-    // Highlights (if any)
+    // Highlights
     var hlArr = [fHighlight1.value.trim(), fHighlight2.value.trim(), fHighlight3.value.trim()].filter(function(v){return v;});
     if(hlArr.length > 0){
       html += '<div style="margin-bottom:16px;padding:16px 20px;background:#fff;border-radius:14px;border-left:3px solid #D4A853;">';
-      html += '<div style="display:flex;align-items:center;justify-content:space-between;"><span style="font-size:14px;font-weight:600;color:#1C1917;">项目亮点</span><span style="font-size:14px;">\\u2B50</span></div>';
-      html += '<div style="margin-top:10px;">';
-      hlArr.forEach(function(h){
-        html += '<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;"><span style="width:6px;height:6px;background:#D4A853;border-radius:50%;flex-shrink:0;margin-top:6px;"></span><span style="font-size:14px;color:#44403C;line-height:1.6;">' + h + '</span></div>';
-      });
+      html += '<div style="font-size:14px;font-weight:600;color:#1C1917;">项目亮点 \\u2B50</div><div style="margin-top:10px;">';
+      hlArr.forEach(function(h){ html += '<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;"><span style="width:6px;height:6px;background:#D4A853;border-radius:50%;flex-shrink:0;margin-top:6px;"></span><span style="font-size:14px;color:#44403C;line-height:1.6;">' + h + '</span></div>'; });
       html += '</div></div>';
     }
     // Terms grid
@@ -631,29 +919,59 @@ app.get('/create', (c) => {
     html += '<div style="padding:12px 16px;border-bottom:1px solid #F5F5F4;font-size:15px;font-weight:600;color:#292524;"><i class="fas fa-file-contract" style="color:#B91C1C;margin-right:8px;font-size:13px;"></i>收入分成条款</div>';
     html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0;">';
     var terms = [
-      ['融资总额', '¥'+amount+'万'], ['分成比例', rate+'%'], ['联营期限', duration+'个月'],
-      ['回收倍数', multiple+'x'], ['回收上限', '¥'+cap.toFixed(1)+'万'], ['预估月收入', '¥'+revenue+'万']
+      ['融资总额', '¥'+amount+'万'], ['分成比例', rate+'%'],
+      ['联营期限', duration+'个月'], ['年化收益率', yieldRate+'%'],
+      ['封顶倍数', capMultiple.toFixed(2)+'x'], ['回收上限', '¥'+cap.toFixed(1)+'万'],
+      ['退出方式', exitModeLabel], ['预估月收入', '¥'+revenue+'万'],
     ];
     terms.forEach(function(t,i){
       html += '<div style="padding:12px 16px;border-bottom:1px solid #F5F5F4;' + (i%2===0?'border-right:1px solid #F5F5F4;':'') + '">';
       html += '<div style="font-size:11px;color:#78716C;margin-bottom:2px;">' + t[0] + '</div>';
-      html += '<div style="font-size:17px;font-weight:700;color:#1C1917;">' + t[1] + '</div></div>';
+      html += '<div style="font-size:15px;font-weight:700;color:#1C1917;">' + t[1] + '</div></div>';
     });
     html += '</div>';
     html += '<div style="background:#FEF2F2;padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:12px;">';
     html += '<div><div style="font-size:11px;color:#78716C;">预估月回款</div><div style="font-size:17px;font-weight:700;color:#B91C1C;">¥' + monthly.toFixed(2) + '万</div></div>';
     html += '<div><div style="font-size:11px;color:#78716C;">预估回收期</div><div style="font-size:17px;font-weight:700;color:#B91C1C;">约' + payback + '月</div></div>';
     html += '</div></div>';
-    // Info
     html += '<div style="margin-top:12px;font-size:12px;color:#78716C;">总份额 ' + shares + ' 份 · 每份 ¥' + minamt + '万 · 上报频率：' + fFreq.value + '</div>';
+    // Enterprise info preview
+    if(fCompanyFull.value){
+      html += '<div style="margin-top:16px;padding:14px;background:#F0F9FF;border-radius:12px;border-left:3px solid #2563EB;">';
+      html += '<div style="font-size:13px;font-weight:600;color:#1E40AF;margin-bottom:8px;"><i class="fas fa-building" style="margin-right:4px;"></i>企业主体</div>';
+      html += '<div style="font-size:12px;color:#57534E;line-height:1.8;">';
+      html += fCompanyFull.value + '<br/>';
+      html += '法定代表人：' + (fLegalRep.value || '—') + '<br/>';
+      html += '信用代码：' + (fCreditCode.value || '—');
+      html += '</div></div>';
+    }
     if(uploadedFileName){
       html += '<div style="margin-top:8px;font-size:12px;color:#78716C;"><i class="fas fa-paperclip" style="margin-right:4px;"></i>附件：' + uploadedFileName + '</div>';
     }
     document.getElementById('preview-content').innerHTML = html;
   }
 
-  // Step 3 nav
+  // Step 3 nav (enterprise + payment)
   document.getElementById('btn-prev-3').addEventListener('click', function(){ goStep(2, 'left'); });
+  document.getElementById('btn-next-3').addEventListener('click', function(){
+    var errors = [];
+    if(!fCompanyFull.value.trim()) errors.push('企业全称');
+    if(!fCreditCode.value.trim()) errors.push('统一社会信用代码');
+    if(!fLegalRep.value.trim()) errors.push('法定代表人');
+    if(!fRegAddr.value.trim()) errors.push('注册地址');
+    if(!fBankNameAcct.value.trim()) errors.push('收款户名');
+    if(!fBankNumber.value.trim()) errors.push('银行账号');
+    if(!fBankName.value) errors.push('开户银行');
+    if(errors.length > 0){
+      showToast('请填写：' + errors.join('、'), 'error');
+      return;
+    }
+    buildPreview();
+    goStep(4, 'right');
+  });
+
+  // Step 4 nav
+  document.getElementById('btn-prev-4').addEventListener('click', function(){ goStep(3, 'left'); });
 
   // Collect form data
   function collectData(status){
@@ -662,25 +980,45 @@ app.get('/create', (c) => {
     var duration = parseInt(fDuration.value) || 0;
     var minamt = parseFloat(fMinamt.value) || 0;
     var revenue = parseFloat(fRevenue.value) || 0;
-    var multiple = parseFloat(fMultiple.value) || 1.5;
+    var yieldRate = parseFloat(fYield.value) || 12;
+    var exitMode = getExitMode();
+    var capMultiple = 1 + (yieldRate / 100) * (duration / 12);
     var shares = minamt > 0 ? Math.floor(amount / minamt) : 0;
-    var id = 'p-' + Date.now().toString(36);
-    // Collect highlights (filter empty)
     var hlArr = [fHighlight1.value.trim(), fHighlight2.value.trim(), fHighlight3.value.trim()].filter(function(v){return v;});
     return {
-      id: id, name: fName.value.trim(), ownerId: u.id,
+      name: fName.value.trim(), ownerId: u.id,
       industry: fIndustry.value, description: fDesc.value.trim(),
       detail: fDetail.value.trim(), attachment: uploadedFileName,
       highlightText: fHighlightText.value.trim() || '',
       highlights: hlArr.length > 0 ? hlArr : [],
-      targetAmount: amount, raisedAmount: 0,
-      revenueShareRate: rate, duration: duration,
-      recoveryMultiple: multiple, estimatedMonthlyRevenue: revenue,
-      totalShares: shares, raisedShares: 0,
-      sharePrice: minamt, minShares: 1,
+      targetAmount: amount, revenueShareRate: rate, duration: duration,
+      recoveryMultiple: capMultiple, estimatedMonthlyRevenue: revenue,
+      totalShares: shares, sharePrice: minamt, minShares: 1,
       reportFrequency: fFreq.value,
-      status: status, createdAt: new Date().toISOString().slice(0,10),
-      investors: []
+      // 退出条件
+      annualYieldRate: yieldRate, exitMode: exitMode,
+      // 风控
+      lossThresholdMonths: fLossMonths.value ? parseInt(fLossMonths.value) : null,
+      lossThresholdAmount: fLossAmount.value ? parseFloat(fLossAmount.value) : null,
+      // 企业主体
+      companyFullName: fCompanyFull.value.trim() || null,
+      creditCode: fCreditCode.value.trim() || null,
+      registeredAddress: fRegAddr.value.trim() || null,
+      legalRepresentative: fLegalRep.value.trim() || null,
+      legalRepType: fRepType.value || '法定代表人',
+      actualController: fController.value.trim() || null,
+      actualControllerId: fControllerId.value.trim() || null,
+      businessAddress: fBizAddr.value.trim() || null,
+      // 数据传输
+      dataTransmitMode: fTransmit.value || '手工上报',
+      paymentMode: fPaymentMode.value || '手动分账',
+      // 收款
+      bankAccountName: fBankNameAcct.value.trim() || null,
+      bankAccountNumber: fBankNumber.value.trim() || null,
+      bankName: fBankName.value || null,
+      bankBranch: fBankBranch.value.trim() || null,
+      taxpayerId: fTaxpayer.value.trim() || null,
+      status: status,
     };
   }
 
@@ -692,15 +1030,8 @@ app.get('/create', (c) => {
     fetch('/api/admin/projects/create', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        userId: u.id, name: proj.name, industry: proj.industry,
-        description: proj.description, targetAmount: proj.targetAmount,
-        revenueShareRate: proj.revenueShareRate, duration: proj.duration,
-        recoveryMultiple: proj.recoveryMultiple, estimatedMonthlyRevenue: proj.estimatedMonthlyRevenue,
-        totalShares: proj.totalShares, sharePrice: proj.sharePrice, minShares: proj.minShares || 1,
-        highlightText: proj.highlightText, highlights: proj.highlights,
-        initiatorNote: proj.detail, status: 'draft'
-      })
+      credentials: 'same-origin',
+      body: JSON.stringify(Object.assign({}, proj, { initiatorNote: proj.detail, status: 'draft' }))
     }).then(function(r){return r.json();}).then(function(d){
       btn.disabled = false; btn.textContent = '保存草稿';
       if(d.ok){
@@ -723,15 +1054,8 @@ app.get('/create', (c) => {
     fetch('/api/admin/projects/create', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        userId: u.id, name: proj.name, industry: proj.industry,
-        description: proj.description, targetAmount: proj.targetAmount,
-        revenueShareRate: proj.revenueShareRate, duration: proj.duration,
-        recoveryMultiple: proj.recoveryMultiple, estimatedMonthlyRevenue: proj.estimatedMonthlyRevenue,
-        totalShares: proj.totalShares, sharePrice: proj.sharePrice, minShares: proj.minShares || 1,
-        highlightText: proj.highlightText, highlights: proj.highlights,
-        initiatorNote: proj.detail
-      })
+      credentials: 'same-origin',
+      body: JSON.stringify(Object.assign({}, proj, { initiatorNote: proj.detail }))
     }).then(function(r){return r.json();}).then(function(d){
       btn.disabled = false; btn.textContent = '发布项目';
       if(!d.ok){ showToast(d.error || '提交失败', 'error'); return; }

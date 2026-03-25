@@ -36,6 +36,12 @@ app.get('/contracts/:id/sign', async (c) => {
     status: targetContract.status,
     totalRepaid: targetContract.totalRepaid || 0,
     ownerName: targetInitiator?.name || targetContract.initiatorName || '发起人',
+    // 条款通新增
+    approvalStatus: targetContract.approvalStatus || 'draft',
+    annualYieldRate: targetContract.annualYieldRate || 0,
+    exitMode: targetContract.exitMode || 'both',
+    endDate: targetContract.endDate || null,
+    capMultipleAtTerm: targetContract.capMultipleAtTerm || 0,
     project: targetProject ? {
       id: targetProject.id, name: targetProject.name,
       targetAmount: targetProject.targetAmount,
@@ -65,6 +71,9 @@ app.get('/contracts/:id/sign', async (c) => {
         <a href="javascript:history.back()" class="back-link mb-4 inline-flex">
           <i class="fas fa-arrow-left" style="font-size:13px;" /> 返回
         </a>
+
+        {/* Approval Status Banner */}
+        <div id="approval-banner" />
 
         {/* Contract Content — scrollable full contract */}
         <div id="contract-body-card" style="background:#fff;border-radius:16px;border:1px solid #E7E5E4;margin-bottom:16px;overflow:hidden;">
@@ -178,6 +187,49 @@ app.get('/contracts/:id/sign', async (c) => {
 
   function renderContract(){
   if(!contract) return;
+
+  // ── 审批状态检查：未审批通过的合同不显示合同内容 ──
+  var approvalBanner = document.getElementById('approval-banner');
+  var approvalStatus = contract.approvalStatus || 'draft';
+  if(approvalStatus === 'draft'){
+    if(approvalBanner) approvalBanner.innerHTML = '<div style="background:#DBEAFE;border:1px solid #93C5FD;border-radius:12px;padding:16px 18px;margin-bottom:16px;text-align:center;">'
+      + '<i class="fas fa-edit" style="color:#2563EB;font-size:24px;margin-bottom:8px;display:block;"></i>'
+      + '<div style="font-size:15px;font-weight:600;color:#1E40AF;">条款尚未确认</div>'
+      + '<div style="font-size:13px;color:#3B82F6;margin-top:4px;">请先前往条款通确认联营条款</div>'
+      + '<a href="/contracts/' + CONTRACT_ID + '/terms" style="display:inline-block;margin-top:12px;padding:10px 24px;background:#2563EB;color:#fff;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none;">前往条款通</a></div>';
+    document.getElementById('contract-body-card').style.display = 'none';
+    var signArea = document.getElementById('sign-area');
+    if(signArea) signArea.style.display = 'none';
+    return;
+  }
+  if(approvalStatus === 'pending_approval'){
+    if(approvalBanner) approvalBanner.innerHTML = '<div style="background:#FEF3C7;border:1px solid #FDE68A;border-radius:12px;padding:16px 18px;margin-bottom:16px;text-align:center;">'
+      + '<i class="fas fa-hourglass-half" style="color:#B45309;font-size:24px;margin-bottom:8px;display:block;"></i>'
+      + '<div style="font-size:15px;font-weight:600;color:#92400E;">等待班主任审批</div>'
+      + '<div style="font-size:13px;color:#B45309;margin-top:4px;">合同条款已提交，需要班主任审批后方可查看和签署</div></div>';
+    document.getElementById('contract-body-card').style.display = 'none';
+    var signArea = document.getElementById('sign-area');
+    if(signArea) signArea.style.display = 'none';
+    return;
+  }
+  if(approvalStatus === 'rejected'){
+    if(approvalBanner) approvalBanner.innerHTML = '<div style="background:#FEE2E2;border:1px solid #FECACA;border-radius:12px;padding:16px 18px;margin-bottom:16px;text-align:center;">'
+      + '<i class="fas fa-times-circle" style="color:#DC2626;font-size:24px;margin-bottom:8px;display:block;"></i>'
+      + '<div style="font-size:15px;font-weight:600;color:#991B1B;">审批未通过</div>'
+      + '<div style="font-size:13px;color:#DC2626;margin-top:4px;">合同条款未通过审批，请修改后重新提交</div>'
+      + '<a href="/contracts/' + CONTRACT_ID + '/terms" style="display:inline-block;margin-top:12px;padding:10px 24px;background:#DC2626;color:#fff;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none;">重新修改条款</a></div>';
+    document.getElementById('contract-body-card').style.display = 'none';
+    var signArea = document.getElementById('sign-area');
+    if(signArea) signArea.style.display = 'none';
+    return;
+  }
+  // approved 状态：显示审批通过横幅
+  if(approvalStatus === 'approved'){
+    if(approvalBanner) approvalBanner.innerHTML = '<div style="background:#D1FAE5;border:1px solid #6EE7B7;border-radius:12px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">'
+      + '<i class="fas fa-check-circle" style="color:#16A34A;font-size:18px;flex-shrink:0;"></i>'
+      + '<div><div style="font-size:14px;font-weight:600;color:#166534;">审批通过</div>'
+      + '<div style="font-size:12px;color:#16A34A;margin-top:2px;">合同已审批通过，请双方签署</div></div></div>';
+  }
 
   // Load project data
   var proj = contract.project;

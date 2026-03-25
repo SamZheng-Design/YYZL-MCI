@@ -42,6 +42,7 @@ import { registerProjectsRoute } from './routes/projects'
 import { registerProjectDetailRoute } from './routes/project-detail'
 import { registerCreateRoute } from './routes/create'
 import { registerContractSignRoute } from './routes/contract-sign'
+import { registerTermsConnectRoute } from './routes/terms-connect'
 import { registerRepaymentsRoute } from './routes/repayments'
 import { registerInvestmentsRoute } from './routes/investments'
 import { registerRevenueReportRoute } from './routes/revenue-report'
@@ -479,6 +480,7 @@ registerProjectsRoute(app)
 registerProjectDetailRoute(app)
 registerCreateRoute(app)
 registerContractSignRoute(app)
+registerTermsConnectRoute(app)
 registerRepaymentsRoute(app)
 registerInvestmentsRoute(app)
 registerRevenueReportRoute(app)

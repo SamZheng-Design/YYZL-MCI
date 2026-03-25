@@ -128,6 +128,34 @@ export interface DBProject {
   highlights: string | null                // JSON 数组
   initiator_note: string | null
 
+  // 企业主体信息（项目级）
+  company_full_name: string | null
+  credit_code: string | null
+  registered_address: string | null
+  legal_representative: string | null
+  legal_rep_type: string | null
+  actual_controller: string | null
+  actual_controller_id: string | null
+  business_address: string | null
+
+  // 退出条件
+  annual_yield_rate: number
+  exit_mode: string               // 'term_only' | 'cap_only' | 'both'
+
+  // 风控条款
+  loss_threshold_months: number | null
+  loss_threshold_amount: number | null
+
+  // 数据传输与收款
+  data_transmit_mode: string | null
+  report_frequency: string | null
+  payment_mode: string | null
+  bank_account_name: string | null
+  bank_account_number: string | null
+  bank_name: string | null
+  bank_branch: string | null
+  taxpayer_id: string | null
+
   created_at: string
   completed_at: string | null
   updated_at: string
@@ -169,6 +197,24 @@ export interface DBContract {
   signed_at: string | null
 
   total_repaid: number
+
+  // 条款通 + 退出条件
+  annual_yield_rate: number
+  exit_mode: string               // 'term_only' | 'cap_only' | 'both'
+  end_date: string | null
+  cap_multiple_at_term: number
+
+  // 审批流
+  approval_status: string         // 'draft' | 'pending_approval' | 'approved' | 'rejected'
+  approved_by: string | null
+  approved_at: string | null
+  approval_note: string | null
+  terms_confirmed_at: string | null
+
+  // 电子签约（预留）
+  esign_url: string | null
+  esign_status: string | null
+
   status: ContractStatus
 
   created_at: string

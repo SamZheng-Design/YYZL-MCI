@@ -377,22 +377,32 @@ adminApi.post('/projects/:id/participate', async (c) => {
       return c.json({ ok: false, error: '份额已被其他人认购，请刷新后重试' }, 409)
     }
 
-    // 计算投资人个人份额比例和回收上限
+    // 计算投资人个人份额比例和退出条件
     const shareRatio = +(shares / project.total_shares * project.revenue_share_rate).toFixed(2)
-    const recoveryCap = +(amount * project.recovery_multiple).toFixed(2)
+    const annualYieldRate = project.annual_yield_rate || 12.0
+    const exitMode = project.exit_mode || 'both'
+    const duration = project.duration || 24
+    const capMultipleAtTerm = +(1 + annualYieldRate / 100 * duration / 12).toFixed(4)
+    const recoveryCap = +(amount * capMultipleAtTerm).toFixed(2)
+
+    // 计算结束日期
+    const endDate = new Date()
+    endDate.setMonth(endDate.getMonth() + duration)
+    const endDateStr = endDate.toISOString().slice(0, 10)
 
     // 生成合同（P1: 规范化合同编号 ZLC-YYYY-PXXX-CXXX）
     const contractId = await generateContractId(db)
     const contractNumber = await generateContractNumber(db, projectId)
 
     await db.prepare(`
-      INSERT INTO contracts (id, project_id, project_name, initiator_id, initiator_name, initiator_company, participant_id, participant_name, amount, shares, revenue_share_ratio, cooperation_term, recovery_cap, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+      INSERT INTO contracts (id, project_id, project_name, initiator_id, initiator_name, initiator_company, participant_id, participant_name, amount, shares, revenue_share_ratio, cooperation_term, recovery_cap, annual_yield_rate, exit_mode, end_date, cap_multiple_at_term, approval_status, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', 'pending')
     `).bind(
       contractId, projectId, project.name,
       project.owner_id, owner.name, owner.company || '',
       userId, user.name,
-      amount, shares, shareRatio, project.duration, recoveryCap
+      amount, shares, shareRatio, duration, recoveryCap,
+      annualYieldRate, exitMode, endDateStr, capMultipleAtTerm
     ).run()
 
     // 通知发起人
@@ -507,8 +517,31 @@ adminApi.post('/projects/create', async (c) => {
     for (let i = 0; i < 6; i++) shareCode += chars[Math.floor(Math.random() * chars.length)]
 
     await db.prepare(`
-      INSERT INTO projects (id, name, owner_id, industry, description, target_amount, raised_amount, revenue_share_rate, duration, recovery_multiple, estimated_monthly_revenue, total_shares, raised_shares, share_price, min_shares, status, share_code, initiator_class_id, initiator_class_name, highlight_text, highlights, initiator_note)
-      VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, 0, ?, ?, 'pending_review', ?, ?, ?, ?, ?, ?)
+      INSERT INTO projects (
+        id, name, owner_id, industry, description,
+        target_amount, raised_amount, revenue_share_rate, duration, recovery_multiple,
+        estimated_monthly_revenue, total_shares, raised_shares, share_price, min_shares,
+        status, share_code, initiator_class_id, initiator_class_name,
+        highlight_text, highlights, initiator_note,
+        company_full_name, credit_code, registered_address,
+        legal_representative, legal_rep_type, actual_controller, actual_controller_id,
+        business_address, annual_yield_rate, exit_mode,
+        loss_threshold_months, loss_threshold_amount,
+        data_transmit_mode, report_frequency, payment_mode,
+        bank_account_name, bank_account_number, bank_name, bank_branch, taxpayer_id
+      ) VALUES (
+        ?, ?, ?, ?, ?,
+        ?, 0, ?, ?, ?,
+        ?, ?, 0, ?, ?,
+        'pending_review', ?, ?, ?,
+        ?, ?, ?,
+        ?, ?, ?,
+        ?, ?, ?, ?,
+        ?, ?, ?,
+        ?, ?,
+        ?, ?, ?,
+        ?, ?, ?, ?, ?
+      )
     `).bind(
       projectId, data.name, userId, data.industry || '', data.description || '',
       data.targetAmount || 0, data.revenueShareRate || 0, data.duration || 0,
@@ -517,7 +550,19 @@ adminApi.post('/projects/create', async (c) => {
       shareCode, user.class_id || null, user.class_name || null,
       data.highlightText || null,
       data.highlights ? JSON.stringify(data.highlights) : null,
-      data.initiatorNote || null
+      data.initiatorNote || null,
+      // 企业主体（项目级）
+      data.companyFullName || null, data.creditCode || null, data.registeredAddress || null,
+      data.legalRepresentative || null, data.legalRepType || '法定代表人',
+      data.actualController || null, data.actualControllerId || null,
+      // 退出条件
+      data.businessAddress || null, data.annualYieldRate || 12.0, data.exitMode || 'both',
+      // 风控
+      data.lossThresholdMonths || null, data.lossThresholdAmount || null,
+      // 数据传输与收款
+      data.dataTransmitMode || '手工上报', data.reportFrequency || '每自然月', data.paymentMode || '手动分账',
+      data.bankAccountName || null, data.bankAccountNumber || null,
+      data.bankName || null, data.bankBranch || null, data.taxpayerId || null
     ).run()
 
     // 通知管理员
@@ -876,12 +921,42 @@ adminApi.get('/contracts/:id', async (c) => {
         status: contract.status,
         totalRepaid: contract.total_repaid || 0,
         createdAt: contract.created_at,
+        // 条款通新增字段
+        annualYieldRate: contract.annual_yield_rate || 0,
+        exitMode: contract.exit_mode || 'both',
+        endDate: contract.end_date || null,
+        capMultipleAtTerm: contract.cap_multiple_at_term || 0,
+        approvalStatus: contract.approval_status || 'draft',
+        approvedBy: contract.approved_by || null,
+        approvedAt: contract.approved_at || null,
+        approvalNote: contract.approval_note || null,
+        termsConfirmedAt: contract.terms_confirmed_at || null,
+        esignUrl: contract.esign_url || null,
+        esignStatus: contract.esign_status || null,
         project: project ? {
           id: project.id, name: project.name,
           targetAmount: project.target_amount,
           revenueShareRate: project.revenue_share_rate,
           recoveryMultiple: project.recovery_multiple,
           duration: project.duration,
+          annualYieldRate: project.annual_yield_rate || 12.0,
+          exitMode: project.exit_mode || 'both',
+          estimatedMonthlyRevenue: project.estimated_monthly_revenue || 0,
+          // 企业主体
+          companyFullName: project.company_full_name || null,
+          creditCode: project.credit_code || null,
+          registeredAddress: project.registered_address || null,
+          legalRepresentative: project.legal_representative || null,
+          legalRepType: project.legal_rep_type || null,
+          actualController: project.actual_controller || null,
+          actualControllerId: project.actual_controller_id || null,
+          businessAddress: project.business_address || null,
+          // 风控
+          lossThresholdMonths: project.loss_threshold_months || null,
+          lossThresholdAmount: project.loss_threshold_amount || null,
+          // 数据传输
+          dataTransmitMode: project.data_transmit_mode || null,
+          reportFrequency: project.report_frequency || null,
         } : null,
         ownerName: initiator?.name || '发起人',
       }
@@ -1094,6 +1169,233 @@ adminApi.post('/members/:id/update', async (c) => {
     return c.json({ ok: true, message: '更新成功' })
   } catch (e: any) {
     return c.json({ ok: false, error: '更新失败: ' + (e.message || '') }, 500)
+  }
+})
+
+// ══════════════════════════════════════════════════════════
+// 条款通 — 条款确认 API
+// ══════════════════════════════════════════════════════════
+
+/**
+ * POST /api/admin/contracts/:id/confirm-terms
+ * Body: { fundingAmount, revenueShareRatio, shares }
+ * 投资人确认条款后，更新合同并推进至 pending_approval
+ */
+adminApi.post('/contracts/:id/confirm-terms', async (c) => {
+  const db = c.env.DB
+  const sessionUser = c.get('user')!
+  const ip = getClientIP(c)
+  const contractId = c.req.param('id')
+  try {
+    const { fundingAmount, revenueShareRatio, shares } = await c.req.json<{
+      fundingAmount: number; revenueShareRatio: number; shares: number
+    }>()
+
+    const contract = await db.prepare('SELECT * FROM contracts WHERE id = ?').bind(contractId).first<any>()
+    if (!contract) return c.json({ ok: false, error: '合同不存在' }, 404)
+
+    // 只有合同参与人可以确认条款
+    if (contract.participant_id !== sessionUser.id) {
+      return c.json({ ok: false, error: '您不是该合同的参与人' }, 403)
+    }
+
+    // 只有 draft 状态的合同可以确认条款
+    if (contract.approval_status !== 'draft') {
+      return c.json({ ok: false, error: '该合同条款已确认，无法重复操作' }, 400)
+    }
+
+    // 获取项目信息以计算退出条件
+    const project = await db.prepare('SELECT * FROM projects WHERE id = ?').bind(contract.project_id).first<any>()
+    if (!project) return c.json({ ok: false, error: '关联项目不存在' }, 404)
+
+    // 计算退出条件快照
+    const annualYieldRate = project.annual_yield_rate || 12.0
+    const exitMode = project.exit_mode || 'both'
+    const duration = project.duration || 24
+    const capMultipleAtTerm = +(1 + annualYieldRate / 100 * duration / 12).toFixed(4)
+    const recoveryCap = +(fundingAmount * capMultipleAtTerm).toFixed(2)
+
+    // 计算结束日期
+    const now = new Date()
+    const endDate = new Date(now.getFullYear(), now.getMonth() + duration, now.getDate())
+    const endDateStr = endDate.toISOString().slice(0, 10)
+
+    await db.prepare(`
+      UPDATE contracts SET
+        amount = ?,
+        shares = ?,
+        revenue_share_ratio = ?,
+        cooperation_term = ?,
+        recovery_cap = ?,
+        annual_yield_rate = ?,
+        exit_mode = ?,
+        end_date = ?,
+        cap_multiple_at_term = ?,
+        approval_status = 'pending_approval',
+        terms_confirmed_at = datetime('now'),
+        updated_at = datetime('now')
+      WHERE id = ?
+    `).bind(
+      fundingAmount, shares, revenueShareRatio, duration,
+      recoveryCap, annualYieldRate, exitMode, endDateStr, capMultipleAtTerm,
+      contractId
+    ).run()
+
+    // 通知班主任审批
+    // 查找项目发起人的班主任
+    const initiator = await db.prepare('SELECT class_id, class_name FROM users WHERE id = ?').bind(contract.initiator_id).first<any>()
+    if (initiator?.class_id) {
+      const teachers = await db.prepare(
+        "SELECT id FROM users WHERE role = 'teacher' AND class_ids LIKE '%' || ? || '%'"
+      ).bind(initiator.class_id).all<{ id: string }>()
+
+      for (const teacher of teachers.results) {
+        await createNotification(db, {
+          type: 'review', title: '合同待审批',
+          content: `${contract.participant_name} 确认了项目「${contract.project_name}」的条款，请审批`,
+          icon: '📋', link: `/contracts/${contractId}/sign`,
+          targetId: teacher.id,
+        })
+      }
+    }
+
+    // 也通知发起人
+    await createNotification(db, {
+      type: 'participation', title: '条款已确认',
+      content: `${contract.participant_name} 已确认项目「${contract.project_name}」的联营条款，等待班主任审批`,
+      icon: '✅', link: `/contracts/${contractId}/sign`,
+      targetId: contract.initiator_id,
+    })
+
+    await logAudit(db, {
+      userId: sessionUser.id, action: 'confirm_terms',
+      entityType: 'contract', entityId: contractId,
+      detail: { fundingAmount, revenueShareRatio, shares, recoveryCap, capMultipleAtTerm, exitMode },
+      ipAddress: ip,
+    })
+
+    return c.json({
+      ok: true,
+      data: { recoveryCap, capMultipleAtTerm, endDate: endDateStr, exitMode },
+      message: '条款已确认，等待班主任审批',
+    })
+  } catch (e: any) {
+    return c.json({ ok: false, error: '确认失败: ' + (e.message || '') }, 500)
+  }
+})
+
+/**
+ * POST /api/admin/contracts/:id/approve
+ * Body: { action: 'approve' | 'reject', note?: string }
+ * 班主任审批合同
+ */
+adminApi.post('/contracts/:id/approve', async (c) => {
+  const db = c.env.DB
+  const sessionUser = c.get('user')!
+  const ip = getClientIP(c)
+  const contractId = c.req.param('id')
+  try {
+    const { action, note } = await c.req.json<{
+      action: 'approve' | 'reject'; note?: string
+    }>()
+
+    // 只有老师或管理员可以审批
+    if (sessionUser.role !== 'teacher' && sessionUser.role !== 'admin') {
+      return c.json({ ok: false, error: '无审批权限' }, 403)
+    }
+
+    const contract = await db.prepare('SELECT * FROM contracts WHERE id = ?').bind(contractId).first<any>()
+    if (!contract) return c.json({ ok: false, error: '合同不存在' }, 404)
+
+    if (contract.approval_status !== 'pending_approval') {
+      return c.json({ ok: false, error: '该合同不在待审批状态' }, 400)
+    }
+
+    // 如果是老师，验证是否负责该项目发起人的班级
+    if (sessionUser.role === 'teacher') {
+      const initiator = await db.prepare('SELECT class_id FROM users WHERE id = ?').bind(contract.initiator_id).first<{ class_id: string | null }>()
+      const classIds = (sessionUser as any).class_ids || []
+      if (!initiator?.class_id || !classIds.includes(initiator.class_id)) {
+        return c.json({ ok: false, error: '您不负责该项目发起人所在班级' }, 403)
+      }
+    }
+
+    const newApprovalStatus = action === 'approve' ? 'approved' : 'rejected'
+
+    await db.prepare(`
+      UPDATE contracts SET
+        approval_status = ?,
+        approved_by = ?,
+        approved_at = datetime('now'),
+        approval_note = ?,
+        updated_at = datetime('now')
+      WHERE id = ?
+    `).bind(newApprovalStatus, sessionUser.id, note || null, contractId).run()
+
+    // 通知双方
+    const notifyTitle = action === 'approve' ? '合同审批通过' : '合同审批未通过'
+    const notifyContent = action === 'approve'
+      ? `项目「${contract.project_name}」的合同已通过审批，请双方签署`
+      : `项目「${contract.project_name}」的合同审批未通过${note ? '：' + note : ''}`
+    const notifyIcon = action === 'approve' ? '✅' : '❌'
+
+    // 通知参与人和发起人
+    for (const targetId of [contract.initiator_id, contract.participant_id]) {
+      await createNotification(db, {
+        type: 'review', title: notifyTitle,
+        content: notifyContent,
+        icon: notifyIcon,
+        link: `/contracts/${contractId}/sign`,
+        targetId,
+      })
+    }
+
+    await logAudit(db, {
+      userId: sessionUser.id, action: `contract_${action}`,
+      entityType: 'contract', entityId: contractId,
+      detail: { note, previousStatus: 'pending_approval', newStatus: newApprovalStatus },
+      ipAddress: ip,
+    })
+
+    return c.json({
+      ok: true,
+      message: action === 'approve' ? '合同已审批通过' : '合同已驳回',
+    })
+  } catch (e: any) {
+    return c.json({ ok: false, error: '审批失败: ' + (e.message || '') }, 500)
+  }
+})
+
+/**
+ * POST /api/admin/contracts/:id/send-to-esign
+ * 发送合同到电子签约服务（预留桩接口）
+ */
+adminApi.post('/contracts/:id/send-to-esign', async (c) => {
+  const db = c.env.DB
+  const sessionUser = c.get('user')!
+  const contractId = c.req.param('id')
+  try {
+    const contract = await db.prepare('SELECT * FROM contracts WHERE id = ?').bind(contractId).first<any>()
+    if (!contract) return c.json({ ok: false, error: '合同不存在' }, 404)
+    if (contract.approval_status !== 'approved') {
+      return c.json({ ok: false, error: '合同尚未通过审批，无法发起电子签约' }, 400)
+    }
+
+    // 桩接口：模拟生成电子签约链接
+    const mockEsignUrl = `https://esign.example.com/contract/${contractId}?token=${Date.now().toString(36)}`
+
+    await db.prepare(`
+      UPDATE contracts SET esign_url = ?, esign_status = 'pending', updated_at = datetime('now')
+      WHERE id = ?
+    `).bind(mockEsignUrl, contractId).run()
+
+    return c.json({
+      ok: true,
+      data: { esignUrl: mockEsignUrl },
+      message: '已发送至电子签约服务（Demo模式）',
+    })
+  } catch (e: any) {
+    return c.json({ ok: false, error: '发送失败: ' + (e.message || '') }, 500)
   }
 })
 

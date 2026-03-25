@@ -633,6 +633,72 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
 .auto-calc-item-label { font-size: 12px; color: #78716C; margin-bottom: 2px; }
 .auto-calc-item-value { font-size: 16px; font-weight: 700; color: #B91C1C; }
 
+/* ══════════ Terms Connect Sliders ══════════ */
+.terms-slider {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 6px; border-radius: 3px;
+  outline: none; opacity: 0.9; transition: opacity 0.15s;
+  cursor: pointer;
+}
+.terms-slider:hover { opacity: 1; }
+.terms-slider:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Red slider (amount) */
+.terms-slider-red { background: linear-gradient(to right, #FECACA, #FCA5A5); }
+.terms-slider-red::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 24px; height: 24px; border-radius: 50%;
+  background: linear-gradient(135deg, #DC2626, #B91C1C);
+  border: 3px solid #fff; box-shadow: 0 2px 6px rgba(185,28,28,0.3);
+  cursor: pointer; transition: transform 0.15s;
+}
+.terms-slider-red::-webkit-slider-thumb:hover { transform: scale(1.15); }
+.terms-slider-red::-moz-range-thumb {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: linear-gradient(135deg, #DC2626, #B91C1C);
+  border: 3px solid #fff; box-shadow: 0 2px 6px rgba(185,28,28,0.3);
+  cursor: pointer;
+}
+
+/* Blue slider (ratio) */
+.terms-slider-blue { background: linear-gradient(to right, #BFDBFE, #93C5FD); }
+.terms-slider-blue::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 24px; height: 24px; border-radius: 50%;
+  background: linear-gradient(135deg, #3B82F6, #2563EB);
+  border: 3px solid #fff; box-shadow: 0 2px 6px rgba(37,99,235,0.3);
+  cursor: pointer; transition: transform 0.15s;
+}
+.terms-slider-blue::-webkit-slider-thumb:hover { transform: scale(1.15); }
+.terms-slider-blue::-moz-range-thumb {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: linear-gradient(135deg, #3B82F6, #2563EB);
+  border: 3px solid #fff; box-shadow: 0 2px 6px rgba(37,99,235,0.3);
+  cursor: pointer;
+}
+
+/* ══════════ Radio Card (exit mode selector) ══════════ */
+.radio-card {
+  cursor: pointer; display: block;
+}
+.radio-card input[type="radio"] { display: none; }
+.radio-card-content {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 12px 8px; border-radius: 12px; border: 2px solid #E7E5E4;
+  background: #FAFAF9; transition: all 0.2s;
+  text-align: center;
+}
+.radio-card input:checked + .radio-card-content {
+  border-color: #B91C1C; background: #FEF2F2;
+  box-shadow: 0 0 0 1px #B91C1C;
+}
+.radio-card:hover .radio-card-content {
+  border-color: #D6D3D1; background: #F5F5F4;
+}
+.radio-card input:checked + .radio-card-content:hover {
+  border-color: #B91C1C; background: #FEF2F2;
+}
+
 .example-card {
   background: #F5F5F4; border-radius: 12px; padding: 14px 16px;
   font-size: 13px; color: #78716C; line-height: 1.6;

@@ -39,6 +39,19 @@ export interface Project {
   shareCode?: string; initiatorClassId?: string; initiatorClassName?: string
   recommendedByTeacher?: string[]; viewCount?: number
   highlightText?: string; highlights?: string[]; initiatorNote?: string
+  // 企业主体
+  companyFullName?: string; creditCode?: string; registeredAddress?: string
+  legalRepresentative?: string; legalRepType?: string
+  actualController?: string; actualControllerId?: string
+  businessAddress?: string
+  // 退出条件
+  annualYieldRate: number; exitMode: string
+  // 风控
+  lossThresholdMonths?: number; lossThresholdAmount?: number
+  // 数据传输与收款
+  dataTransmitMode?: string; reportFrequency?: string; paymentMode?: string
+  bankAccountName?: string; bankAccountNumber?: string
+  bankName?: string; bankBranch?: string; taxpayerId?: string
 }
 
 export interface Contract {
@@ -49,6 +62,14 @@ export interface Contract {
   cooperationTerm: number; recoveryCap: number
   signedByInitiator: boolean; signedByParticipant: boolean; signedAt: string
   totalRepaid: number; status: string
+  // 条款通 + 退出条件
+  annualYieldRate: number; exitMode: string
+  endDate?: string; capMultipleAtTerm: number
+  // 审批流
+  approvalStatus: string; approvedBy?: string; approvedAt?: string
+  approvalNote?: string; termsConfirmedAt?: string
+  // 电子签约
+  esignUrl?: string; esignStatus?: string
 }
 
 export interface RevenueReport {
@@ -137,6 +158,30 @@ function dbProjectToProject(p: DBProject, investors: string[]): Project {
     highlightText: p.highlight_text || undefined,
     highlights: p.highlights ? JSON.parse(p.highlights) : undefined,
     initiatorNote: p.initiator_note || undefined,
+    // 企业主体
+    companyFullName: p.company_full_name || undefined,
+    creditCode: p.credit_code || undefined,
+    registeredAddress: p.registered_address || undefined,
+    legalRepresentative: p.legal_representative || undefined,
+    legalRepType: p.legal_rep_type || undefined,
+    actualController: p.actual_controller || undefined,
+    actualControllerId: p.actual_controller_id || undefined,
+    businessAddress: p.business_address || undefined,
+    // 退出条件
+    annualYieldRate: p.annual_yield_rate || 12.0,
+    exitMode: p.exit_mode || 'both',
+    // 风控
+    lossThresholdMonths: p.loss_threshold_months || undefined,
+    lossThresholdAmount: p.loss_threshold_amount || undefined,
+    // 数据传输与收款
+    dataTransmitMode: p.data_transmit_mode || undefined,
+    reportFrequency: p.report_frequency || undefined,
+    paymentMode: p.payment_mode || undefined,
+    bankAccountName: p.bank_account_name || undefined,
+    bankAccountNumber: p.bank_account_number || undefined,
+    bankName: p.bank_name || undefined,
+    bankBranch: p.bank_branch || undefined,
+    taxpayerId: p.taxpayer_id || undefined,
   }
 }
 
@@ -153,6 +198,20 @@ function dbContractToContract(c: DBContract): Contract {
     signedByParticipant: c.signed_by_participant === 1,
     signedAt: c.signed_at || '',
     totalRepaid: c.total_repaid, status: c.status,
+    // 条款通 + 退出条件
+    annualYieldRate: c.annual_yield_rate || 0,
+    exitMode: c.exit_mode || 'both',
+    endDate: c.end_date || undefined,
+    capMultipleAtTerm: c.cap_multiple_at_term || 0,
+    // 审批流
+    approvalStatus: c.approval_status || 'draft',
+    approvedBy: c.approved_by || undefined,
+    approvedAt: c.approved_at || undefined,
+    approvalNote: c.approval_note || undefined,
+    termsConfirmedAt: c.terms_confirmed_at || undefined,
+    // 电子签约
+    esignUrl: c.esign_url || undefined,
+    esignStatus: c.esign_status || undefined,
   }
 }
 
@@ -445,7 +504,7 @@ export function getUserStats(
   }
 }
 
-/** 合同全文生成 (从 data.ts 移植) */
+/** 合同全文生成 — 适配滴灌通联营协议退出条件 */
 export function generateContractHTML(
   contract: Contract, project: Project,
   participant: Member | null, initiator: Member | null
@@ -458,33 +517,58 @@ export function generateContractHTML(
   const pName = project.name || ''
   const pDesc = project.description || ''
   const revenueShareRate = project.revenueShareRate || 0
-  const termMonths = project.duration || 0
-  const returnMultiple = project.recoveryMultiple || 0
+  const termMonths = contract.cooperationTerm || project.duration || 0
   const descTruncated = pDesc.length > 100 ? pDesc.substring(0, 100) + '...' : pDesc
   const iName = initiator ? initiator.name : (contract.initiatorName || '发起人')
-  const iCompany = initiator ? (initiator.company || '一亿中流学员') : (contract.initiatorCompany || '一亿中流学员')
+  const iCompany = project.companyFullName || (initiator ? (initiator.company || '') : (contract.initiatorCompany || ''))
   const iClassName = initiator ? (initiator.className || '') : ''
   const pName2 = participant ? participant.name : (contract.participantName || '参与人')
-  const pCompany = participant ? (participant.company || '一亿中流学员') : '一亿中流学员'
+  const pCompany = participant ? (participant.company || '') : ''
   const pClassName = participant ? (participant.className || '') : ''
+
+  // 退出条件
+  const annualYieldRate = contract.annualYieldRate || project.annualYieldRate || 12
+  const exitMode = contract.exitMode || project.exitMode || 'both'
+  const capMultiple = contract.capMultipleAtTerm || (1 + annualYieldRate / 100 * termMonths / 12)
+  const endDate = contract.endDate || '—'
+
+  // 企业信息
+  const companyFull = project.companyFullName || iCompany || '—'
+  const creditCode = project.creditCode || '—'
+  const legalRep = project.legalRepresentative || iName
+  const legalRepType = project.legalRepType || '法定代表人'
+  const regAddr = project.registeredAddress || '—'
+  const bizAddr = project.businessAddress || regAddr
+
+  // 退出条件文本
+  let exitClause = ''
+  if (exitMode === 'term_only') {
+    exitClause = `联营期限届满（${termMonths}个月，即${endDate}）时，本协议自动终止，无论乙方是否已收回全部投资。`
+  } else if (exitMode === 'cap_only') {
+    exitClause = `当乙方累计分成金额达到联营资金 × (1 + 年收益率${annualYieldRate}% ÷ 360 × 联营天数) = 人民币 ${recoveryCap} 万元（等效约${capMultiple.toFixed(2)}倍）时，收入分成自动终止，无期限限制。`
+  } else {
+    exitClause = `以下两个条件以先满足者为准终止合同：<br/>（1）期限到期：联营期限${termMonths}个月届满（即${endDate}）；<br/>（2）封顶回收：乙方累计分成金额达到人民币 ${recoveryCap} 万元（年化${annualYieldRate}%，等效约${capMultiple.toFixed(2)}倍）。<br/>封顶计算公式：联营资金 × (1 + ${annualYieldRate}% ÷ 360 × 联营天数)`
+  }
 
   return `<div style="font-family:'SimSun','Songti SC',serif;color:#1C1917;line-height:1.8;font-size:14px;">
   <div style="text-align:center;padding-bottom:24px;border-bottom:2px solid #B91C1C;">
     <div style="font-size:11px;color:#A8A29E;letter-spacing:2px;">合同编号：${cId}</div>
     <div style="font-size:22px;font-weight:800;color:#B91C1C;margin-top:12px;letter-spacing:4px;">联合经营协议</div>
-    <div style="font-size:12px;color:#78716C;margin-top:6px;">（收入分成模式 · 简化版）</div>
+    <div style="font-size:12px;color:#78716C;margin-top:6px;">（收入分成模式 · 滴灌通联营）</div>
   </div>
   <div style="margin-top:24px;">
     <div style="font-size:15px;font-weight:700;color:#1C1917;margin-bottom:12px;">签署各方</div>
     <div style="background:#FAFAF9;border-radius:10px;padding:16px;margin-bottom:10px;">
-      <div style="font-size:12px;color:#B91C1C;font-weight:600;">甲方（项目发起人）</div>
-      <div style="font-size:14px;font-weight:600;margin-top:6px;">${iName}</div>
-      <div style="font-size:12px;color:#78716C;margin-top:2px;">${iCompany} · ${iClassName}</div>
+      <div style="font-size:12px;color:#B91C1C;font-weight:600;">甲方（联营方 / 项目发起人）</div>
+      <div style="font-size:14px;font-weight:600;margin-top:6px;">${companyFull}</div>
+      <div style="font-size:12px;color:#78716C;margin-top:2px;">统一社会信用代码：${creditCode}</div>
+      <div style="font-size:12px;color:#78716C;">${legalRepType}：${legalRep}</div>
+      <div style="font-size:12px;color:#78716C;">注册地址：${regAddr}</div>
     </div>
     <div style="background:#FAFAF9;border-radius:10px;padding:16px;margin-bottom:10px;">
       <div style="font-size:12px;color:#3B82F6;font-weight:600;">乙方（投资参与人）</div>
       <div style="font-size:14px;font-weight:600;margin-top:6px;">${pName2}</div>
-      <div style="font-size:12px;color:#78716C;margin-top:2px;">${pCompany} · ${pClassName}</div>
+      <div style="font-size:12px;color:#78716C;margin-top:2px;">${pCompany}${pClassName ? ' · ' + pClassName : ''}</div>
     </div>
     <div style="background:#FAFAF9;border-radius:10px;padding:16px;">
       <div style="font-size:12px;color:#D4A853;font-weight:600;">平台见证方</div>
@@ -494,28 +578,33 @@ export function generateContractHTML(
   </div>
   <div style="margin-top:24px;">
     <div style="font-size:15px;font-weight:700;color:#1C1917;margin-bottom:8px;">鉴于</div>
-    <div style="font-size:13px;color:#57534E;">甲方经营${pName}相关业务，乙方拟通过收入分成的联合经营方式参与该项目。各方经友好协商，根据中国相关法律法规，就联营合作达成一致，特订立如下条款。</div>
+    <div style="font-size:13px;color:#57534E;">甲方经营${pName}相关业务（经营地址：${bizAddr}），乙方拟通过收入分成的联合经营方式参与该项目。各方经友好协商，根据中国相关法律法规，就联营合作达成一致，特订立如下条款。</div>
   </div>
   <div style="margin-top:24px;">
     <div style="font-size:15px;font-weight:700;color:#B91C1C;margin-bottom:12px;">第一条 联营合作商业安排</div>
     <table style="width:100%;border-collapse:collapse;font-size:13px;">
       <tr style="border-bottom:1px solid #E7E5E4;"><td style="padding:10px 0;color:#78716C;width:35%;">项目名称</td><td style="padding:10px 0;font-weight:600;">${pName}</td></tr>
+      <tr style="border-bottom:1px solid #E7E5E4;"><td style="padding:10px 0;color:#78716C;">甲方企业全称</td><td style="padding:10px 0;font-weight:600;">${companyFull}</td></tr>
       <tr style="border-bottom:1px solid #E7E5E4;"><td style="padding:10px 0;color:#78716C;">联营资金金额</td><td style="padding:10px 0;font-weight:600;color:#B91C1C;">人民币 ${investmentAmount} 万元整</td></tr>
-      <tr style="border-bottom:1px solid #E7E5E4;"><td style="padding:10px 0;color:#78716C;">乙方占比份额</td><td style="padding:10px 0;font-weight:600;">${sharePercentage}%</td></tr>
-      <tr style="border-bottom:1px solid #E7E5E4;"><td style="padding:10px 0;color:#78716C;">收入分成比例</td><td style="padding:10px 0;font-weight:600;">${revenueShareRate}%</td></tr>
-      <tr style="border-bottom:1px solid #E7E5E4;"><td style="padding:10px 0;color:#78716C;">联营期限</td><td style="padding:10px 0;font-weight:600;">${termMonths} 个月</td></tr>
-      <tr style="border-bottom:1px solid #E7E5E4;"><td style="padding:10px 0;color:#78716C;">回收上限倍数</td><td style="padding:10px 0;font-weight:600;">${returnMultiple} 倍</td></tr>
-      <tr style="border-bottom:1px solid #E7E5E4;"><td style="padding:10px 0;color:#78716C;">回收上限金额</td><td style="padding:10px 0;font-weight:600;color:#B91C1C;">人民币 ${recoveryCap} 万元整</td></tr>
+      <tr style="border-bottom:1px solid #E7E5E4;"><td style="padding:10px 0;color:#78716C;">固定分成比例</td><td style="padding:10px 0;font-weight:600;">${sharePercentage}%</td></tr>
+      <tr style="border-bottom:1px solid #E7E5E4;"><td style="padding:10px 0;color:#78716C;">项目总分成比例</td><td style="padding:10px 0;font-weight:600;">${revenueShareRate}%</td></tr>
+      <tr style="border-bottom:1px solid #E7E5E4;"><td style="padding:10px 0;color:#78716C;">联营期限</td><td style="padding:10px 0;font-weight:600;">${termMonths} 个月（至 ${endDate}）</td></tr>
+      <tr style="border-bottom:1px solid #E7E5E4;"><td style="padding:10px 0;color:#78716C;">年收益率</td><td style="padding:10px 0;font-weight:600;">${annualYieldRate}%</td></tr>
+      <tr style="border-bottom:1px solid #E7E5E4;"><td style="padding:10px 0;color:#78716C;">封顶倍数（等效）</td><td style="padding:10px 0;font-weight:600;">${capMultiple.toFixed(2)} 倍</td></tr>
+      <tr style="border-bottom:1px solid #E7E5E4;"><td style="padding:10px 0;color:#78716C;">回收上限金额</td><td style="padding:10px 0;font-weight:600;color:#B91C1C;">人民币 ${recoveryCap} 万元</td></tr>
       <tr><td style="padding:10px 0;color:#78716C;">联营资金用途</td><td style="padding:10px 0;">${descTruncated}</td></tr>
     </table>
   </div>
   <div style="margin-top:24px;">
-    <div style="font-size:15px;font-weight:700;color:#B91C1C;margin-bottom:12px;">第二条 收入分成及回款安排</div>
+    <div style="font-size:15px;font-weight:700;color:#B91C1C;margin-bottom:12px;">第二条 收入分成期间与退出条件</div>
     <div style="font-size:13px;color:#57534E;">
-      <p style="margin-bottom:8px;"><strong>2.1 分成起始日：</strong>自本协议签署之日（${signedAt}）起计算。</p>
-      <p style="margin-bottom:8px;"><strong>2.2 分成方式：</strong>甲方应按月向平台上报项目营业收入，平台根据乙方投资占比（${sharePercentage}%）自动计算乙方应得的分成金额，并进行分配。</p>
-      <p style="margin-bottom:8px;"><strong>2.3 分成付款频率：</strong>每自然月结算一次，甲方应在每月 18 日前完成上月收入上报。</p>
-      <p style="margin-bottom:8px;"><strong>2.4 分成终止：</strong>当乙方累计实际取得的分成金额达到回收上限金额（人民币 ${recoveryCap} 万元）时，收入分成自动终止。</p>
+      <p style="margin-bottom:8px;"><strong>2.1 分成起始日：</strong>自本协议签署之日起计算。</p>
+      <p style="margin-bottom:8px;"><strong>2.2 分成方式：</strong>甲方应按约定频率向平台上报项目营业收入，平台根据乙方投资占比（${sharePercentage}%）自动计算乙方应得的分成金额，并进行分配。</p>
+      <p style="margin-bottom:8px;"><strong>2.3 退出条件（分成终止触发条件）：</strong></p>
+      <div style="background:#FEF2F2;border-radius:8px;padding:12px;margin:8px 0 12px;border-left:3px solid #B91C1C;">
+        ${exitClause}
+      </div>
+      <p style="margin-bottom:8px;"><strong>2.4 封顶计算说明：</strong>回收上限金额 = 联营资金金额 × (1 + 年收益率 ÷ 360 × 联营天数)。当联营期限为${termMonths}个月时，等效封顶倍数约为 ${capMultiple.toFixed(2)} 倍。</p>
       <p style="margin-bottom:8px;"><strong>2.5 联营方收入定义：</strong>指甲方就本项目扣除所有税项及费用前的全部营业收入（包含主营业务收入及其他业务收入）。</p>
     </div>
   </div>
@@ -529,38 +618,30 @@ export function generateContractHTML(
     </div>
   </div>
   <div style="margin-top:24px;">
-    <div style="font-size:15px;font-weight:700;color:#B91C1C;margin-bottom:12px;">第四条 陈述、保证与承诺</div>
+    <div style="font-size:15px;font-weight:700;color:#B91C1C;margin-bottom:12px;">第四条 提前终止与补偿</div>
     <div style="font-size:13px;color:#57534E;">
-      <p style="margin-bottom:8px;"><strong>4.1</strong> 各方均具有适当的法律资格和法律能力签署、交付并履行本协议。</p>
-      <p style="margin-bottom:8px;"><strong>4.2</strong> 甲方保证其合法合规经营，已取得经营业务所需的全部批准、许可及政府授权。</p>
-      <p style="margin-bottom:8px;"><strong>4.3</strong> 甲方保证向平台及乙方提供的所有信息真实、准确、完整，不存在重大遗漏或隐瞒。</p>
-      <p style="margin-bottom:8px;"><strong>4.4</strong> 甲方保证不存在与本协议项下联营合作相冲突的其他安排。</p>
+      <p style="margin-bottom:8px;"><strong>4.1 提前终止补偿：</strong>提前终止补偿金 = 当前联营资金 + (当前联营资金 × 年收益率${annualYieldRate}% ÷ 360 × (已分成天数 + 7天))。</p>
+      <p style="margin-bottom:8px;"><strong>4.2 严重违约：</strong>如甲方出现挪用资金、虚报收入、擅自终止经营等严重违约情形，乙方有权要求退还全部联营资金，并要求支付联营资金 20% 的违约金。</p>
+      <p style="margin-bottom:8px;"><strong>4.3 自动终止：</strong>当退出条件满足时（见第二条），本协议自动终止。</p>
     </div>
   </div>
   <div style="margin-top:24px;">
-    <div style="font-size:15px;font-weight:700;color:#B91C1C;margin-bottom:12px;">第五条 违约责任与协议终止</div>
+    <div style="font-size:15px;font-weight:700;color:#B91C1C;margin-bottom:12px;">第五条 陈述、保证与其他</div>
     <div style="font-size:13px;color:#57534E;">
-      <p style="margin-bottom:8px;"><strong>5.1 违约责任：</strong>任何一方违反本协议约定的，违约方应承担损失赔偿责任。</p>
-      <p style="margin-bottom:8px;"><strong>5.2 严重违约：</strong>如甲方出现挪用资金、虚报收入、擅自终止经营等严重违约情形，乙方有权要求退还全部联营资金，并要求支付联营资金 20% 的违约金。</p>
-      <p style="margin-bottom:8px;"><strong>5.3 提前终止：</strong>任何一方需提前终止本协议的，应提前 7 个自然日书面通知另一方，并按约定支付相应补偿金。</p>
-      <p style="margin-bottom:8px;"><strong>5.4 自动终止：</strong>当乙方累计回款达到回收上限金额，或联营期限届满（以先到者为准），本协议自动终止。</p>
-    </div>
-  </div>
-  <div style="margin-top:24px;">
-    <div style="font-size:15px;font-weight:700;color:#B91C1C;margin-bottom:12px;">第六条 其他条款</div>
-    <div style="font-size:13px;color:#57534E;">
-      <p style="margin-bottom:8px;"><strong>6.1 保密：</strong>未经披露方书面同意，任何一方不得向第三方披露本协议内容及因履行本协议而获知的商业信息。</p>
-      <p style="margin-bottom:8px;"><strong>6.2 争议解决：</strong>因本协议引起的争议，各方应友好协商解决；协商不成的，提交深圳国际仲裁院仲裁。</p>
-      <p style="margin-bottom:8px;"><strong>6.3 协议效力：</strong>本协议自各方电子签署后生效，具有同等法律效力。</p>
+      <p style="margin-bottom:8px;"><strong>5.1</strong> 各方均具有适当的法律资格和法律能力签署、交付并履行本协议。</p>
+      <p style="margin-bottom:8px;"><strong>5.2</strong> 甲方保证其合法合规经营，已取得经营业务所需的全部批准、许可及政府授权。</p>
+      <p style="margin-bottom:8px;"><strong>5.3 保密：</strong>未经披露方书面同意，任何一方不得向第三方披露本协议内容。</p>
+      <p style="margin-bottom:8px;"><strong>5.4 争议解决：</strong>因本协议引起的争议，各方应友好协商解决；协商不成的，提交深圳国际仲裁院仲裁。</p>
+      <p style="margin-bottom:8px;"><strong>5.5 协议效力：</strong>本协议自各方电子签署后生效，具有同等法律效力。</p>
     </div>
   </div>
   <div style="margin-top:32px;border-top:1px solid #E7E5E4;padding-top:24px;">
     <div style="font-size:15px;font-weight:700;color:#1C1917;margin-bottom:16px;">签署确认</div>
     <div style="display:flex;gap:16px;">
       <div style="flex:1;background:#FAFAF9;border-radius:10px;padding:16px;">
-        <div style="font-size:12px;color:#78716C;">甲方（项目发起人）</div>
-        <div style="font-size:14px;font-weight:600;margin-top:8px;">${iName}</div>
-        <div style="font-size:12px;color:#78716C;margin-top:4px;">${iCompany}</div>
+        <div style="font-size:12px;color:#78716C;">甲方（联营方）</div>
+        <div style="font-size:14px;font-weight:600;margin-top:8px;">${companyFull}</div>
+        <div style="font-size:12px;color:#78716C;margin-top:4px;">${legalRepType}：${legalRep}</div>
         <div style="margin-top:12px;border-bottom:1px solid #D6D3D1;padding-bottom:4px;">
           <span style="font-size:11px;color:#A8A29E;">签字：</span>
           <span style="font-size:14px;font-weight:600;color:#B91C1C;font-style:italic;">${iName}</span>

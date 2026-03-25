@@ -711,9 +711,9 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
 
           showSuccessModal({
             title: '参与成功！',
-            sub: '即将进入合同签署',
+            sub: '即将进入条款确认',
             duration: 2000,
-            onDone: function(){ window.location.href = '/contracts/' + contractId + '/sign'; }
+            onDone: function(){ window.location.href = '/contracts/' + contractId + '/terms'; }
           });
         }).catch(function(){
           showToast('网络错误', 'error');
