@@ -61,6 +61,11 @@ app.get('/profile', async (c) => {
             <span class="flex-1 text-text-primary font-medium" style="font-size:15px;">联系管理员</span>
             <i class="fas fa-chevron-right text-text-tertiary" style="font-size:12px;" />
           </div>
+          <div class="menu-row" id="menu-change-pw" style="cursor:pointer;">
+            <i class="fas fa-key" style="font-size:16px;width:20px;text-align:center;color:#B91C1C;" />
+            <span class="flex-1 text-text-primary font-medium" style="font-size:15px;">修改密码</span>
+            <i class="fas fa-chevron-right text-text-tertiary" style="font-size:12px;" />
+          </div>
           <div class="menu-row" id="menu-terms" style="cursor:pointer;">
             <i class="fas fa-file-lines text-text-secondary" style="font-size:16px;width:20px;text-align:center;" />
             <span class="flex-1 text-text-primary font-medium" style="font-size:15px;">服务条款</span>
@@ -117,7 +122,9 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
       desc: '退出后需要重新验证手机号登录',
       danger: true,
       onConfirm: function(){
+        fetch('/api/logout',{method:'POST'}).catch(function(){});
         localStorage.removeItem('zlc_user');
+        localStorage.removeItem('zlc_current_user');
         localStorage.removeItem('zlc_token');
         window.location.href = '/login';
       }
@@ -129,6 +136,43 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
   if(openFaqBtn){
     openFaqBtn.addEventListener('click', function(){
       if(typeof openFAQPanel === 'function') openFAQPanel();
+    });
+  }
+
+  // Change password
+  var cpBtn = document.getElementById('menu-change-pw');
+  if(cpBtn){
+    cpBtn.addEventListener('click', function(){
+      var overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+      overlay.innerHTML = '<div style="background:#fff;border-radius:20px;padding:32px 24px;max-width:380px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">' +
+        '<div style="text-align:center;margin-bottom:20px;"><div style="width:48px;height:48px;border-radius:50%;background:#FEF2F2;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;"><i class="fas fa-key" style="font-size:20px;color:#B91C1C;"></i></div>' +
+        '<h3 style="font-size:17px;font-weight:700;color:#1C1917;">修改密码</h3></div>' +
+        '<div style="margin-bottom:14px;"><label style="font-size:13px;color:#44403C;display:block;margin-bottom:5px;">当前密码</label>' +
+        '<input id="cp-old" type="password" placeholder="请输入当前密码" style="width:100%;box-sizing:border-box;padding:11px 14px;border:1px solid #E7E5E4;border-radius:10px;font-size:14px;outline:none;" /></div>' +
+        '<div style="margin-bottom:14px;"><label style="font-size:13px;color:#44403C;display:block;margin-bottom:5px;">新密码</label>' +
+        '<input id="cp-new" type="password" placeholder="至少6位" style="width:100%;box-sizing:border-box;padding:11px 14px;border:1px solid #E7E5E4;border-radius:10px;font-size:14px;outline:none;" /></div>' +
+        '<div style="margin-bottom:20px;"><label style="font-size:13px;color:#44403C;display:block;margin-bottom:5px;">确认新密码</label>' +
+        '<input id="cp-confirm" type="password" placeholder="再次输入新密码" style="width:100%;box-sizing:border-box;padding:11px 14px;border:1px solid #E7E5E4;border-radius:10px;font-size:14px;outline:none;" /></div>' +
+        '<button id="cp-do" style="width:100%;padding:13px;background:#B91C1C;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;">确认修改</button>' +
+        '<button id="cp-cancel" style="width:100%;padding:10px;background:transparent;color:#A8A29E;border:none;font-size:13px;cursor:pointer;margin-top:6px;">取消</button></div>';
+      document.body.appendChild(overlay);
+      document.getElementById('cp-cancel').addEventListener('click', function(){ overlay.remove(); });
+      overlay.addEventListener('click', function(e){ if(e.target === overlay) overlay.remove(); });
+      document.getElementById('cp-do').addEventListener('click', function(){
+        var oldPw = document.getElementById('cp-old').value;
+        var newPw = document.getElementById('cp-new').value;
+        var confirmPw = document.getElementById('cp-confirm').value;
+        if(!oldPw){ showToast('请输入当前密码','error'); return; }
+        if(!newPw || newPw.length < 6){ showToast('新密码至少6位','error'); return; }
+        if(newPw !== confirmPw){ showToast('两次密码不一致','error'); return; }
+        this.disabled = true; this.textContent = '修改中...';
+        fetch('/api/change-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:u.id,oldPassword:oldPw,newPassword:newPw})})
+          .then(function(r){return r.json();}).then(function(res){
+            if(res.ok){ showToast('密码修改成功','success'); overlay.remove(); }
+            else { showToast(res.error||'修改失败','error'); document.getElementById('cp-do').disabled=false; document.getElementById('cp-do').textContent='确认修改'; }
+          }).catch(function(){ showToast('网络错误','error'); document.getElementById('cp-do').disabled=false; document.getElementById('cp-do').textContent='确认修改'; });
+      });
     });
   }
 

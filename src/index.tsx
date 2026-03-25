@@ -7,9 +7,10 @@ import guide from './guide'
 import { GlobalScripts, LogoSVG, Navbar, faviconSVG } from './components'
 import type { HonoEnv } from './types'
 import {
-  getUserByPhone, verifyPassword, toSessionUser,
+  getUserByPhone, verifyPassword, toSessionUser, hashPassword,
   getActiveMembers, getTeachers,
   getPlatformStats, getUserInvestmentStats,
+  getUnreadNotificationCount,
 } from './db'
 import {
   loadMembers, loadTeachers, loadProjects, loadContracts,
@@ -57,12 +58,11 @@ app.use(renderer)
 // API Routes — 已从 mock 数据迁移到 D1 数据库
 // ══════════════════════════════════════════════════════════
 
-/** 登录 API — 邀请码+密码认证 (兼容 demo $demo$ 密码) */
+/** 登录 API — 密码认证 + Session Cookie */
 app.post('/api/login', async (c) => {
   try {
     const body = await c.req.json<{ phone: string; code?: string; password?: string }>()
     const { phone } = body
-    // 兼容旧的 code 字段和新的 password 字段
     const password = body.password || body.code || ''
 
     if (!phone || !password) return c.json({ ok: false, error: '请输入手机号和密码' }, 400)
@@ -71,38 +71,111 @@ app.post('/api/login', async (c) => {
     const user = await getUserByPhone(db, phone)
     if (!user) return c.json({ ok: false, error: '该手机号未认证为一亿中流学员' }, 403)
 
-    // 验证密码
     const valid = await verifyPassword(password, user.password_hash || '')
     if (!valid) return c.json({ ok: false, error: '密码错误' }, 400)
 
-    const sessionUser = toSessionUser(user)
+    // Create session in D1
+    const sessionId = crypto.randomUUID()
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
+    await db.prepare(
+      `INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)`
+    ).bind(sessionId, user.id, expiresAt).run()
 
-    // 兼容旧前端格式
-    if (user.role === 'teacher') {
-      return c.json({
-        ok: true,
-        member: {
-          id: user.id, name: user.name, phone: user.phone,
-          company: '一亿中流', industry: '教育管理',
-          title: '班主任', bio: '一亿中流班主任老师', cohort: '导师团队',
-          joinDate: user.join_date || '2023-01-01', role: 'teacher',
-          classIds: user.class_ids ? JSON.parse(user.class_ids) : [],
-        },
-      })
+    // Check if using demo password (needs change)
+    const needsPasswordChange = (user.password_hash || '').startsWith('$demo$')
+
+    // Build response
+    const memberData = user.role === 'teacher' ? {
+      id: user.id, name: user.name, phone: user.phone,
+      company: '一亿中流', industry: '教育管理',
+      title: '班主任', bio: '一亿中流班主任老师', cohort: '导师团队',
+      joinDate: user.join_date || '2023-01-01', role: 'teacher',
+      classIds: user.class_ids ? JSON.parse(user.class_ids) : [],
+    } : {
+      id: user.id, name: user.name, phone: user.phone,
+      company: user.company || '', industry: user.industry || '',
+      title: user.title || '', bio: user.bio || '', cohort: user.cohort || '',
+      joinDate: user.join_date || '', role: user.role,
+      classId: user.class_id || '', className: user.class_name || '',
     }
+
+    // Set session cookie
+    c.header('Set-Cookie', `zlc_session=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7*24*60*60}`)
 
     return c.json({
       ok: true,
-      member: {
-        id: user.id, name: user.name, phone: user.phone,
-        company: user.company || '', industry: user.industry || '',
-        title: user.title || '', bio: user.bio || '', cohort: user.cohort || '',
-        joinDate: user.join_date || '', role: user.role,
-        classId: user.class_id || '', className: user.class_name || '',
-      },
+      member: memberData,
+      needsPasswordChange,
+      sessionId,
     })
   } catch (e: any) {
     return c.json({ ok: false, error: '请求格式错误: ' + (e.message || '') }, 400)
+  }
+})
+
+/** 修改密码 API */
+app.post('/api/change-password', async (c) => {
+  try {
+    const { userId, oldPassword, newPassword } = await c.req.json<{
+      userId: string; oldPassword: string; newPassword: string
+    }>()
+    if (!newPassword || newPassword.length < 6) {
+      return c.json({ ok: false, error: '新密码至少6位' }, 400)
+    }
+
+    const db = c.env.DB
+    const user = await db.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first<any>()
+    if (!user) return c.json({ ok: false, error: '用户不存在' }, 404)
+
+    const valid = await verifyPassword(oldPassword, user.password_hash || '')
+    if (!valid) return c.json({ ok: false, error: '原密码错误' }, 400)
+
+    const newHash = await hashPassword(newPassword)
+    await db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(newHash, userId).run()
+
+    return c.json({ ok: true, message: '密码修改成功' })
+  } catch (e: any) {
+    return c.json({ ok: false, error: '操作失败: ' + (e.message || '') }, 500)
+  }
+})
+
+/** 管理员重置密码 API */
+app.post('/api/admin/reset-password', async (c) => {
+  try {
+    const { adminId, targetUserId } = await c.req.json<{
+      adminId: string; targetUserId: string
+    }>()
+
+    const db = c.env.DB
+    const admin = await db.prepare('SELECT * FROM users WHERE id = ? AND role = ?').bind(adminId, 'admin').first<any>()
+    if (!admin) return c.json({ ok: false, error: '无管理员权限' }, 403)
+
+    // Generate temporary password
+    const tempPassword = 'zlc' + Math.random().toString(36).slice(2, 8)
+    const newHash = await hashPassword(tempPassword)
+    await db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(newHash, targetUserId).run()
+
+    return c.json({ ok: true, data: { tempPassword }, message: '密码已重置' })
+  } catch (e: any) {
+    return c.json({ ok: false, error: '操作失败: ' + (e.message || '') }, 500)
+  }
+})
+
+/** 登出 API */
+app.post('/api/logout', async (c) => {
+  try {
+    // Get session from cookie
+    const cookie = c.req.header('Cookie') || ''
+    const match = cookie.match(/zlc_session=([^;]+)/)
+    if (match) {
+      const db = c.env.DB
+      await db.prepare('DELETE FROM sessions WHERE id = ?').bind(match[1]).run()
+    }
+    // Clear cookie
+    c.header('Set-Cookie', 'zlc_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0')
+    return c.json({ ok: true })
+  } catch (e: any) {
+    return c.json({ ok: true }) // Always succeed for logout
   }
 })
 
@@ -203,6 +276,16 @@ app.get('/api/data/referrals', async (c) => {
 app.get('/api/data/notifications', async (c) => {
   const db = c.env.DB
   return c.json({ ok: true, data: await loadNotifications(db) })
+})
+
+/** 未读通知计数 API */
+app.get('/api/data/notifications/unread-count', async (c) => {
+  const db = c.env.DB
+  const userId = c.req.query('userId') || ''
+  const role = c.req.query('role') || 'member'
+  if (!userId) return c.json({ count: 0 })
+  const count = await getUnreadNotificationCount(db, userId, role as any)
+  return c.json({ count })
 })
 
 app.get('/api/data/share-logs', async (c) => {

@@ -1,25 +1,12 @@
 // ============================================================
 // 中流通 ZhongLiu Connect — Shared Components
 // ============================================================
-import {
-  mockReferrals, mockShareLogs, mockNotifications, mockTeachers,
-} from './data'
 
 // ── Global JS Utilities (injected into every page) ─────
 const GlobalScripts = () => (
   <script dangerouslySetInnerHTML={{ __html: `
-// ── Data Init: ensure localStorage has mock data ──
-(function(){
-  if(!localStorage.getItem('zlc_referrals')){
-    localStorage.setItem('zlc_referrals', ${JSON.stringify(JSON.stringify(mockReferrals))});
-  }
-  if(!localStorage.getItem('zlc_share_logs')){
-    localStorage.setItem('zlc_share_logs', ${JSON.stringify(JSON.stringify(mockShareLogs))});
-  }
-  if(!localStorage.getItem('zlc_notifications')){
-    localStorage.setItem('zlc_notifications', ${JSON.stringify(JSON.stringify(mockNotifications))});
-  }
-})();
+// ── Data Init: D1 is now the source of truth ──
+// (mock localStorage seeding removed — all data loaded from D1)
 
 // ── Toast (reuse single element) ──
 var _toastEl = null, _toastTimer = null;
@@ -616,28 +603,20 @@ function initNavUserDropdown() {
     dropdown.style.display = isOpen ? 'block' : 'none';
   });
 
-  // Bell unread count (filtered by role/id)
+  // Bell unread count — fetch from D1 API
   var bellDot = document.getElementById('nav-bell-dot');
-  if(bellDot){
-    var allNotifs = [];
-    try { allNotifs = JSON.parse(localStorage.getItem('zlc_notifications') || '[]'); } catch(e){}
-    if(!allNotifs || allNotifs.length === 0){
-      try { allNotifs = JSON.parse(localStorage.getItem('zlc_notifications')); } catch(e){}
-    }
-    // Filter: global (both null) OR targetId matches OR (targetRole matches AND targetId null)
-    var myNotifs = allNotifs.filter(function(n){
-      if(n.targetRole === null && n.targetId === null) return true;
-      if(n.targetId === u.id) return true;
-      if(n.targetRole === u.role && n.targetId === null) return true;
-      return false;
-    });
-    var unreadCount = myNotifs.filter(function(n){ return !n.read; }).length;
-    if(unreadCount > 0){
-      bellDot.style.display = 'block';
-      bellDot.textContent = unreadCount > 99 ? '99+' : String(unreadCount);
-    } else {
-      bellDot.style.display = 'none';
-    }
+  if(bellDot && u){
+    fetch('/api/data/notifications/unread-count?userId='+encodeURIComponent(u.id)+'&role='+encodeURIComponent(u.role||'member'))
+      .then(function(r){return r.json();})
+      .then(function(d){
+        var count = (d && d.count) || 0;
+        if(count > 0){
+          bellDot.style.display = 'block';
+          bellDot.textContent = count > 99 ? '99+' : String(count);
+        } else {
+          bellDot.style.display = 'none';
+        }
+      }).catch(function(){ bellDot.style.display = 'none'; });
   }
 
   // Close on outside click
@@ -648,24 +627,23 @@ function initNavUserDropdown() {
     }
   });
 
-  // Switch account: only clear zlc_current_user and zlc_user, keep onboarding
-  if(switchBtn){
-    switchBtn.addEventListener('click', function(){
-      localStorage.removeItem('zlc_current_user');
-      localStorage.removeItem('zlc_user');
-      localStorage.removeItem('zlc_token');
-      window.location.href = '/login';
-    });
+  // Helper: clear client auth + call server logout
+  function doLogout(redirect){
+    fetch('/api/logout',{method:'POST'}).catch(function(){});
+    localStorage.removeItem('zlc_current_user');
+    localStorage.removeItem('zlc_user');
+    localStorage.removeItem('zlc_token');
+    window.location.href = redirect || '/login';
   }
 
-  // Logout: clear zlc_current_user + zlc_user
+  // Switch account
+  if(switchBtn){
+    switchBtn.addEventListener('click', function(){ doLogout('/login'); });
+  }
+
+  // Logout
   if(logoutBtn){
-    logoutBtn.addEventListener('click', function(){
-      localStorage.removeItem('zlc_current_user');
-      localStorage.removeItem('zlc_user');
-      localStorage.removeItem('zlc_token');
-      window.location.href = '/login';
-    });
+    logoutBtn.addEventListener('click', function(){ doLogout('/login'); });
   }
 }
 `}} />

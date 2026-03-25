@@ -553,7 +553,7 @@ app.get('/admin', async (c) => {
         html += '<div style="margin-top:8px;font-size:12px;color:#78716C;display:flex;gap:16px;">'
           +'<span>发起 '+initiated+'</span><span>参与 '+participated+'</span><span>投资 ¥'+investSum+'万</span></div>';
         html += '</div>';
-        html += '<span style="color:#D6D3D1;font-size:18px;align-self:center;flex-shrink:0;">›</span>';
+        html += '<button class="reset-pw-btn" data-uid="'+m.id+'" data-uname="'+m.name+'" style="font-size:11px;color:#A8A29E;background:#F5F5F4;border:none;border-radius:6px;padding:4px 8px;cursor:pointer;white-space:nowrap;flex-shrink:0;" title="重置密码">🔑</button>';
         html += '</div>';
       });
       html += '<div style="font-size:13px;color:#A8A29E;text-align:center;padding:16px;">共 '+filtered.length+' 位认证学员</div>';
@@ -581,8 +581,26 @@ app.get('/admin', async (c) => {
       });
     });
     document.querySelectorAll('.member-card-item').forEach(function(card){
-      card.addEventListener('click',function(){
+      card.addEventListener('click',function(e){
+        // Don't trigger if reset button was clicked
+        if(e.target.closest && e.target.closest('.reset-pw-btn')) return;
         openMemberDetail(card.dataset.memberId);
+      });
+    });
+    document.querySelectorAll('.reset-pw-btn').forEach(function(btn){
+      btn.addEventListener('click',function(e){
+        e.stopPropagation();
+        var uid = btn.dataset.uid;
+        var uname = btn.dataset.uname;
+        if(!confirm('确定重置「' + uname + '」的密码？')) return;
+        fetch('/api/admin/reset-password', {
+          method:'POST',headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ adminId: u.id, targetUserId: uid })
+        }).then(function(r){return r.json();}).then(function(res){
+          if(res.ok){
+            showToast('✅ 已重置，临时密码: ' + res.data.tempPassword, 'success', 10000);
+          } else { showToast(res.error || '重置失败', 'error'); }
+        }).catch(function(){ showToast('网络错误', 'error'); });
       });
     });
   }

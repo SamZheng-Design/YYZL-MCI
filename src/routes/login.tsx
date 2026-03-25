@@ -205,6 +205,13 @@ app.get('/login', (c) => {
         if(member.classIds) currentUserData.classIds = member.classIds;
         localStorage.setItem('zlc_current_user', JSON.stringify(currentUserData));
         localStorage.setItem('zlc_token', 'session-' + Date.now());
+
+        // Demo accounts also need password change check
+        if(d.needsPasswordChange){
+          showChangePasswordModal(member);
+          return;
+        }
+
         showToast('登录成功，欢迎回来！', 'success');
         setTimeout(function(){
           var role = member.role || 'member';
@@ -242,6 +249,53 @@ app.get('/login', (c) => {
   // ── Phone login logic (kept from original) ──
   var phoneInput=document.getElementById('phone-input'),codeInput=document.getElementById('code-input'),
       sendCodeBtn=document.getElementById('send-code-btn'),loginBtn=document.getElementById('login-btn');
+  // ── Change Password Modal ──
+  function showChangePasswordModal(member){
+    var overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+    overlay.innerHTML = '<div style="background:#fff;border-radius:20px;padding:32px 24px;max-width:380px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">'
+      +'<div style="text-align:center;margin-bottom:24px;">'
+      +'<div style="width:56px;height:56px;border-radius:50%;background:#FEF2F2;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;"><span style="font-size:24px;">🔐</span></div>'
+      +'<h3 style="font-size:18px;font-weight:700;color:#1C1917;">首次登录请修改密码</h3>'
+      +'<p style="font-size:13px;color:#78716C;margin-top:8px;">为了账户安全，请设置您的新密码</p></div>'
+      +'<div style="margin-bottom:16px;"><label style="font-size:13px;color:#44403C;display:block;margin-bottom:6px;">新密码</label>'
+      +'<input id="cp-new" type="password" placeholder="至少6位" style="width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid #E7E5E4;border-radius:10px;font-size:14px;outline:none;" /></div>'
+      +'<div style="margin-bottom:24px;"><label style="font-size:13px;color:#44403C;display:block;margin-bottom:6px;">确认新密码</label>'
+      +'<input id="cp-confirm" type="password" placeholder="再次输入新密码" style="width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid #E7E5E4;border-radius:10px;font-size:14px;outline:none;" /></div>'
+      +'<button id="cp-submit" style="width:100%;padding:14px;background:#B91C1C;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;">确认修改</button>'
+      +'<button id="cp-skip" style="width:100%;padding:10px;background:transparent;color:#A8A29E;border:none;font-size:13px;cursor:pointer;margin-top:8px;">跳过，以后再改</button>'
+      +'</div>';
+    document.body.appendChild(overlay);
+
+    document.getElementById('cp-submit').addEventListener('click', function(){
+      var newPw = document.getElementById('cp-new').value;
+      var confirmPw = document.getElementById('cp-confirm').value;
+      if(!newPw || newPw.length < 6){ showToast('密码至少6位', 'error'); return; }
+      if(newPw !== confirmPw){ showToast('两次密码不一致', 'error'); return; }
+      this.disabled = true; this.textContent = '修改中...';
+      fetch('/api/change-password', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ userId: member.id, oldPassword: codeInput.value.trim(), newPassword: newPw })
+      }).then(function(r){return r.json();}).then(function(res){
+        if(res.ok){
+          showToast('密码已修改，欢迎使用！', 'success');
+          overlay.remove();
+          setTimeout(function(){window.location.href=member.role==='teacher'?'/teacher':(member.role==='admin'?'/admin':'/');},800);
+        } else {
+          showToast(res.error || '修改失败', 'error');
+          document.getElementById('cp-submit').disabled = false;
+          document.getElementById('cp-submit').textContent = '确认修改';
+        }
+      }).catch(function(){ showToast('网络错误', 'error'); document.getElementById('cp-submit').disabled=false; document.getElementById('cp-submit').textContent='确认修改'; });
+    });
+
+    document.getElementById('cp-skip').addEventListener('click', function(){
+      overlay.remove();
+      showToast('登录成功，欢迎回来！','success');
+      setTimeout(function(){window.location.href=member.role==='teacher'?'/teacher':(member.role==='admin'?'/admin':'/');},800);
+    });
+  }
+
   sendCodeBtn && sendCodeBtn.addEventListener('click',function(){
     var phone=phoneInput.value.trim();
     if(!/^1[3-9]\\d{9}$/.test(phone)){showToast('请输入正确的11位手机号','error');return;}
@@ -259,7 +313,15 @@ app.get('/login', (c) => {
       if(d.ok){
         localStorage.setItem('zlc_user',JSON.stringify(d.member));
         localStorage.setItem('zlc_current_user',JSON.stringify({id:d.member.id,name:d.member.name,phone:d.member.phone,role:d.member.role||'member',classId:d.member.classId||'',className:d.member.className||''}));
-        localStorage.setItem('zlc_token','demo-token-'+Date.now());
+        localStorage.setItem('zlc_token','session-'+Date.now());
+
+        // Check if user needs to change password
+        if(d.needsPasswordChange){
+          showChangePasswordModal(d.member);
+          loginBtn.innerHTML='登录';loginBtn.disabled=false;isLoading=false;
+          return;
+        }
+
         showToast('登录成功，欢迎回来！','success');
         setTimeout(function(){window.location.href=d.member.role==='teacher'?'/teacher':(d.member.role==='admin'?'/admin':'/');},800);
       }
