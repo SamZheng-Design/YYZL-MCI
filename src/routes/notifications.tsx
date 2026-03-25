@@ -52,20 +52,37 @@ app.get('/notifications', (c) => {
     return Math.floor(diffMonth / 12) + '年前';
   }
 
-  // Load all notifications from localStorage
+  // Load notifications from D1 API
   var allNotifs = [];
-  try { allNotifs = JSON.parse(localStorage.getItem(NOTIFS_KEY) || '[]'); } catch(e){}
+  var notifs = [];
 
-  // Filter by current user: global, or targetId match, or role match with null targetId
-  var notifs = allNotifs.filter(function(n){
-    if(n.targetRole === null && n.targetId === null) return true;
-    if(n.targetId === u.id) return true;
-    if(n.targetRole === u.role && (n.targetId === null || n.targetId === undefined)) return true;
-    return false;
-  });
-
-  // Sort by time descending
-  notifs.sort(function(a,b){ return new Date(b.time) - new Date(a.time); });
+  function loadNotifications(){
+    fetch('/api/data/notifications').then(function(r){return r.json();}).then(function(d){
+      if(!d.ok) return;
+      allNotifs = d.data || [];
+      // Filter by current user: global, or targetId match, or role match
+      notifs = allNotifs.filter(function(n){
+        if(!n.targetRole && !n.targetId) return true;
+        if(n.targetId === u.id) return true;
+        if(n.targetRole === u.role && (!n.targetId)) return true;
+        return false;
+      });
+      // Sort by time descending
+      notifs.sort(function(a,b){ return new Date(b.time||b.createdAt) - new Date(a.time||a.createdAt); });
+      renderList();
+    }).catch(function(){
+      // Fallback to localStorage
+      try { allNotifs = JSON.parse(localStorage.getItem(NOTIFS_KEY) || '[]'); } catch(e){}
+      notifs = allNotifs.filter(function(n){
+        if(!n.targetRole && !n.targetId) return true;
+        if(n.targetId === u.id) return true;
+        if(n.targetRole === u.role && (!n.targetId)) return true;
+        return false;
+      });
+      notifs.sort(function(a,b){ return new Date(b.time) - new Date(a.time); });
+      renderList();
+    });
+  }
 
   var listEl = document.getElementById('notification-list');
   var markAllBtn = document.getElementById('mark-all-read');
@@ -128,7 +145,7 @@ app.get('/notifications', (c) => {
     showToast('已全部标为已读');
   });
 
-  renderList();
+  loadNotifications();
 })();
 `}} />
     </div>,

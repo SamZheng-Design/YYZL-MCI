@@ -286,83 +286,79 @@ app.get('/contracts/:id/sign', async (c) => {
     verifyInput.disabled = true;
     verifyBtn.disabled = true;
 
-    // Simulate owner auto-sign after 1s
-    setTimeout(function(){
-      var signA = document.getElementById('sign-a');
-      signA.className = 'sign-status-val sign-status-done';
-      signA.innerHTML = '<i class="fas fa-check-circle mr-1"></i>已签署';
+    // Call API to sign as participant
+    fetch('/api/admin/contracts/' + CONTRACT_ID + '/sign', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ userId: u.id, role: 'participant' })
+    }).then(function(r){return r.json();}).then(function(d){
+      if(!d.ok){ showToast(d.error || '签署失败', 'error'); return; }
 
-      // Update contract in localStorage
-      contract.status = 'active';
-      contract.signedAt = new Date().toISOString();
-      var allContracts = [];
-      try { allContracts = JSON.parse(localStorage.getItem('zlc_contracts') || '[]'); } catch(e){}
-      var idx = allContracts.findIndex(function(c){ return c.id === CONTRACT_ID; });
-      if(idx >= 0) allContracts[idx] = contract;
-      localStorage.setItem('zlc_contracts', JSON.stringify(allContracts));
-
-      // Check if project should become active
-      var projectContracts = allContracts.filter(function(c){ return c.projectId === proj.id; });
-      var allActive = projectContracts.every(function(c){ return c.status === 'active'; });
-      if(allActive){
-        // Update user project status if exists
-        var userProjects = [];
-        try { userProjects = JSON.parse(localStorage.getItem('zlc_user_projects') || '[]'); } catch(e){}
-        var pIdx = userProjects.findIndex(function(p){ return p.id === proj.id; });
-        if(pIdx >= 0){ userProjects[pIdx].status = 'active'; localStorage.setItem('zlc_user_projects', JSON.stringify(userProjects)); }
-      }
-
-      // Show ceremony page (Task 1)
+      // Auto-sign as initiator after 1s
       setTimeout(function(){
-        // Calculate ceremony data
-        var investmentAmount = contract.amount;
-        var proj = contract.project;
-        var sharePercentage = (investmentAmount / proj.targetAmount * 100).toFixed(1);
-        var monthlyShare = (investmentAmount * proj.revenueShareRate / 100).toFixed(2);
-        var recoveryCap = (investmentAmount * proj.recoveryMultiple).toFixed(1);
+        fetch('/api/admin/contracts/' + CONTRACT_ID + '/sign', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ userId: contract.initiatorId || 'auto', role: 'initiator' })
+        }).then(function(r){return r.json();}).then(function(){
+          var signA = document.getElementById('sign-a');
+          signA.className = 'sign-status-val sign-status-done';
+          signA.innerHTML = '<i class="fas fa-check-circle mr-1"></i>已签署';
 
-        // Fill summary rows
-        var summaryEl = document.getElementById('ceremony-summary');
-        if(summaryEl){
-          summaryEl.innerHTML = ''
-            + '<div class="ceremony-summary-row"><span class="ceremony-summary-label">投资金额</span><span class="ceremony-summary-value">¥' + investmentAmount + '万</span></div>'
-            + '<div class="ceremony-summary-row"><span class="ceremony-summary-label">占比份额</span><span class="ceremony-summary-value">' + sharePercentage + '%</span></div>'
-            + '<div class="ceremony-summary-row"><span class="ceremony-summary-label">预估月回款</span><span class="ceremony-summary-value">≈¥' + monthlyShare + '万</span></div>'
-            + '<div class="ceremony-summary-row"><span class="ceremony-summary-label">回收上限</span><span class="ceremony-summary-value">¥' + recoveryCap + '万</span></div>';
-        }
+          contract.status = 'active';
 
-        // Show ceremony page
-        var ceremony = document.getElementById('ceremony-page');
-        if(ceremony){
-          ceremony.classList.add('show');
-          // Trigger animations
-          var circle = document.getElementById('ceremony-circle');
-          var check = document.getElementById('ceremony-check');
-          if(circle) circle.classList.add('animate');
-          if(check) check.classList.add('animate');
-        }
+          // Show ceremony page
+          setTimeout(function(){
+            var investmentAmount = contract.amount;
+            var proj = contract.project || contract;
+            var sharePercentage = (investmentAmount / (proj.targetAmount||1) * 100).toFixed(1);
+            var monthlyShare = (investmentAmount * (proj.revenueShareRate||0) / 100).toFixed(2);
+            var recoveryCap = (investmentAmount * (proj.recoveryMultiple||1)).toFixed(1);
 
-        // Button handlers
-        var shareBtn = document.getElementById('ceremony-share-btn');
-        if(shareBtn){
-          shareBtn.addEventListener('click', function(){
-            window.location.href = '/projects/' + contract.projectId + '?share=true';
-          });
-        }
-        var contractBtn = document.getElementById('ceremony-contract-btn');
-        if(contractBtn){
-          contractBtn.addEventListener('click', function(){
-            ceremony.classList.remove('show');
-          });
-        }
-        var homeBtn = document.getElementById('ceremony-home-btn');
-        if(homeBtn){
-          homeBtn.addEventListener('click', function(){
-            window.location.href = '/';
-          });
-        }
-      }, 500);
-    }, 1000);
+            var summaryEl = document.getElementById('ceremony-summary');
+            if(summaryEl){
+              summaryEl.innerHTML = ''
+                + '<div class="ceremony-summary-row"><span class="ceremony-summary-label">投资金额</span><span class="ceremony-summary-value">¥' + investmentAmount + '万</span></div>'
+                + '<div class="ceremony-summary-row"><span class="ceremony-summary-label">占比份额</span><span class="ceremony-summary-value">' + sharePercentage + '%</span></div>'
+                + '<div class="ceremony-summary-row"><span class="ceremony-summary-label">预估月回款</span><span class="ceremony-summary-value">≈¥' + monthlyShare + '万</span></div>'
+                + '<div class="ceremony-summary-row"><span class="ceremony-summary-label">回收上限</span><span class="ceremony-summary-value">¥' + recoveryCap + '万</span></div>';
+            }
+
+            var ceremony = document.getElementById('ceremony-page');
+            if(ceremony){
+              ceremony.classList.add('show');
+              var circle = document.getElementById('ceremony-circle');
+              var check = document.getElementById('ceremony-check');
+              if(circle) circle.classList.add('animate');
+              if(check) check.classList.add('animate');
+            }
+
+            var shareBtn = document.getElementById('ceremony-share-btn');
+            if(shareBtn){
+              shareBtn.addEventListener('click', function(){
+                window.location.href = '/projects/' + contract.projectId + '?share=true';
+              });
+            }
+            var contractBtn = document.getElementById('ceremony-contract-btn');
+            if(contractBtn){
+              contractBtn.addEventListener('click', function(){
+                ceremony.classList.remove('show');
+              });
+            }
+            var homeBtn = document.getElementById('ceremony-home-btn');
+            if(homeBtn){
+              homeBtn.addEventListener('click', function(){
+                window.location.href = '/';
+              });
+            }
+          }, 500);
+        });
+      }, 1000);
+    }).catch(function(){
+      showToast('网络错误', 'error');
+      signBtn.disabled = false; signBtn.textContent = '确认签署';
+      agreeCheck.disabled = false; verifyInput.disabled = false; verifyBtn.disabled = false;
+    });
   });
 })();
 `}} />

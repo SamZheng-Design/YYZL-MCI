@@ -633,53 +633,84 @@ app.get('/create', (c) => {
     };
   }
 
-  // Save draft
+  // Save draft via API
   document.getElementById('btn-draft').addEventListener('click', function(){
     var proj = collectData('draft');
-    var projects = [];
-    try { projects = JSON.parse(localStorage.getItem('zlc_user_projects') || '[]'); } catch(e){}
-    projects.push(proj);
-    localStorage.setItem('zlc_user_projects', JSON.stringify(projects));
-    showToast('草稿已保存', 'success');
-    setTimeout(function(){ window.location.href = '/'; }, 800);
+    var btn = this;
+    btn.disabled = true; btn.textContent = '保存中...';
+    fetch('/api/admin/projects/create', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        userId: u.id, name: proj.name, industry: proj.industry,
+        description: proj.description, targetAmount: proj.targetAmount,
+        revenueShareRate: proj.revenueShareRate, duration: proj.duration,
+        recoveryMultiple: proj.recoveryMultiple, estimatedMonthlyRevenue: proj.estimatedMonthlyRevenue,
+        totalShares: proj.totalShares, sharePrice: proj.sharePrice, minShares: proj.minShares || 1,
+        highlightText: proj.highlightText, highlights: proj.highlights,
+        initiatorNote: proj.detail, status: 'draft'
+      })
+    }).then(function(r){return r.json();}).then(function(d){
+      btn.disabled = false; btn.textContent = '保存草稿';
+      if(d.ok){
+        showToast('草稿已保存', 'success');
+        setTimeout(function(){ window.location.href = '/'; }, 800);
+      } else {
+        showToast(d.error || '保存失败', 'error');
+      }
+    }).catch(function(){
+      btn.disabled = false; btn.textContent = '保存草稿';
+      showToast('网络错误', 'error');
+    });
   });
 
-  // Publish
+  // Publish via API
   document.getElementById('btn-publish').addEventListener('click', function(){
     var proj = collectData('open');
-    // Generate a share code
-    var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    var shareCode = '';
-    for(var i=0;i<6;i++) shareCode += chars.charAt(Math.floor(Math.random()*chars.length));
-    proj.shareCode = shareCode;
-    proj.initiatorClassId = u.classId || '';
-    proj.initiatorClassName = u.className || '';
-    proj.viewCount = 0;
-    var projects = [];
-    try { projects = JSON.parse(localStorage.getItem('zlc_user_projects') || '[]'); } catch(e){}
-    projects.push(proj);
-    localStorage.setItem('zlc_user_projects', JSON.stringify(projects));
+    var btn = this;
+    btn.disabled = true; btn.textContent = '提交中...';
+    fetch('/api/admin/projects/create', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        userId: u.id, name: proj.name, industry: proj.industry,
+        description: proj.description, targetAmount: proj.targetAmount,
+        revenueShareRate: proj.revenueShareRate, duration: proj.duration,
+        recoveryMultiple: proj.recoveryMultiple, estimatedMonthlyRevenue: proj.estimatedMonthlyRevenue,
+        totalShares: proj.totalShares, sharePrice: proj.sharePrice, minShares: proj.minShares || 1,
+        highlightText: proj.highlightText, highlights: proj.highlights,
+        initiatorNote: proj.detail
+      })
+    }).then(function(r){return r.json();}).then(function(d){
+      btn.disabled = false; btn.textContent = '发布项目';
+      if(!d.ok){ showToast(d.error || '提交失败', 'error'); return; }
+      var projectId = d.data.projectId;
+      var shareCode = d.data.shareCode;
 
-    // Show custom success modal with share button (Task 2)
-    var overlay = document.createElement('div');
-    overlay.className = 'success-modal-overlay';
-    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.3s;';
-    overlay.innerHTML = '<div style="background:#fff;border-radius:24px;padding:32px;max-width:320px;width:90%;text-align:center;">'
-      + '<i class="fas fa-check-circle" style="font-size:64px;color:#16A34A;animation:iconPop 0.5s cubic-bezier(0.16,1,0.3,1);"></i>'
-      + '<div style="font-size:20px;font-weight:700;color:#1C1917;margin-top:16px;">发起成功</div>'
-      + '<div style="font-size:14px;color:#78716C;margin-top:8px;">项目已发布到大厅，分享给同学吧</div>'
-      + '<div style="margin-top:20px;display:flex;flex-direction:column;gap:10px;">'
-      + '<button id="success-share-btn" style="background:linear-gradient(135deg,#B91C1C,#991B1B);color:#fff;border:none;border-radius:12px;padding:14px;width:100%;font-size:15px;font-weight:600;cursor:pointer;">\\uD83D\\uDCE4 分享给同学</button>'
-      + '<button id="success-view-btn" style="background:transparent;color:#44403C;border:1px solid #E7E5E4;border-radius:12px;padding:14px;width:100%;font-size:15px;font-weight:600;cursor:pointer;">查看项目</button>'
-      + '</div></div>';
-    document.body.appendChild(overlay);
-    requestAnimationFrame(function(){ overlay.style.opacity = '1'; });
+      // Show custom success modal with share button
+      var overlay = document.createElement('div');
+      overlay.className = 'success-modal-overlay';
+      overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.3s;';
+      overlay.innerHTML = '<div style="background:#fff;border-radius:24px;padding:32px;max-width:320px;width:90%;text-align:center;">'
+        + '<i class="fas fa-check-circle" style="font-size:64px;color:#16A34A;animation:iconPop 0.5s cubic-bezier(0.16,1,0.3,1);"></i>'
+        + '<div style="font-size:20px;font-weight:700;color:#1C1917;margin-top:16px;">发起成功</div>'
+        + '<div style="font-size:14px;color:#78716C;margin-top:8px;">项目已提交' + (shareCode ? '，分享码: '+shareCode : '') + '</div>'
+        + '<div style="margin-top:20px;display:flex;flex-direction:column;gap:10px;">'
+        + '<button id="success-share-btn" style="background:linear-gradient(135deg,#B91C1C,#991B1B);color:#fff;border:none;border-radius:12px;padding:14px;width:100%;font-size:15px;font-weight:600;cursor:pointer;">\\uD83D\\uDCE4 分享给同学</button>'
+        + '<button id="success-view-btn" style="background:transparent;color:#44403C;border:1px solid #E7E5E4;border-radius:12px;padding:14px;width:100%;font-size:15px;font-weight:600;cursor:pointer;">查看项目</button>'
+        + '</div></div>';
+      document.body.appendChild(overlay);
+      requestAnimationFrame(function(){ overlay.style.opacity = '1'; });
 
-    document.getElementById('success-share-btn').addEventListener('click', function(){
-      window.location.href = '/projects/' + proj.id + '?share=true';
-    });
-    document.getElementById('success-view-btn').addEventListener('click', function(){
-      window.location.href = '/projects/' + proj.id;
+      document.getElementById('success-share-btn').addEventListener('click', function(){
+        window.location.href = '/projects/' + projectId + '?share=true';
+      });
+      document.getElementById('success-view-btn').addEventListener('click', function(){
+        window.location.href = '/projects/' + projectId;
+      });
+    }).catch(function(){
+      btn.disabled = false; btn.textContent = '发布项目';
+      showToast('网络错误', 'error');
     });
   });
 })();

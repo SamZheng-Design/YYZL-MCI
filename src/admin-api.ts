@@ -457,4 +457,53 @@ adminApi.post('/projects/create', async (c) => {
   }
 })
 
+// ══════════════════════════════════════════════════════════
+// 引荐 API
+// ══════════════════════════════════════════════════════════
+
+/**
+ * POST /api/admin/referrals/create
+ * Body: { projectId, requesterId, teacherId, message }
+ */
+adminApi.post('/referrals/create', async (c) => {
+  const db = c.env.DB
+  try {
+    const { projectId, requesterId, teacherId, message } = await c.req.json<{
+      projectId: string; requesterId: string; teacherId: string; message?: string
+    }>()
+
+    // Check for existing referral
+    const existing = await db.prepare(
+      'SELECT id FROM referrals WHERE project_id = ? AND requester_id = ?'
+    ).bind(projectId, requesterId).first()
+    if (existing) return c.json({ ok: false, error: '您已请求过引荐' }, 400)
+
+    const refId = `ref-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+    await db.prepare(`
+      INSERT INTO referrals (id, project_id, requester_id, teacher_id, status, message)
+      VALUES (?, ?, ?, ?, 'pending', ?)
+    `).bind(refId, projectId, requesterId, teacherId, message || null).run()
+
+    // Notify the teacher
+    const requester = await db.prepare('SELECT name FROM users WHERE id = ?').bind(requesterId).first<{ name: string }>()
+    const project = await db.prepare('SELECT name FROM projects WHERE id = ?').bind(projectId).first<{ name: string }>()
+    await createNotification(db, {
+      type: 'referral', title: '新引荐请求',
+      content: `${requester?.name || '学员'}请求您帮助对接项目「${project?.name || ''}」`,
+      icon: '🤝', link: '/teacher#referrals',
+      targetId: teacherId,
+    })
+
+    await logAudit(db, {
+      userId: requesterId, action: 'create_referral',
+      entityType: 'referral', entityId: refId,
+      detail: { projectId, teacherId, message },
+    })
+
+    return c.json({ ok: true, data: { referralId: refId }, message: '引荐请求已发送' })
+  } catch (e: any) {
+    return c.json({ ok: false, error: '请求失败: ' + (e.message || '') }, 500)
+  }
+})
+
 export default adminApi

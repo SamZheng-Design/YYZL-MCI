@@ -649,73 +649,39 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
       title: '确认参与 ' + PROJ.name + '？',
       desc: '投资 ' + n + ' 份，共 ¥' + cost + '万',
       onConfirm: function(){
-        // Check if already invested
-        var investments = [];
-        try { investments = JSON.parse(localStorage.getItem('zlc_investments') || '[]'); } catch(e){}
-        var existing = investments.find(function(inv){ return inv.projectId === PROJ.id && inv.userId === u.id; });
-        if(existing){
-          showToast('您已参与过该项目','error');
-          return;
-        }
+        // Call API to participate
+        if(partBtn){ partBtn.disabled = true; partBtn.textContent = '提交中...'; }
 
-        // Save investment
-        investments.push({
-          projectId: PROJ.id,
-          userId: u.id,
-          shares: n,
-          amount: cost,
-          date: new Date().toISOString().slice(0,10),
-          projectName: PROJ.name,
-        });
-        localStorage.setItem('zlc_investments', JSON.stringify(investments));
-
-        // Create contract record
-        var contractId = 'c-' + Date.now().toString(36);
-        var contracts = [];
-        try { contracts = JSON.parse(localStorage.getItem('zlc_contracts') || '[]'); } catch(e){}
-
-        var ownerName = '发起人';
-        if(typeof MEMBERS !== 'undefined'){
-          var ownerM = MEMBERS.find(function(m){return m.id===PROJ.ownerId;});
-          if(ownerM) ownerName = ownerM.name;
-        }
-
-        contracts.push({
-          id: contractId,
-          projectId: PROJ.id,
-          userId: u.id,
-          shares: n,
-          amount: cost,
-          status: 'pending',
-          createdAt: new Date().toISOString(),
-          ownerName: ownerName,
-          project: {
-            id: PROJ.id, name: PROJ.name, industry: PROJ.industry || '',
-            description: PROJ.description || '',
-            sharePrice: PROJ.sharePrice, targetAmount: PROJ.targetAmount,
-            revenueShareRate: PROJ.revenueShareRate,
-            duration: PROJ.duration || 0,
-            recoveryMultiple: PROJ.recoveryMultiple,
-            estimatedMonthlyRevenue: PROJ.estimatedMonthlyRevenue,
-            reportFrequency: PROJ.reportFrequency || '月报',
-            ownerId: PROJ.ownerId,
+        fetch('/api/admin/projects/' + PROJ.id + '/participate', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ userId: u.id, shares: n })
+        }).then(function(r){return r.json();}).then(function(d){
+          if(!d.ok){
+            showToast(d.error || '参与失败', 'error');
+            if(partBtn){ partBtn.disabled = false; partBtn.textContent = '确认参与'; }
+            return;
           }
-        });
-        localStorage.setItem('zlc_contracts', JSON.stringify(contracts));
 
-        // Disable button
-        if(partBtn){
-          partBtn.disabled = true;
-          partBtn.textContent = '已参与 ¥' + cost + '万';
-        }
-        if(sel) sel.disabled = true;
+          var contractId = d.data.contractId;
 
-        // Show success modal
-        showSuccessModal({
-          title: '参与成功！',
-          sub: '即将进入合同签署',
-          duration: 2000,
-          onDone: function(){ window.location.href = '/contracts/' + contractId + '/sign'; }
+          // Disable button
+          if(partBtn){
+            partBtn.disabled = true;
+            partBtn.textContent = '已参与 ¥' + cost + '万';
+          }
+          if(sel) sel.disabled = true;
+
+          // Show success modal
+          showSuccessModal({
+            title: '参与成功！',
+            sub: '即将进入合同签署',
+            duration: 2000,
+            onDone: function(){ window.location.href = '/contracts/' + contractId + '/sign'; }
+          });
+        }).catch(function(){
+          showToast('网络错误', 'error');
+          if(partBtn){ partBtn.disabled = false; partBtn.textContent = '确认参与'; }
         });
       }
     });
@@ -864,43 +830,44 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
     });
   }
 
-  // Submit referral
+  // Submit referral via API
   if(refSubmitBtn){
     refSubmitBtn.addEventListener('click', function(){
       if(!myTeacher) return;
       var msg = refMessage ? refMessage.value.trim() : '';
-      var now = new Date();
-      var nowISO = now.toISOString();
-      var todayStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
-      var ref = {
-        id: 'ref-' + Date.now().toString(36),
-        projectId: PROJ.id,
-        projectName: PROJ.name,
-        requesterId: u.id,
-        requesterName: u.name || '',
-        requesterClass: u.className || '',
-        requesterClassName: u.className || '',
-        initiatorId: PROJ.ownerId,
-        initiatorName: projOwnerMember ? projOwnerMember.name : '',
-        initiatorClassName: PROJ.initiatorClassName || '',
-        teacherId: myTeacher.id,
-        teacherName: myTeacher.name,
-        message: msg,
-        status: 'pending',
-        createdAt: todayStr,
-        completedAt: null,
-        completedNote: null,
-        requestedAt: nowISO,
-        connectedAt: null
-      };
-      referrals.push(ref);
-      localStorage.setItem('zlc_referrals', JSON.stringify(referrals));
-      existingRef = ref;
-      closeReferralModal();
-      setTimeout(function(){
-        showToast('引荐请求已发送给' + myTeacher.name, 'success');
-        updateReferralUI();
-      }, 300);
+      refSubmitBtn.disabled = true;
+      refSubmitBtn.textContent = '发送中...';
+
+      fetch('/api/admin/referrals/create', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          projectId: PROJ.id,
+          requesterId: u.id,
+          teacherId: myTeacher.id,
+          message: msg
+        })
+      }).then(function(r){return r.json();}).then(function(d){
+        refSubmitBtn.disabled = false;
+        refSubmitBtn.textContent = '发送引荐请求';
+        if(d.ok){
+          existingRef = {
+            status: 'pending',
+            teacherName: myTeacher.name
+          };
+          closeReferralModal();
+          setTimeout(function(){
+            showToast('引荐请求已发送给' + myTeacher.name, 'success');
+            updateReferralUI();
+          }, 300);
+        } else {
+          showToast(d.error || '发送失败', 'error');
+        }
+      }).catch(function(){
+        refSubmitBtn.disabled = false;
+        refSubmitBtn.textContent = '发送引荐请求';
+        showToast('网络错误', 'error');
+      });
     });
   }
 
