@@ -1178,7 +1178,7 @@ adminApi.post('/members/:id/update', async (c) => {
 
 /**
  * POST /api/admin/contracts/:id/confirm-terms
- * Body: { fundingAmount, revenueShareRatio, shares }
+ * Body: { fundingAmount, revenueShareRatio, shares, cooperationTerm? }
  * 投资人确认条款后，更新合同并推进至 pending_approval
  */
 adminApi.post('/contracts/:id/confirm-terms', async (c) => {
@@ -1187,8 +1187,8 @@ adminApi.post('/contracts/:id/confirm-terms', async (c) => {
   const ip = getClientIP(c)
   const contractId = c.req.param('id')
   try {
-    const { fundingAmount, revenueShareRatio, shares } = await c.req.json<{
-      fundingAmount: number; revenueShareRatio: number; shares: number
+    const { fundingAmount, revenueShareRatio, shares, cooperationTerm } = await c.req.json<{
+      fundingAmount: number; revenueShareRatio: number; shares: number; cooperationTerm?: number
     }>()
 
     const contract = await db.prepare('SELECT * FROM contracts WHERE id = ?').bind(contractId).first<any>()
@@ -1208,10 +1208,14 @@ adminApi.post('/contracts/:id/confirm-terms', async (c) => {
     const project = await db.prepare('SELECT * FROM projects WHERE id = ?').bind(contract.project_id).first<any>()
     if (!project) return c.json({ ok: false, error: '关联项目不存在' }, 404)
 
-    // 计算退出条件快照
+    // 计算退出条件快照（支持投资人自定义期限）
     const annualYieldRate = project.annual_yield_rate || 12.0
     const exitMode = project.exit_mode || 'both'
-    const duration = project.duration || 24
+    const projectDuration = project.duration || 24
+    // 投资人可调整期限（在项目期限的50%~150%范围内）
+    const minTerm = Math.max(6, Math.floor(projectDuration * 0.5))
+    const maxTerm = Math.min(60, Math.ceil(projectDuration * 1.5))
+    const duration = cooperationTerm ? Math.max(minTerm, Math.min(maxTerm, cooperationTerm)) : projectDuration
     const capMultipleAtTerm = +(1 + annualYieldRate / 100 * duration / 12).toFixed(4)
     const recoveryCap = +(fundingAmount * capMultipleAtTerm).toFixed(2)
 
@@ -1270,7 +1274,7 @@ adminApi.post('/contracts/:id/confirm-terms', async (c) => {
     await logAudit(db, {
       userId: sessionUser.id, action: 'confirm_terms',
       entityType: 'contract', entityId: contractId,
-      detail: { fundingAmount, revenueShareRatio, shares, recoveryCap, capMultipleAtTerm, exitMode },
+      detail: { fundingAmount, revenueShareRatio, shares, cooperationTerm: duration, recoveryCap, capMultipleAtTerm, exitMode },
       ipAddress: ip,
     })
 

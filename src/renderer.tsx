@@ -677,6 +677,55 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
   cursor: pointer;
 }
 
+/* Green slider (term/duration) */
+.terms-slider-green { background: linear-gradient(to right, #BBF7D0, #86EFAC); }
+.terms-slider-green::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 24px; height: 24px; border-radius: 50%;
+  background: linear-gradient(135deg, #22C55E, #16A34A);
+  border: 3px solid #fff; box-shadow: 0 2px 6px rgba(22,163,74,0.3);
+  cursor: pointer; transition: transform 0.15s;
+}
+.terms-slider-green::-webkit-slider-thumb:hover { transform: scale(1.15); }
+.terms-slider-green::-moz-range-thumb {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: linear-gradient(135deg, #22C55E, #16A34A);
+  border: 3px solid #fff; box-shadow: 0 2px 6px rgba(22,163,74,0.3);
+  cursor: pointer;
+}
+
+/* RBF Formula Hero Card */
+.rbf-hero {
+  background: linear-gradient(135deg, #1C1917, #292524); border-radius: 16px;
+  padding: 20px 20px 16px; margin-bottom: 16px; position: relative; overflow: hidden;
+  color: white;
+}
+.rbf-hero::before {
+  content: ''; position: absolute; top: -30px; right: -30px;
+  width: 100px; height: 100px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(220,38,38,0.2) 0%, transparent 70%);
+}
+.rbf-hero-label {
+  font-size: 11px; font-weight: 600; color: #D4A853; letter-spacing: 2px;
+  text-transform: uppercase; margin-bottom: 10px;
+}
+.rbf-hero-formula {
+  font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;
+  font-size: 15px; font-weight: 600; line-height: 1.8;
+  color: rgba(255,255,255,0.9);
+}
+.rbf-hero-formula .rbf-var {
+  display: inline-block; padding: 2px 8px; border-radius: 6px;
+  font-weight: 700; font-size: 14px;
+}
+.rbf-var-red { background: rgba(220,38,38,0.2); color: #FCA5A5; }
+.rbf-var-blue { background: rgba(59,130,246,0.2); color: #93C5FD; }
+.rbf-var-green { background: rgba(34,197,94,0.2); color: #86EFAC; }
+.rbf-var-gold { background: rgba(212,168,83,0.2); color: #FDE68A; }
+.rbf-hero-desc {
+  font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 12px; line-height: 1.5;
+}
+
 /* ══════════ Radio Card (exit mode selector) ══════════ */
 .radio-card {
   cursor: pointer; display: block;

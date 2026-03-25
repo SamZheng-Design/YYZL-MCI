@@ -317,6 +317,11 @@ app.get('/login', (c) => {
       showToast('登录成功，欢迎回来！','success');
       setTimeout(function(){window.location.href=member.role==='teacher'?'/teacher':(member.role==='admin'?'/admin':'/');},800);
     });
+
+    // 按 Enter 键提交 + 自动聚焦
+    setTimeout(function(){ var el=document.getElementById('cp-new'); if(el) el.focus(); }, 100);
+    document.getElementById('cp-new').addEventListener('keydown', function(e){ if(e.key==='Enter') document.getElementById('cp-confirm').focus(); });
+    document.getElementById('cp-confirm').addEventListener('keydown', function(e){ if(e.key==='Enter') document.getElementById('cp-submit').click(); });
   }
 
   sendCodeBtn && sendCodeBtn.addEventListener('click',function(){
