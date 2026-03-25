@@ -48,44 +48,53 @@ app.get('/create', (c) => {
           </div>
         </div>
 
-        {/* Step 1: Basic Info */}
+        {/* Step 1: Basic Info — Multi-card layout */}
         <div id="step-1" class="step-panel">
-          <div class="bg-white rounded-2xl shadow-card p-5">
-            <h3 class="font-semibold text-text-title mb-4" style="font-size:17px;font-family:'Noto Sans SC',sans-serif;">
+          {/* Card A: Project Basics */}
+          <div class="bg-white rounded-2xl shadow-card p-5 mb-4">
+            <h3 class="create-card-title">
               <i class="fas fa-info-circle text-brand mr-2" style="font-size:14px;" />基本信息
             </h3>
-
             <div class="mb-4">
               <label class="form-label">项目名称 <span class="req">*</span></label>
               <input id="f-name" type="text" class="form-input" placeholder="如：星火餐饮华南区20店扩张" maxlength={80} />
             </div>
-
-            <div class="mb-4">
+            <div>
               <label class="form-label">所属行业 <span class="req">*</span></label>
               <select id="f-industry" class="form-select">
                 <option value="">请选择行业</option>
                 {industries.map(ind => <option value={ind}>{ind}</option>)}
               </select>
             </div>
+          </div>
 
+          {/* Card B: Project Description */}
+          <div class="bg-white rounded-2xl shadow-card p-5 mb-4">
+            <h3 class="create-card-title">
+              <i class="fas fa-align-left text-brand mr-2" style="font-size:14px;" />项目描述
+            </h3>
             <div class="mb-4">
               <label class="form-label">项目简介 <span class="req">*</span></label>
               <textarea id="f-desc" class="form-textarea" placeholder="简述项目背景、核心优势和发展计划（200字以内）" maxlength={200} rows={3} />
               <div class="char-count" id="desc-count">0/200</div>
             </div>
-
-            {/* 推介语输入 */}
-            <div class="mb-4">
-              <label style="font-size:13px;font-weight:600;color:#44403C;display:block;margin-bottom:6px;">一句话推介（选填，将显示在分享卡片上）</label>
+            <div>
+              <label class="form-label">一句话推介 <span style="font-size:12px;color:#A8A29E;">（选填，将显示在分享卡片上）</span></label>
               <div style="position:relative;">
                 <input id="f-highlight-text" type="text" class="form-input" placeholder="如：华南餐饮龙头品牌，月均流水稳定300万" maxlength={50} />
                 <div style="position:absolute;right:12px;bottom:-18px;font-size:11px;color:#A8A29E;" id="highlight-text-count">0/50</div>
               </div>
             </div>
+          </div>
 
-            {/* 项目亮点输入 */}
-            <div class="mb-4" style="margin-top:16px;">
-              <label style="font-size:13px;font-weight:600;color:#44403C;display:block;margin-bottom:6px;">项目亮点（选填，最多3条，每条一个核心卖点）</label>
+          {/* Card C: Highlights & Detail */}
+          <div class="bg-white rounded-2xl shadow-card p-5 mb-4">
+            <h3 class="create-card-title">
+              <i class="fas fa-star mr-2" style="font-size:14px;color:#D4A853;" />项目亮点与详情
+            </h3>
+            {/* Highlights in tinted area */}
+            <div style="background:#FAFAF9;border-radius:12px;padding:16px;margin-bottom:16px;">
+              <label class="form-label" style="margin-bottom:10px;">核心亮点 <span style="font-size:12px;color:#A8A29E;">（选填，最多3条）</span></label>
               <div style="display:flex;flex-direction:column;gap:8px;">
                 <div style="display:flex;align-items:center;gap:8px;">
                   <span style="color:#D4A853;font-size:14px;flex-shrink:0;">❶</span>
@@ -101,24 +110,26 @@ app.get('/create', (c) => {
                 </div>
               </div>
             </div>
-
-            <div class="mb-4">
+            <div>
               <label class="form-label">项目详情 <span style="font-size:12px;color:#A8A29E;">（选填）</span></label>
               <textarea id="f-detail" class="form-textarea" placeholder="详细的项目介绍、商业模式、团队背景等" rows={4} />
             </div>
+          </div>
 
-            <div class="mb-2">
-              <label class="form-label">附件上传 <span style="font-size:12px;color:#A8A29E;">（选填）</span></label>
-              <div class="upload-zone" id="upload-zone">
-                <i class="fas fa-cloud-upload-alt text-text-tertiary mb-2" style="font-size:28px;" />
-                <p class="text-text-secondary" style="font-size:13px;">点击上传项目资料</p>
-                <p class="text-text-tertiary" style="font-size:11px;">Demo阶段仅记录文件名</p>
-                <input id="f-file" type="file" style="display:none;" />
-              </div>
-              <div id="file-name" class="text-text-secondary mt-2" style="font-size:13px;display:none;">
-                <i class="fas fa-paperclip mr-1" />
-                <span id="file-name-text" />
-              </div>
+          {/* Card D: Attachments */}
+          <div class="bg-white rounded-2xl shadow-card p-5 mb-2">
+            <h3 class="create-card-title">
+              <i class="fas fa-paperclip text-text-secondary mr-2" style="font-size:14px;" />附件资料 <span style="font-size:12px;color:#A8A29E;font-weight:400;">（选填）</span>
+            </h3>
+            <div class="upload-zone" id="upload-zone">
+              <i class="fas fa-cloud-upload-alt text-text-tertiary mb-2" style="font-size:28px;" />
+              <p class="text-text-secondary" style="font-size:13px;">点击上传项目资料</p>
+              <p class="text-text-tertiary" style="font-size:11px;">Demo阶段仅记录文件名</p>
+              <input id="f-file" type="file" style="display:none;" />
+            </div>
+            <div id="file-name" class="text-text-secondary mt-2" style="font-size:13px;display:none;">
+              <i class="fas fa-paperclip mr-1" />
+              <span id="file-name-text" />
             </div>
           </div>
 
@@ -166,89 +177,101 @@ app.get('/create', (c) => {
             </div>
           </div>
 
+          {/* Terms Card — with internal grouping */}
           <div class="bg-white rounded-2xl shadow-card p-5">
-            <h3 class="font-semibold text-text-title mb-4" style="font-size:17px;font-family:'Noto Sans SC',sans-serif;">
+            <h3 class="create-card-title">
               <i class="fas fa-file-contract text-brand mr-2" style="font-size:14px;" />条款设定
             </h3>
 
-            <div class="grid grid-cols-2 gap-3 mb-3">
-              <div>
-                <label class="form-label" style="display:flex;align-items:center;gap:4px;">融资总额 <span class="req">*</span>
-                  <span class="help-icon" data-help-id="totalAmount">?</span>
-                </label>
-                <div class="help-text">这个项目总共需要多少资金。所有参与人的投资加起来等于这个数。</div>
-                <div class="input-unit-wrap">
-                  <input id="f-amount" type="number" class="form-input" placeholder="如 200" min={1} />
-                  <span class="input-unit">万元</span>
+            {/* Group 1: Funding */}
+            <div class="create-terms-group">
+              <div class="create-terms-group-label"><i class="fas fa-coins mr-1.5" style="font-size:11px;color:#D4A853;" />资金规模</div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="form-label" style="display:flex;align-items:center;gap:4px;">融资总额 <span class="req">*</span>
+                    <span class="help-icon" data-help-id="totalAmount">?</span>
+                  </label>
+                  <div class="help-text">这个项目总共需要多少资金。所有参与人的投资加起来等于这个数。</div>
+                  <div class="input-unit-wrap">
+                    <input id="f-amount" type="number" class="form-input" placeholder="如 200" min={1} />
+                    <span class="input-unit">万元</span>
+                  </div>
                 </div>
-              </div>
-              <div>
-                <label class="form-label" style="display:flex;align-items:center;gap:4px;">分成比例 <span class="req">*</span>
-                  <span class="help-icon" data-help-id="revenueShareRatio">?</span>
-                </label>
-                <div class="help-text">发起人愿意把项目月收入的多少拿出来分给参与人。比例越高，参与人回款越快，但发起人让出的越多。同类项目一般在8%-20%。</div>
-                <div class="input-unit-wrap" id="input-share-ratio">
-                  <input id="f-rate" type="number" class="form-input" placeholder="如 12" min={0.1} max={100} step={0.1} />
-                  <span class="input-unit">%</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3 mb-3">
-              <div>
-                <label class="form-label" style="display:flex;align-items:center;gap:4px;">联营期限 <span class="req">*</span>
-                  <span class="help-icon" data-help-id="cooperationTerm">?</span>
-                </label>
-                <div class="help-text">合作持续多长时间。到期后无论是否收回投资，合同自动结束。</div>
-                <div class="input-unit-wrap">
-                  <input id="f-duration" type="number" class="form-input" placeholder="如 24" min={1} />
-                  <span class="input-unit">个月</span>
-                </div>
-              </div>
-              <div>
-                <label class="form-label" style="display:flex;align-items:center;gap:4px;">最低参与额 <span class="req">*</span>
-                  <span class="help-icon" data-help-id="minParticipation">?</span>
-                </label>
-                <div class="help-text">每个参与人最少要投多少钱。这个金额除以融资总额就是一份的比例。</div>
-                <div class="input-unit-wrap">
-                  <input id="f-minamt" type="number" class="form-input" placeholder="如 10" min={1} />
-                  <span class="input-unit">万/份</span>
+                <div>
+                  <label class="form-label" style="display:flex;align-items:center;gap:4px;">分成比例 <span class="req">*</span>
+                    <span class="help-icon" data-help-id="revenueShareRatio">?</span>
+                  </label>
+                  <div class="help-text">发起人愿意把项目月收入的多少拿出来分给参与人。比例越高，参与人回款越快，但发起人让出的越多。同类项目一般在8%-20%。</div>
+                  <div class="input-unit-wrap" id="input-share-ratio">
+                    <input id="f-rate" type="number" class="form-input" placeholder="如 12" min={0.1} max={100} step={0.1} />
+                    <span class="input-unit">%</span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-3 mb-3">
-              <div>
-                <label class="form-label" style="display:flex;align-items:center;gap:4px;">预估月收入 <span class="req">*</span>
-                  <span class="help-icon" data-help-id="estimatedMonthlyRevenue">?</span>
-                </label>
-                <div class="help-text">发起人对项目月度收入的预估。这只是预估，实际回款取决于真实经营情况。</div>
-                <div class="input-unit-wrap">
-                  <input id="f-revenue" type="number" class="form-input" placeholder="如 30" min={0} step={0.1} />
-                  <span class="input-unit">万元</span>
+            {/* Group 2: Terms */}
+            <div class="create-terms-group">
+              <div class="create-terms-group-label"><i class="fas fa-handshake mr-1.5" style="font-size:11px;color:#D4A853;" />合作条件</div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="form-label" style="display:flex;align-items:center;gap:4px;">联营期限 <span class="req">*</span>
+                    <span class="help-icon" data-help-id="cooperationTerm">?</span>
+                  </label>
+                  <div class="help-text">合作持续多长时间。到期后无论是否收回投资，合同自动结束。</div>
+                  <div class="input-unit-wrap">
+                    <input id="f-duration" type="number" class="form-input" placeholder="如 24" min={1} />
+                    <span class="input-unit">个月</span>
+                  </div>
                 </div>
-              </div>
-              <div>
-                <label class="form-label" style="display:flex;align-items:center;gap:4px;">回收倍数
-                  <span class="help-icon" data-help-id="recoveryMultiple">?</span>
-                </label>
-                <div class="help-text">参与人最多能拿回投资额的多少倍。1.5倍意味着投10万最多拿回15万。达到上限后合同自动结束。</div>
-                <div class="input-unit-wrap">
-                  <input id="f-multiple" type="number" class="form-input" placeholder="1.5" min={1} max={10} step={0.1} value="1.5" />
-                  <span class="input-unit">x</span>
+                <div>
+                  <label class="form-label" style="display:flex;align-items:center;gap:4px;">最低参与额 <span class="req">*</span>
+                    <span class="help-icon" data-help-id="minParticipation">?</span>
+                  </label>
+                  <div class="help-text">每个参与人最少要投多少钱。这个金额除以融资总额就是一份的比例。</div>
+                  <div class="input-unit-wrap">
+                    <input id="f-minamt" type="number" class="form-input" placeholder="如 10" min={1} />
+                    <span class="input-unit">万/份</span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div class="mb-4">
-              <label class="form-label" style="display:flex;align-items:center;gap:4px;">上报频率
-                <span class="help-icon" data-help-id="reportFrequency">?</span>
-              </label>
-              <div class="help-text">你多久向参与人汇报一次项目收入。月报适合大部分项目，日报适合零售等每日有流水的项目。</div>
-              <select id="f-freq" class="form-select">
-                <option value="月报">月报</option>
-                <option value="日报">日报</option>
-              </select>
+            {/* Group 3: Returns & Reporting */}
+            <div style="padding-top:16px;">
+              <div class="create-terms-group-label"><i class="fas fa-chart-line mr-1.5" style="font-size:11px;color:#D4A853;" />回报预估</div>
+              <div class="grid grid-cols-2 gap-3 mb-3">
+                <div>
+                  <label class="form-label" style="display:flex;align-items:center;gap:4px;">预估月收入 <span class="req">*</span>
+                    <span class="help-icon" data-help-id="estimatedMonthlyRevenue">?</span>
+                  </label>
+                  <div class="help-text">发起人对项目月度收入的预估。这只是预估，实际回款取决于真实经营情况。</div>
+                  <div class="input-unit-wrap">
+                    <input id="f-revenue" type="number" class="form-input" placeholder="如 30" min={0} step={0.1} />
+                    <span class="input-unit">万元</span>
+                  </div>
+                </div>
+                <div>
+                  <label class="form-label" style="display:flex;align-items:center;gap:4px;">回收倍数
+                    <span class="help-icon" data-help-id="recoveryMultiple">?</span>
+                  </label>
+                  <div class="help-text">参与人最多能拿回投资额的多少倍。1.5倍意味着投10万最多拿回15万。达到上限后合同自动结束。</div>
+                  <div class="input-unit-wrap">
+                    <input id="f-multiple" type="number" class="form-input" placeholder="1.5" min={1} max={10} step={0.1} value="1.5" />
+                    <span class="input-unit">x</span>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label class="form-label" style="display:flex;align-items:center;gap:4px;">上报频率
+                  <span class="help-icon" data-help-id="reportFrequency">?</span>
+                </label>
+                <div class="help-text">你多久向参与人汇报一次项目收入。月报适合大部分项目，日报适合零售等每日有流水的项目。</div>
+                <select id="f-freq" class="form-select">
+                  <option value="月报">月报</option>
+                  <option value="日报">日报</option>
+                </select>
+              </div>
             </div>
           </div>
 

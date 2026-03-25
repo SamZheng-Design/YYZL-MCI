@@ -467,6 +467,31 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
 }
 .back-link:hover { color: #B91C1C; }
 
+/* Detail card — unified card container for project detail */
+.detail-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 14px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.03);
+}
+.detail-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1C1917;
+}
+.detail-card-header-icon {
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; flex-shrink: 0;
+}
+.detail-plain-lang-wrapper:empty { display: none; }
+
 .terms-card {
   background: #fff; border-radius: 16px;
   border-left: 4px solid #B91C1C;
@@ -614,6 +639,22 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
 .step-panel-enter-left { opacity: 0; transform: translateX(-40px); }
 .step-panel-enter-right { opacity: 0; transform: translateX(40px); }
 .btn-row { display: flex; gap: 12px; margin-top: 24px; }
+
+/* Create page — card titles & term groups */
+.create-card-title {
+  font-size: 16px; font-weight: 600; color: #292524; margin-bottom: 16px;
+  font-family: 'Noto Sans SC', sans-serif;
+  display: flex; align-items: center;
+}
+.create-terms-group {
+  padding-bottom: 16px; margin-bottom: 16px;
+  border-bottom: 1px solid #F5F5F4;
+}
+.create-terms-group-label {
+  font-size: 12px; font-weight: 600; color: #78716C;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  margin-bottom: 12px; display: flex; align-items: center;
+}
 
 /* ══════════════════════════════════════════════════
    Contract Sign Page
@@ -1348,6 +1389,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
      ────────────────────────────────────── */
   .bg-white.rounded-2xl.shadow-card,
   .bg-white.rounded-xl.shadow-card,
+  .detail-card,
   .dk-home-project-grid > a,
   .dk-project-list > a,
   #panel-invest .bg-white,

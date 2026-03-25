@@ -51,36 +51,37 @@ app.get('/projects/:id', async (c) => {
   var remainShares = proj.totalShares - proj.raisedShares;
   var statusLabel = {open:'募集中',funded:'已满额',active:'运营中',completed:'已完成',draft:'草稿'}[proj.status]||proj.status;
 
-  var html = '<div class="bg-white rounded-2xl shadow-card p-5 mb-4">';
-  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">';
-  html += '<span style="background:#FEE2E2;color:#B91C1C;padding:2px 10px;border-radius:6px;font-size:12px;font-weight:600;">' + proj.industry + '</span>';
+  var html = '<div class="detail-card">';
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">';
+  html += '<span style="background:linear-gradient(135deg,#FEE2E2,#FEF2F2);color:#B91C1C;padding:4px 12px;border-radius:8px;font-size:11px;font-weight:600;">' + proj.industry + '</span>';
   html += '<span class="badge badge-' + proj.status + '">' + statusLabel + '</span></div>';
-  html += '<h1 style="font-size:22px;font-weight:700;color:#292524;margin-bottom:12px;font-family:\\'Noto Sans SC\\',sans-serif;">' + proj.name + '</h1>';
-  html += '<div style="display:flex;align-items:center;gap:10px;padding:12px;background:#FAFAF9;border-radius:12px;margin-bottom:12px;">';
-  html += '<div style="width:40px;height:40px;border-radius:50%;background:#B91C1C;color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;">' + (u.name||'?').charAt(0) + '</div>';
+  html += '<h1 style="font-size:22px;font-weight:800;color:#1C1917;margin-bottom:12px;font-family:\\'Noto Sans SC\\',sans-serif;">' + proj.name + '</h1>';
+  html += '<div style="display:flex;align-items:center;gap:14px;padding:14px 16px;background:linear-gradient(135deg,#FAFAF9,#F5F5F4);border-radius:14px;margin-bottom:12px;">';
+  html += '<div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#DC2626,#991B1B);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;">' + (u.name||'?').charAt(0) + '</div>';
   html += '<div><div style="font-size:14px;font-weight:600;color:#1C1917;">' + u.name + ' · ' + (u.title||'') + '</div>';
   html += '<div style="font-size:12px;color:#78716C;">' + (u.company||'') + ' · ' + (u.cohort||'') + '</div></div></div>';
-  html += '<p style="font-size:15px;line-height:1.7;color:#292524;">' + proj.description + '</p>';
+  html += '<p style="font-size:15px;line-height:1.8;color:#292524;">' + proj.description + '</p>';
   if(proj.detail){ html += '<p style="font-size:13px;line-height:1.7;color:#78716C;margin-top:8px;">' + proj.detail + '</p>'; }
   html += '</div>';
 
   // Terms
-  html += '<div class="terms-card shadow-card mb-4"><div style="padding:12px 20px;border-bottom:1px solid #F5F5F4;"><h3 style="font-size:16px;font-weight:600;color:#292524;"><i class="fas fa-file-contract" style="color:#B91C1C;margin-right:8px;font-size:14px;"></i>收入分成条款</h3></div>';
+  html += '<div class="detail-card" style="padding:0;overflow:hidden;">';
+  html += '<div style="padding:18px 20px;border-bottom:1px solid #F5F5F4;display:flex;align-items:center;gap:10px;"><i class="fas fa-file-contract" style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#FEE2E2,#FECDD3);color:#B91C1C;display:flex;align-items:center;justify-content:center;font-size:13px;"></i><span style="font-size:16px;font-weight:600;color:#1C1917;">收入分成条款</span></div>';
   html += '<div style="display:grid;grid-template-columns:1fr 1fr;">';
   var terms = [["融资总额","¥"+proj.targetAmount+"万"],["分成比例",proj.revenueShareRate+"%"],["联营期限",proj.duration+"月"],["回收倍数",proj.recoveryMultiple+"x"],["回收上限","¥"+cap.toFixed(1)+"万"],["预估月收入","¥"+proj.estimatedMonthlyRevenue+"万"]];
   terms.forEach(function(t,i){ html += "<div style=\\"padding:14px 20px;border-bottom:1px solid #F5F5F4;"+(i%2===0?"border-right:1px solid #F5F5F4;":"")+"\\"><div style=\\"font-size:12px;color:#78716C;margin-bottom:4px;\\">"+t[0]+"</div><div style=\\"font-size:18px;font-weight:700;color:#1C1917;\\">"+t[1]+"</div></div>"; });
-  html += '</div><div style="background:#FEF2F2;padding:16px 20px;display:grid;grid-template-columns:1fr 1fr;gap:12px;">';
-  html += '<div><div style="font-size:12px;color:#78716C;">预估月回款</div><div style="font-size:18px;font-weight:700;color:#B91C1C;">¥'+monthly.toFixed(1)+'万</div></div>';
-  html += '<div><div style="font-size:12px;color:#78716C;">预估回收期</div><div style="font-size:18px;font-weight:700;color:#B91C1C;">约'+payback+'月</div></div>';
+  html += '</div><div style="background:linear-gradient(135deg,#FEF2F2,#FFF1F2);padding:18px 20px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">';
+  html += '<div><div style="font-size:12px;color:#78716C;margin-bottom:4px;">预估月回款</div><div style="font-size:20px;font-weight:800;color:#B91C1C;">¥'+monthly.toFixed(1)+'万</div></div>';
+  html += '<div><div style="font-size:12px;color:#78716C;margin-bottom:4px;">预估回收期</div><div style="font-size:20px;font-weight:800;color:#B91C1C;">约'+payback+'月</div></div>';
   html += '</div></div>';
 
   // Progress
-  html += '<div class="bg-white rounded-2xl shadow-card p-5 mb-4">';
-  html += '<h3 style="font-size:16px;font-weight:600;color:#292524;margin-bottom:12px;"><i class="fas fa-chart-pie" style="color:#D4A853;margin-right:8px;font-size:14px;"></i>募集进度</h3>';
-  html += '<div style="height:12px;border-radius:99px;background:#F5F5F4;overflow:hidden;margin-bottom:12px;"><div style="height:100%;border-radius:99px;background:linear-gradient(90deg,#D4A853,#B8860B);width:'+pct+'%;"></div></div>';
-  html += '<div style="font-size:16px;font-weight:600;color:#292524;">已募 ¥'+proj.raisedAmount+'万 / ¥'+proj.targetAmount+'万 <span style="color:#B8860B;">('+pct+'%)</span></div>';
-  html += '<div style="font-size:13px;color:#78716C;margin-top:4px;">总 '+proj.totalShares+' 份 · 剩余 '+remainShares+' 份</div></div>';
-  html += '<p style="text-align:center;font-size:13px;color:#78716C;margin-top:16px;">发布于 '+proj.createdAt+'</p>';
+  html += '<div class="detail-card">';
+  html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;"><i class="fas fa-chart-pie" style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#FEF3C7,#FDE68A);color:#B45309;display:flex;align-items:center;justify-content:center;font-size:13px;"></i><span style="font-size:16px;font-weight:600;color:#1C1917;">募集进度</span></div>';
+  html += '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;"><span style="font-size:20px;font-weight:800;color:#1C1917;">¥'+proj.raisedAmount+'万</span><span style="font-size:14px;color:#78716C;">/ ¥'+proj.targetAmount+'万</span></div>';
+  html += '<div style="height:12px;border-radius:99px;background:#F5F5F4;overflow:hidden;margin-bottom:8px;"><div style="height:100%;border-radius:99px;background:linear-gradient(90deg,#D4A853,#B8860B);width:'+pct+'%;"></div></div>';
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;color:#78716C;">总 '+proj.totalShares+' 份 · 剩余 '+remainShares+' 份</span><span style="font-size:14px;font-weight:700;color:#B8860B;">'+pct+'%</span></div></div>';
+  html += '<p style="text-align:center;font-size:13px;color:#A8A29E;margin-top:16px;">发布于 '+proj.createdAt+'</p>';
 
   el.innerHTML = html;
 })();
@@ -113,8 +114,8 @@ app.get('/projects/:id', async (c) => {
         </a>
 
         {/* From share banner — shown via JS if ?from=share */}
-        <div id="share-from-banner" class="dk-detail-fullrow" style="display:none;background:#EFF6FF;color:#2563EB;border-radius:8px;padding:8px 12px;font-size:12px;margin-bottom:12px;font-weight:500;">
-          🔗 通过分享码查看
+        <div id="share-from-banner" class="dk-detail-fullrow" style="display:none;background:linear-gradient(135deg,#EFF6FF,#DBEAFE);color:#1D4ED8;border-radius:12px;padding:10px 14px;font-size:12px;margin-bottom:12px;font-weight:500;border:1px solid #BFDBFE;">
+          <i class="fas fa-link" style="margin-right:6px;font-size:11px;" />通过分享码查看
         </div>
 
         {/* Relation Tag — rendered via client JS based on current user's classId */}
@@ -122,249 +123,293 @@ app.get('/projects/:id', async (c) => {
 
         {/* LEFT COLUMN: information area */}
         <div class="dk-detail-left">
-          {/* 1. Project Header Card */}
-          <div class="bg-white rounded-2xl shadow-card p-5 mb-4 dk-detail-info">
-          <div class="flex items-center justify-between mb-3">
-            <span class="bg-brand-soft text-brand px-2.5 py-0.5 rounded font-semibold" style="font-size:11px;">{proj.industry}</span>
-            <StatusBadge status={proj.status} />
-          </div>
-          <h1 class="font-bold text-text-title mb-1" style="font-size:24px;font-family:'Noto Sans SC',sans-serif;line-height:1.3;">{proj.name}</h1>
-          {/* 推介语 */}
-          {proj.highlightText && (
-            <div style="font-size:14px;color:#B91C1C;font-style:italic;margin-top:6px;line-height:1.5;">{proj.highlightText}</div>
-          )}
-          {/* View / Participant Count (Task 3) */}
-          <div id="detail-view-count" style="font-size:12px;color:#A8A29E;margin-top:4px;margin-bottom:12px;" />
 
-          {/* Owner */}
-          <div class="flex items-start gap-3 mb-4 p-3 rounded-xl" style="background:#FAFAF9;">
-            <div class="flex items-center justify-center rounded-full bg-brand text-white font-bold flex-shrink-0" style="width:44px;height:44px;font-size:18px;">
-              {owner.name.charAt(0)}
+          {/* ─── Card 1: Project Header ─── */}
+          <div class="detail-card dk-detail-info">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+              <span style="background:linear-gradient(135deg,#FEE2E2,#FEF2F2);color:#B91C1C;padding:4px 12px;border-radius:8px;font-size:11px;font-weight:600;letter-spacing:0.3px;">{proj.industry}</span>
+              <StatusBadge status={proj.status} />
             </div>
-            <div>
-              <div class="font-semibold text-text-title" style="font-size:15px;">{owner.name} <span class="text-text-tertiary font-normal" style="font-size:13px;">· {owner.title}</span></div>
-              <div class="text-text-secondary" style="font-size:13px;">{owner.company} · {owner.cohort}</div>
-              <div class="text-text-tertiary mt-1" style="font-size:12px;">{owner.bio}</div>
+            <h1 style="font-size:24px;font-weight:800;color:#1C1917;line-height:1.35;margin-bottom:6px;font-family:'Noto Sans SC',sans-serif;">{proj.name}</h1>
+            {proj.highlightText && (
+              <p style="font-size:14px;color:#B91C1C;font-style:italic;margin-top:8px;line-height:1.5;padding-left:12px;border-left:3px solid #FECACA;">{proj.highlightText}</p>
+            )}
+            <div id="detail-view-count" style="font-size:12px;color:#A8A29E;margin-top:10px;display:flex;align-items:center;gap:6px;">
+              <i class="fas fa-eye" style="font-size:11px;" />
             </div>
           </div>
 
-          <p class="text-text-title" style="font-size:15px;line-height:1.7;">{proj.description}</p>
-        </div>
+          {/* ─── Card 2: Initiator Info ─── */}
+          <div class="detail-card">
+            <div class="detail-card-header">
+              <i class="fas fa-user-tie detail-card-header-icon" style="background:linear-gradient(135deg,#FEE2E2,#FECDD3);color:#B91C1C;" />
+              <span>发起人</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;background:linear-gradient(135deg,#FAFAF9,#F5F5F4);border-radius:14px;">
+              <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#DC2626,#991B1B);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;flex-shrink:0;box-shadow:0 2px 8px rgba(185,28,28,0.2);">
+                {owner.name.charAt(0)}
+              </div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:15px;font-weight:600;color:#1C1917;">{owner.name} <span style="font-size:13px;color:#78716C;font-weight:400;">· {owner.title}</span></div>
+                <div style="font-size:13px;color:#57534E;margin-top:2px;">{owner.company} · {owner.cohort}</div>
+                {owner.bio && <div style="font-size:12px;color:#A8A29E;margin-top:4px;line-height:1.5;">{owner.bio}</div>}
+              </div>
+            </div>
+          </div>
 
-        {/* 2. RBF Terms Card */}
-        <div class="terms-card shadow-card mb-3">
-          <div class="px-5 py-4" style="border-bottom:1px solid #F5F5F4;">
-            <h3 class="font-semibold text-text-title" style="font-size:16px;">
-              <i class="fas fa-file-contract text-brand mr-2" style="font-size:14px;" />
-              收入分成条款
-            </h3>
+          {/* ─── Card 3: Project Description ─── */}
+          <div class="detail-card">
+            <div class="detail-card-header">
+              <i class="fas fa-align-left detail-card-header-icon" style="background:linear-gradient(135deg,#F0F9FF,#DBEAFE);color:#2563EB;" />
+              <span>项目介绍</span>
+            </div>
+            <p style="font-size:15px;line-height:1.8;color:#292524;">{proj.description}</p>
           </div>
-          <div class="terms-grid">
-            <div class="terms-cell">
-              <div class="flex items-center gap-1">
-                <span class="terms-label" style="margin-bottom:0;">融资总额</span>
-                <span class="help-icon" data-help-id="totalAmount">?</span>
-              </div>
-              <div class="help-text">这个项目总共需要多少资金。所有参与人的投资加起来等于这个数。</div>
-              <div class="terms-value">¥{proj.targetAmount}<span class="text-text-tertiary" style="font-size:13px;font-weight:400;">万</span></div>
-            </div>
-            <div class="terms-cell">
-              <div class="flex items-center gap-1">
-                <span class="terms-label" style="margin-bottom:0;">分成比例</span>
-                <span class="help-icon" data-help-id="revenueShareRatio">?</span>
-              </div>
-              <div class="help-text">发起人愿意把项目月收入的多少拿出来分给参与人。比例越高，参与人回款越快，但发起人让出的越多。同类项目一般在8%-20%。</div>
-              <div class="terms-value">{proj.revenueShareRate}<span class="text-text-tertiary" style="font-size:13px;font-weight:400;">%</span></div>
-            </div>
-            <div class="terms-cell">
-              <div class="flex items-center gap-1">
-                <span class="terms-label" style="margin-bottom:0;">联营期限</span>
-                <span class="help-icon" data-help-id="cooperationTerm">?</span>
-              </div>
-              <div class="help-text">合作持续多长时间。到期后无论是否收回投资，合同自动结束。</div>
-              <div class="terms-value">{proj.duration}<span class="text-text-tertiary" style="font-size:13px;font-weight:400;">月</span></div>
-            </div>
-            <div class="terms-cell">
-              <div class="flex items-center gap-1">
-                <span class="terms-label" style="margin-bottom:0;">回收倍数</span>
-                <span class="help-icon" data-help-id="recoveryMultiple">?</span>
-              </div>
-              <div class="help-text">参与人最多能拿回投资额的多少倍。1.5倍意味着投10万最多拿回15万。达到上限后合同自动结束。</div>
-              <div class="terms-value">{proj.recoveryMultiple}<span class="text-text-tertiary" style="font-size:13px;font-weight:400;">x</span></div>
-            </div>
-            <div class="terms-cell">
-              <div class="flex items-center gap-1">
-                <span class="terms-label" style="margin-bottom:0;">回收上限</span>
-                <span class="help-icon" data-help-id="recoveryCap">?</span>
-              </div>
-              <div class="help-text">你最多能拿回的总金额 = 投资额 × 回收倍数。</div>
-              <div class="terms-value">¥{rbf.recoveryCap}<span class="text-text-tertiary" style="font-size:13px;font-weight:400;">万</span></div>
-            </div>
-            <div class="terms-cell">
-              <div class="flex items-center gap-1">
-                <span class="terms-label" style="margin-bottom:0;">预估月收入</span>
-                <span class="help-icon" data-help-id="estimatedMonthlyRevenue">?</span>
-              </div>
-              <div class="help-text">发起人对项目月度收入的预估。这只是预估，实际回款取决于真实经营情况。</div>
-              <div class="terms-value">¥{proj.estimatedMonthlyRevenue}<span class="text-text-tertiary" style="font-size:13px;font-weight:400;">万</span></div>
-            </div>
-          </div>
-          <div class="calc-highlight">
-            <div>
-              <div class="terms-label">预估月回款</div>
-              <div class="font-bold text-brand" style="font-size:18px;">¥{rbf.monthlyShare.toFixed(1)}万</div>
-            </div>
-            <div>
-              <div class="terms-label">预估回收期</div>
-              <div class="font-bold text-brand" style="font-size:18px;">约{rbf.paybackMonths}月</div>
-            </div>
-          </div>
-        </div>
 
-        {/* 2.5 项目亮点 — 仅当 highlights 存在时显示 */}
-        {proj.highlights && proj.highlights.length > 0 && (
-          <div style="margin:12px 0px;padding:16px 20px;background:#fff;border-radius:14px;border-left:3px solid #D4A853;" class="shadow-card">
-            <div style="display:flex;align-items:center;justify-content:space-between;">
-              <span style="font-size:14px;font-weight:600;color:#1C1917;">项目亮点</span>
-              <span style="font-size:14px;">⭐</span>
+          {/* ─── Card 4: RBF Terms ─── */}
+          <div class="detail-card" style="padding:0;overflow:hidden;">
+            <div style="padding:18px 20px;border-bottom:1px solid #F5F5F4;display:flex;align-items:center;gap:10px;">
+              <i class="fas fa-file-contract" style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#FEE2E2,#FECDD3);color:#B91C1C;display:flex;align-items:center;justify-content:center;font-size:13px;" />
+              <span style="font-size:16px;font-weight:600;color:#1C1917;">收入分成条款</span>
             </div>
-            <div style="margin-top:10px;">
-              {proj.highlights.map((h: string) => (
-                <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;">
-                  <span style="width:6px;height:6px;background:#D4A853;border-radius:50%;flex-shrink:0;margin-top:6px;" />
-                  <span style="font-size:14px;color:#44403C;line-height:1.6;">{h}</span>
+            <div class="terms-grid">
+              <div class="terms-cell">
+                <div style="display:flex;align-items:center;gap:4px;">
+                  <span class="terms-label" style="margin-bottom:0;">融资总额</span>
+                  <span class="help-icon" data-help-id="totalAmount">?</span>
                 </div>
-              ))}
+                <div class="help-text">这个项目总共需要多少资金。所有参与人的投资加起来等于这个数。</div>
+                <div class="terms-value">¥{proj.targetAmount}<span style="font-size:13px;font-weight:400;color:#A8A29E;">万</span></div>
+              </div>
+              <div class="terms-cell">
+                <div style="display:flex;align-items:center;gap:4px;">
+                  <span class="terms-label" style="margin-bottom:0;">分成比例</span>
+                  <span class="help-icon" data-help-id="revenueShareRatio">?</span>
+                </div>
+                <div class="help-text">发起人愿意把项目月收入的多少拿出来分给参与人。比例越高，参与人回款越快，但发起人让出的越多。同类项目一般在8%-20%。</div>
+                <div class="terms-value">{proj.revenueShareRate}<span style="font-size:13px;font-weight:400;color:#A8A29E;">%</span></div>
+              </div>
+              <div class="terms-cell">
+                <div style="display:flex;align-items:center;gap:4px;">
+                  <span class="terms-label" style="margin-bottom:0;">联营期限</span>
+                  <span class="help-icon" data-help-id="cooperationTerm">?</span>
+                </div>
+                <div class="help-text">合作持续多长时间。到期后无论是否收回投资，合同自动结束。</div>
+                <div class="terms-value">{proj.duration}<span style="font-size:13px;font-weight:400;color:#A8A29E;">月</span></div>
+              </div>
+              <div class="terms-cell">
+                <div style="display:flex;align-items:center;gap:4px;">
+                  <span class="terms-label" style="margin-bottom:0;">回收倍数</span>
+                  <span class="help-icon" data-help-id="recoveryMultiple">?</span>
+                </div>
+                <div class="help-text">参与人最多能拿回投资额的多少倍。1.5倍意味着投10万最多拿回15万。达到上限后合同自动结束。</div>
+                <div class="terms-value">{proj.recoveryMultiple}<span style="font-size:13px;font-weight:400;color:#A8A29E;">x</span></div>
+              </div>
+              <div class="terms-cell">
+                <div style="display:flex;align-items:center;gap:4px;">
+                  <span class="terms-label" style="margin-bottom:0;">回收上限</span>
+                  <span class="help-icon" data-help-id="recoveryCap">?</span>
+                </div>
+                <div class="help-text">你最多能拿回的总金额 = 投资额 × 回收倍数。</div>
+                <div class="terms-value">¥{rbf.recoveryCap}<span style="font-size:13px;font-weight:400;color:#A8A29E;">万</span></div>
+              </div>
+              <div class="terms-cell">
+                <div style="display:flex;align-items:center;gap:4px;">
+                  <span class="terms-label" style="margin-bottom:0;">预估月收入</span>
+                  <span class="help-icon" data-help-id="estimatedMonthlyRevenue">?</span>
+                </div>
+                <div class="help-text">发起人对项目月度收入的预估。这只是预估，实际回款取决于真实经营情况。</div>
+                <div class="terms-value">¥{proj.estimatedMonthlyRevenue}<span style="font-size:13px;font-weight:400;color:#A8A29E;">万</span></div>
+              </div>
+            </div>
+            {/* Highlight calc row */}
+            <div style="background:linear-gradient(135deg,#FEF2F2,#FFF1F2);padding:18px 20px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+              <div>
+                <div style="font-size:12px;color:#78716C;margin-bottom:4px;">预估月回款</div>
+                <div style="font-size:20px;font-weight:800;color:#B91C1C;">¥{rbf.monthlyShare.toFixed(1)}<span style="font-size:14px;font-weight:400;">万</span></div>
+              </div>
+              <div>
+                <div style="font-size:12px;color:#78716C;margin-bottom:4px;">预估回收期</div>
+                <div style="font-size:20px;font-weight:800;color:#B91C1C;">约{rbf.paybackMonths}<span style="font-size:14px;font-weight:400;">月</span></div>
+              </div>
             </div>
           </div>
-        )}
 
-        {/* 2.5a 发起人说 — 仅当 initiatorNote 非空时显示 (Task 4) */}
-        {proj.initiatorNote && proj.initiatorNote.trim() && (
-          <div class="initiator-note">
-            <div class="initiator-note-header">
-              <div class="initiator-note-avatar">{owner.name.charAt(0)}</div>
-              <span class="initiator-note-name">{owner.name}</span>
-              <span class="initiator-note-tag">发起人</span>
+          {/* ─── Card 5: Project Highlights ─── */}
+          {proj.highlights && proj.highlights.length > 0 && (
+            <div class="detail-card" style="border-left:3px solid #D4A853;">
+              <div class="detail-card-header">
+                <i class="fas fa-star detail-card-header-icon" style="background:linear-gradient(135deg,#FEF3C7,#FDE68A);color:#B45309;" />
+                <span>项目亮点</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:10px;">
+                {proj.highlights.map((h: string, idx: number) => (
+                  <div style="display:flex;align-items:flex-start;gap:12px;padding:10px 14px;background:#FFFBEB;border-radius:10px;border:1px solid #FDE68A;">
+                    <span style="width:22px;height:22px;border-radius:50%;background:#D4A853;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">{idx + 1}</span>
+                    <span style="font-size:14px;color:#44403C;line-height:1.6;padding-top:1px;">{h}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div class="initiator-note-body">
-              <span class="initiator-note-quote">"</span>
-              <span class="initiator-note-text">{proj.initiatorNote}</span>
+          )}
+
+          {/* ─── Card 6: Initiator Note ─── */}
+          {proj.initiatorNote && proj.initiatorNote.trim() && (
+            <div class="detail-card" style="background:linear-gradient(160deg,#FAFAF9,#F5F5F4);border:1px solid #E7E5E4;">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+                <div style="width:36px;height:36px;border-radius:50%;background:#FEE2E2;color:#B91C1C;font-weight:600;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">
+                  {owner.name.charAt(0)}
+                </div>
+                <span style="font-size:14px;font-weight:600;color:#1C1917;">{owner.name}</span>
+                <span style="font-size:11px;background:rgba(185,28,28,0.08);color:#B91C1C;border-radius:4px;padding:2px 8px;">发起人</span>
+              </div>
+              <div style="position:relative;padding-left:16px;">
+                <span style="position:absolute;left:0;top:-4px;font-size:28px;color:#D6D3D1;font-family:Georgia,serif;line-height:1;">"</span>
+                <p style="font-size:14px;color:#57534E;line-height:1.8;margin:0;">{proj.initiatorNote}</p>
+              </div>
+            </div>
+          )}
+
+          {/* ─── Card 7: Plain Language Block ─── */}
+          <div id="plain-lang-detail" class="detail-plain-lang-wrapper" />
+
+          {/* ─── Card 8: Fundraising Progress ─── */}
+          <div class="detail-card">
+            <div class="detail-card-header">
+              <i class="fas fa-chart-pie detail-card-header-icon" style="background:linear-gradient(135deg,#FEF3C7,#FDE68A);color:#B45309;" />
+              <span>募集进度</span>
+            </div>
+            {/* Amount headline */}
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">
+              <span style="font-size:20px;font-weight:800;color:#1C1917;">¥{proj.raisedAmount}万</span>
+              <span style="font-size:14px;color:#78716C;">/ ¥{proj.targetAmount}万</span>
+            </div>
+            {/* Progress bar */}
+            <div class="progress-bar-lg" style="margin-bottom:8px;">
+              <div class="progress-fill" data-width={`${pct}%`} />
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+              <span style="font-size:13px;color:#78716C;">已参与 {proj.investors.length} 位同学</span>
+              <span style="font-size:14px;font-weight:700;color:#B8860B;">{pct}%</span>
+            </div>
+            {/* Share stats */}
+            <div style="display:flex;gap:8px;">
+              <div style="flex:1;padding:10px;background:#FAFAF9;border-radius:10px;text-align:center;">
+                <div style="font-size:11px;color:#A8A29E;margin-bottom:2px;">总份额</div>
+                <div style="font-size:16px;font-weight:700;color:#1C1917;">{proj.totalShares}份</div>
+              </div>
+              <div style="flex:1;padding:10px;background:#FAFAF9;border-radius:10px;text-align:center;">
+                <div style="font-size:11px;color:#A8A29E;margin-bottom:2px;">剩余</div>
+                <div style={`font-size:16px;font-weight:700;color:${remainShares > 0 ? '#16A34A' : '#DC2626'};`}>{remainShares > 0 ? `${remainShares}份` : '已满额'}</div>
+              </div>
+              <div style="flex:1;padding:10px;background:#FAFAF9;border-radius:10px;text-align:center;">
+                <div style="font-size:11px;color:#A8A29E;margin-bottom:2px;">每份</div>
+                <div style="font-size:16px;font-weight:700;color:#1C1917;">¥{proj.sharePrice}万</div>
+              </div>
             </div>
           </div>
-        )}
-
-        {/* 2.5b Plain Language Block */}
-        <div class="plain-lang-block mb-4" id="plain-lang-detail" />
-
-        {/* 3. Fundraising Progress */}
-        <div class="bg-white rounded-2xl shadow-card p-5 mb-4">
-          <h3 class="font-semibold text-text-title mb-3" style="font-size:16px;">
-            <i class="fas fa-chart-pie text-gold mr-2" style="font-size:14px;" />
-            募集进度
-          </h3>
-          <div class="progress-bar-lg mb-3">
-            <div class="progress-fill" data-width={`${pct}%`} />
-          </div>
-          <div class="font-semibold text-text-title mb-1" style="font-size:16px;">
-            已募 ¥{proj.raisedAmount}万 / ¥{proj.targetAmount}万 <span class="text-gold-dark">({pct}%)</span>
-          </div>
-          <div class="text-text-secondary" style="font-size:13px;">
-            已参与 {proj.investors.length} 位同学 · {remainShares > 0 ? `剩余 ${remainShares} 份` : '已满额'}
-          </div>
-        </div>
 
         {/* Close left column wrapper (dk-detail-left) before the action card */}
         </div>
 
         {/* RIGHT COLUMN: Action area (sticky on desktop) */}
-        {/* 4. Participate Calculator (open only, not owner) */}
         {proj.status === 'open' && remainShares > 0 && (
           <div id="participate-calculator" class="calc-card shadow-card p-5 mb-4 dk-detail-action-card">
-            <h3 class="font-semibold text-text-title mb-4" style="font-size:16px;">
-              <i class="fas fa-calculator text-gold mr-2" style="font-size:14px;" />
+            <h3 style="font-size:16px;font-weight:700;color:#1C1917;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+              <i class="fas fa-calculator" style="color:#D4A853;font-size:14px;" />
               我要参与
             </h3>
-            <div class="flex items-center gap-3 mb-4">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
               <select id="share-select" class="share-select">
                 {Array.from({ length: Math.min(remainShares, 10) }, (_, i) => i + 1).map(n => (
                   <option value={String(n)}>{n} 份</option>
                 ))}
               </select>
-              <span class="text-text-tertiary" style="font-size:15px;">=</span>
-              <span id="share-amount" class="font-bold text-text-title" style="font-size:22px;">¥{proj.sharePrice}万</span>
+              <span style="font-size:15px;color:#A8A29E;">=</span>
+              <span id="share-amount" style="font-size:24px;font-weight:800;color:#1C1917;">¥{proj.sharePrice}万</span>
             </div>
             <div class="grid grid-cols-3 gap-3 mb-3 p-3 rounded-xl" style="background:#FAFAF9;">
               <div class="text-center">
-                <div class="text-text-tertiary" style="font-size:11px;">月回款预估</div>
-                <div id="calc-monthly" class="font-bold text-text-title" style="font-size:15px;">—</div>
+                <div style="font-size:11px;color:#A8A29E;">月回款预估</div>
+                <div id="calc-monthly" style="font-size:15px;font-weight:700;color:#1C1917;margin-top:2px;">—</div>
               </div>
               <div class="text-center">
-                <div class="text-text-tertiary" style="font-size:11px;">回收上限</div>
-                <div id="calc-cap" class="font-bold text-text-title" style="font-size:15px;">—</div>
+                <div style="font-size:11px;color:#A8A29E;">回收上限</div>
+                <div id="calc-cap" style="font-size:15px;font-weight:700;color:#1C1917;margin-top:2px;">—</div>
               </div>
               <div class="text-center">
-                <div class="text-text-tertiary" style="font-size:11px;">预估回收期</div>
-                <div id="calc-months" class="font-bold text-text-title" style="font-size:15px;">—</div>
+                <div style="font-size:11px;color:#A8A29E;">预估回收期</div>
+                <div id="calc-months" style="font-size:15px;font-weight:700;color:#1C1917;margin-top:2px;">—</div>
               </div>
             </div>
             {/* Calculator plain-language hint */}
             <div id="calc-plain-hint" style="font-size:12px;line-height:1.6;color:#78716C;margin-bottom:16px;" />
             {/* Owner info (desktop) */}
             <div class="dk-detail-action-owner" style="display:none;margin-bottom:16px;">
-              <div class="flex items-center gap-3 p-3 rounded-xl" style="background:#FAFAF9;">
-                <div class="flex items-center justify-center rounded-full bg-brand text-white font-bold flex-shrink-0" style="width:36px;height:36px;font-size:14px;">
+              <div style="display:flex;align-items:center;gap:12px;padding:12px;background:#FAFAF9;border-radius:12px;">
+                <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#DC2626,#991B1B);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;">
                   {owner.name.charAt(0)}
                 </div>
                 <div>
-                  <div class="font-semibold text-text-title" style="font-size:14px;">{owner.name}</div>
-                  <div class="text-text-secondary" style="font-size:12px;">{owner.company} · {owner.cohort}</div>
+                  <div style="font-size:14px;font-weight:600;color:#1C1917;">{owner.name}</div>
+                  <div style="font-size:12px;color:#78716C;">{owner.company} · {owner.cohort}</div>
                 </div>
               </div>
             </div>
             <button id="participate-btn" class="btn-gold" style="font-size:16px;height:48px;">
               确认参与 ¥{proj.sharePrice}万
             </button>
-            <p id="owner-hint" class="text-center text-text-tertiary mt-3" style="font-size:12px;display:none;">
+            <p id="owner-hint" style="text-align:center;font-size:12px;color:#A8A29E;margin-top:12px;display:none;">
               您是项目发起人，无法参与自己的项目
             </p>
           </div>
         )}
 
         {/* 5. Investors */}
-        <div class="bg-white rounded-2xl shadow-card p-5 mb-4 dk-detail-bottom">
-          <h3 class="font-semibold text-text-title mb-3" style="font-size:16px;">
-            <i class="fas fa-users text-brand-dark mr-2" style="font-size:14px;" />
-            已参与学员
-          </h3>
-          <div class="avatar-stack mb-2">
-            {investorMembers.slice(0, 6).map((m, i) => (
-              <div class="av-circle" style={`background:${bgColors[i % bgColors.length]};`}>{m.name.charAt(0)}</div>
-            ))}
-            {investorMembers.length > 6 && (
-              <div class="av-circle" style="background:#78716C;">+{investorMembers.length - 6}</div>
-            )}
+        <div class="detail-card dk-detail-bottom">
+          <div class="detail-card-header">
+            <i class="fas fa-users detail-card-header-icon" style="background:linear-gradient(135deg,#EDE9FE,#DDD6FE);color:#7C3AED;" />
+            <span>已参与学员</span>
           </div>
-          <p class="text-text-secondary" style="font-size:13px;">共 {investorMembers.length} 位同学参与</p>
+          {investorMembers.length > 0 ? (
+            <div>
+              <div class="avatar-stack mb-3">
+                {investorMembers.slice(0, 6).map((m, i) => (
+                  <div class="av-circle" style={`background:${bgColors[i % bgColors.length]};`}>{m.name.charAt(0)}</div>
+                ))}
+                {investorMembers.length > 6 && (
+                  <div class="av-circle" style="background:#78716C;">+{investorMembers.length - 6}</div>
+                )}
+              </div>
+              <p style="font-size:13px;color:#78716C;">共 {investorMembers.length} 位同学参与</p>
+            </div>
+          ) : (
+            <div style="text-align:center;padding:12px 0;">
+              <div style="font-size:28px;margin-bottom:6px;opacity:0.5;">👥</div>
+              <p style="font-size:13px;color:#A8A29E;">暂无学员参与，成为第一位！</p>
+            </div>
+          )}
         </div>
 
         {/* 6. Share / Referral Buttons */}
         <div class="dk-detail-bottom" style="margin-bottom:16px;">
-          <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-            <div style="flex:1;height:1px;background:#D6D3D1;" />
-            <span style="font-size:12px;color:#A8A29E;white-space:nowrap;">或者</span>
-            <div style="flex:1;height:1px;background:#D6D3D1;" />
+          <div class="detail-card" style="padding:16px 20px;">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+              <div style="flex:1;height:1px;background:#E7E5E4;" />
+              <span style="font-size:12px;color:#A8A29E;white-space:nowrap;">更多操作</span>
+              <div style="flex:1;height:1px;background:#E7E5E4;" />
+            </div>
+            <div style="display:flex;gap:10px;">
+              <button id="btn-referral" style="flex:1;height:44px;background:linear-gradient(135deg,#FEF2F2,#FFF1F2);border:1.5px solid #FECACA;border-radius:12px;color:#B91C1C;font-weight:600;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.2s;">
+                <i class="fas fa-user-tie" style="font-size:13px;" /> 请老师引荐
+              </button>
+              <button id="btn-share-project" style="flex:1;height:44px;background:#FAFAF9;border:1.5px solid #E7E5E4;border-radius:12px;color:#57534E;font-weight:600;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.2s;">
+                <i class="fas fa-share-alt" style="font-size:13px;" /> 分享项目
+              </button>
+            </div>
+            {/* Referral status line — rendered via client JS */}
+            <div id="referral-status-line" style="display:none;margin-top:10px;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:500;" />
           </div>
-          <div style="display:flex;gap:12px;">
-            <button id="btn-referral" style="flex:1;height:44px;background:#fff;border:1.5px solid #B91C1C;border-radius:12px;color:#B91C1C;font-weight:600;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:background 0.2s;">
-              <i class="fas fa-user-tie" style="font-size:13px;" /> 请老师引荐
-            </button>
-            <button id="btn-share-project" style="flex:1;height:44px;background:#fff;border:1.5px solid #78716C;border-radius:12px;color:#78716C;font-weight:600;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:background 0.2s;">
-              <i class="fas fa-share-alt" style="font-size:13px;" /> 分享项目
-            </button>
-          </div>
-          {/* Referral status line — rendered via client JS */}
-          <div id="referral-status-line" style="display:none;margin-top:10px;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:500;" />
         </div>
       </main>
 
@@ -374,25 +419,25 @@ app.get('/projects/:id', async (c) => {
           {/* Drag indicator */}
           <div style="width:40px;height:4px;border-radius:2px;background:#D6D3D1;margin:0 auto 20px;" />
 
-          {/* Premium Share Card Preview — 高端邀请函风格 */}
+          {/* Premium Share Card Preview */}
           <div id="share-card-preview" style="width:100%;max-width:320px;margin:0 auto;border-radius:20px;overflow:hidden;background:linear-gradient(160deg,#7F1D1D 0%,#B91C1C 35%,#991B1B 65%,#7F1D1D 100%);box-shadow:0 8px 32px rgba(185,28,28,0.3);">
-            {/* A. 品牌头部 */}
+            {/* A. Brand header */}
             <div style="padding:20px 24px 16px;">
               <div style="width:40px;height:2px;background:linear-gradient(90deg,#D4A853,#F5DEB3);margin-bottom:12px;" />
               <div style="font-size:12px;color:#D4A853;letter-spacing:3px;">中流通 · 项目推介</div>
             </div>
-            {/* B. 项目名称区 */}
+            {/* B. Project name */}
             <div style="padding:0 24px;">
               <div style="font-size:24px;font-weight:800;color:#fff;line-height:1.3;">{proj.name}</div>
               {proj.highlightText && (
                 <div style="margin-top:8px;font-size:14px;color:rgba(212,168,83,0.9);font-style:italic;line-height:1.5;">{proj.highlightText}</div>
               )}
             </div>
-            {/* C. 发起人信息 */}
+            {/* C. Initiator */}
             <div style="padding:12px 24px 0;">
               <div style="font-size:13px;color:rgba(255,255,255,0.5);">发起人 {owner.name} · {owner.className || owner.cohort}</div>
             </div>
-            {/* D. 核心数据区 */}
+            {/* D. Core data */}
             <div style="margin:20px 24px;padding:20px;background:rgba(255,255,255,0.12);border-radius:14px;border:1px solid rgba(255,255,255,0.15);">
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
                 <div style="text-align:center;"><div style="font-size:22px;font-weight:800;color:#fff;">¥{proj.targetAmount}万</div><div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:4px;letter-spacing:1px;">融资规模</div></div>
@@ -401,7 +446,7 @@ app.get('/projects/:id', async (c) => {
                 <div style="text-align:center;"><div style="font-size:22px;font-weight:800;color:#fff;">≈¥{(proj.estimatedMonthlyRevenue * proj.revenueShareRate / 100).toFixed(1)}万</div><div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:4px;letter-spacing:1px;">预估月回款</div></div>
               </div>
             </div>
-            {/* E. 项目亮点区 */}
+            {/* E. Highlights */}
             {proj.highlights && proj.highlights.length > 0 && (
               <div style="padding:0 24px;margin-top:4px;">
                 {proj.highlights.map((h: string) => (
@@ -412,7 +457,7 @@ app.get('/projects/:id', async (c) => {
                 ))}
               </div>
             )}
-            {/* F. 分享码区域 */}
+            {/* F. Share code */}
             <div style="padding:24px;text-align:center;">
               <div style="border:1px dashed rgba(212,168,83,0.4);border-radius:12px;padding:16px;margin:0 24px;">
                 <div style="font-size:32px;font-weight:800;letter-spacing:8px;color:#D4A853;font-family:monospace;">{proj.shareCode || '------'}</div>
@@ -422,7 +467,7 @@ app.get('/projects/:id', async (c) => {
                 </div>
               </div>
             </div>
-            {/* G. 底部 */}
+            {/* G. Footer */}
             <div style="padding:12px 24px 20px;text-align:center;">
               <div style="width:40px;height:1px;background:rgba(212,168,83,0.3);margin:0 auto 8px;" />
               <div style="font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:2px;">一亿中流 · 私董会项目投资平台</div>
@@ -517,15 +562,14 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
 
   // ── Task 3: viewCount increment + display ──
   (function(){
-    // Increment view count via API
     fetch('/api/admin/projects/' + PROJ.id + '/view', {method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).then(function(r){return r.json();}).then(function(res){
       var currentCount = res.ok ? res.viewCount : (PROJ.viewCount || 0);
       var participantCount = MOCK_CONTRACTS_FOR_COUNT;
       var vcEl = document.getElementById('detail-view-count');
-      if(vcEl) vcEl.textContent = currentCount + '人浏览 · ' + participantCount + '人参与';
+      if(vcEl) vcEl.innerHTML = '<i class="fas fa-eye" style="font-size:11px;"></i> ' + currentCount + '人浏览 · ' + participantCount + '人参与';
     }).catch(function(){
       var vcEl = document.getElementById('detail-view-count');
-      if(vcEl) vcEl.textContent = (PROJ.viewCount || 0) + '人浏览 · ' + MOCK_CONTRACTS_FOR_COUNT + '人参与';
+      if(vcEl) vcEl.innerHTML = '<i class="fas fa-eye" style="font-size:11px;"></i> ' + (PROJ.viewCount || 0) + '人浏览 · ' + MOCK_CONTRACTS_FOR_COUNT + '人参与';
     });
   })();
 
@@ -624,12 +668,13 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
     var paybackMonths = perShareMonthly > 0 ? Math.ceil(minPart / perShareMonthly) : 0;
     var perShareCap = minPart * multiple;
 
-    plEl.innerHTML = '<div class="plain-lang-title">\\uD83D\\uDCAC 简单来说</div>'
-      + '<div class="plain-lang-body">'
+    plEl.innerHTML = '<div class="detail-card" style="background:#FFFBEB;border:1px solid #FDE68A;">'
+      + '<div style="font-size:14px;font-weight:600;color:#92400E;margin-bottom:8px;">\\uD83D\\uDCAC 简单来说</div>'
+      + '<div style="font-size:13px;line-height:1.8;color:#78716C;">'
       + '这个项目总共需要 ' + totalAmount + ' 万资金。发起人承诺把项目每月收入的 ' + ratio + '% 分给所有参与人。按目前预估每月收入 ' + estRevenue + ' 万计算，每月总共分出约 ' + monthlyShare.toFixed(2) + ' 万。'
       + '<br/><br/>如果你参与 ' + minPart + ' 万（1份），你每月大约能拿到 ' + perShareMonthly.toFixed(2) + ' 万，大概 ' + paybackMonths + ' 个月收回本金，最多能拿回 ' + perShareCap.toFixed(2) + ' 万（投资额的 ' + multiple + ' 倍）。'
-      + '<br/><br/><span class="plain-lang-warning">\\u26A0\\uFE0F 以上基于预估收入，实际回款取决于项目真实经营情况。</span>'
-      + '</div>';
+      + '<br/><br/><span style="color:#DC2626;">\\u26A0\\uFE0F 以上基于预估收入，实际回款取决于项目真实经营情况。</span>'
+      + '</div></div>';
   })();
 
   // Participate with confirm modal
@@ -642,7 +687,6 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
       title: '确认参与 ' + PROJ.name + '？',
       desc: '投资 ' + n + ' 份，共 ¥' + cost + '万',
       onConfirm: function(){
-        // Call API to participate
         if(partBtn){ partBtn.disabled = true; partBtn.textContent = '提交中...'; }
 
         fetch('/api/admin/projects/' + PROJ.id + '/participate', {
@@ -658,14 +702,12 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
 
           var contractId = d.data.contractId;
 
-          // Disable button
           if(partBtn){
             partBtn.disabled = true;
             partBtn.textContent = '已参与 ¥' + cost + '万';
           }
           if(sel) sel.disabled = true;
 
-          // Show success modal
           showSuccessModal({
             title: '参与成功！',
             sub: '即将进入合同签署',
@@ -682,7 +724,7 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
 
   if(partBtn) partBtn.addEventListener('click', doParticipate);
 
-  // Check if already invested on load (from D1 contracts data in SSR)
+  // Check if already invested on load
   var alreadyIn = null;
   if(typeof CONTRACTS_FOR_PROJECT !== 'undefined'){
     CONTRACTS_FOR_PROJECT.forEach(function(c){ if(c.participantId === u.id) alreadyIn = c; });
@@ -718,7 +760,7 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
     });
   }
 
-  // Auto-open share sheet if ?share=true (Task 2)
+  // Auto-open share sheet if ?share=true
   if(window.location.search.indexOf('share=true') !== -1){
     setTimeout(openSharePanel, 500);
   }
@@ -732,33 +774,27 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
   var refTeacherNameEl = document.getElementById('ref-teacher-name');
   var refStatusLine = document.getElementById('referral-status-line');
 
-  // Find teacher for current user
   var myClassId = u.classId || '';
   var myTeacher = null;
   if(myClassId){
     myTeacher = TEACHERS.find(function(t){ return t.classIds.indexOf(myClassId) !== -1; }) || null;
   }
 
-  // Find project owner info
   var projOwnerMember = MEMBERS.find(function(m){ return m.id === PROJ.ownerId; });
   var isSameClassAsInitiator = myClassId && PROJ.initiatorClassId === myClassId;
   var isOwner = u.id === PROJ.ownerId;
 
-  // Handle edge cases for referral button visibility
   if(btnReferral){
     if(isOwner){
-      // Hide for project initiator
       btnReferral.style.display = 'none';
     } else if(!myTeacher){
-      // Hide if user has no teacher
       btnReferral.style.display = 'none';
     } else if(isSameClassAsInitiator){
-      // Same class: change text
       btnReferral.innerHTML = '<i class="fas fa-user-tie" style="font-size:13px;"></i> 请老师深入介绍';
     }
   }
 
-  // Load existing referrals from D1 via API
+  // Load existing referrals
   var referrals = [];
   var existingRef = null;
   fetch('/api/data/referrals').then(function(r){return r.json();}).then(function(data){
@@ -769,11 +805,9 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
 
   function updateReferralUI(){
     if(!btnReferral) return;
-    // Re-check from current referrals data
     existingRef = referrals.find(function(r){ return r.projectId === PROJ.id && r.requesterId === u.id; });
 
     if(existingRef){
-      // Disable button
       btnReferral.disabled = true;
       btnReferral.style.background = '#F5F5F4';
       btnReferral.style.borderColor = '#D6D3D1';
@@ -781,7 +815,6 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
       btnReferral.style.cursor = 'default';
       btnReferral.innerHTML = '<i class="fas fa-clock" style="font-size:13px;"></i> 已请求引荐';
 
-      // Show status line
       if(refStatusLine){
         if(existingRef.status === 'connected'){
           refStatusLine.style.display = 'block';
@@ -868,7 +901,6 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
     });
   }
 
-  // Initial referral UI update
   updateReferralUI();
 
   // Copy share code
@@ -896,7 +928,7 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
     });
   }
 
-  // Copy text version (core feature)
+  // Copy text version
   var btnCopyText = document.getElementById('btn-copy-text');
   if(btnCopyText){
     btnCopyText.addEventListener('click', function(){
