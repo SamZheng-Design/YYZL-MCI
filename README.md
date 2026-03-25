@@ -3,6 +3,12 @@
 一亿中流私董会学员专属的收入分成（RBF）投资协作平台。  
 由滴灌通（Micro Connect）与一亿中流联合打造。
 
+## 项目概览
+
+- **名称**: 中流通 ZhongLiu Connect
+- **目标**: 私域RBF协作平台，数据透明，分账体外执行，结果在平台展示
+- **模式**: 投资人→第三方分账机构→融资方，分账结果推送至中流通平台
+
 ## URLs
 
 - **预览**: https://3000-i8ip8indu9123mne7hota-5634da27.sandbox.novita.ai
@@ -14,245 +20,199 @@
 - **发起项目**: /create (3步骤表单)
 - **合同签署**: /contracts/:id/sign
 - **回款中心**: /repayments (双Tab: 我的投资+我的发起)
-- **投资详情**: /investments/:contractId (SVG圆环+柱状图+明细)
-- **上报收入**: /initiated/:projectId/report (表单+历史+分配明细)
+- **投资详情**: /investments/:contractId
 - **管理后台**: /admin (仅管理员可访问)
-- **分享码跳转**: /share/:code (自动重定向到项目详情)
+- **老师工作台**: /teacher
+- **分享码跳转**: /share/:code
 
-## 已完成功能
+## 架构演进记录
 
-### V1.0 ~ V1.4 (前5次迭代)
-- 登录页、首页、项目大厅、项目详情、参与功能
-- 发起项目(3步表单)、合同签署(双方签署+验证码)
-- 回款总览(双Tab)、投资详情(SVG圆环+柱状图)、上报收入(自动分配)
+### Phase 1 — D1 数据持久化 + 认证重构 ✅ (2026-03-25)
 
-### V1.5 — 全局优化 + 动画 + 管理员入口
+**核心变化：从 localStorage + Mock 数据 → Cloudflare D1 云端数据库**
 
-#### 全局动画优化
-- **页面切换过渡**: 所有页面内容区添加淡入上滑动画 (page-enter, 0.35s cubic-bezier)
-- **卡片滚动渐现**: IntersectionObserver + stagger延迟 (reveal + visible class)
-- **数字递增动画**: 首页KPI数字从0递增到目标值 (animateNumber, 600ms easeOutCubic)
-- **进度条动画**: 使用data-width属性，IntersectionObserver触发从0→目标宽度 (800ms)
+#### 数据库层
+- **13张表**: users, projects, project_investors, contracts, settlement_batches, settlement_records, repayment_details, referrals, notifications, invite_codes, share_logs, audit_logs, sessions
+- **Migration**: `migrations/0001_initial_schema.sql` (51条DDL命令)
+- **Seed**: `seed.sql` (484行) — 从原 data.ts 完整迁移
+  - 43名学员 + 6名老师 + 1名管理员
+  - 30个项目 + 46份合同
+  - 101条分账记录 + 110条回款明细
+  - 8条引荐 + 21条通知
 
-#### 全局 Toast 通知
-- 从屏幕顶部滑入的通知组件
-- 支持 success (绿色) / error (红色) / info (蓝色) 三种类型
-- 自动3秒消失，全局可用 `showToast(message, type, duration)`
+#### 新增文件
+| 文件 | 作用 |
+|------|------|
+| `src/types.ts` | 统一 TypeScript 类型定义，1:1 映射 D1 schema |
+| `src/db.ts` | D1 数据库访问层（密码验证、CRUD、统计查询） |
+| `src/db-bridge.ts` | D1 → camelCase 桥接层（让前端路由无缝切换数据源） |
 
-#### 统一确认弹窗 (showConfirm)
-- 全屏半透明遮罩 rgba(0,0,0,0.5)
-- 弹窗卡片: 白色圆角20px, 缩放弹出动画 scale(0.9→1)
-- 标题 + 描述 + 双按钮 (取消/确认)
-- 点击遮罩可关闭
-- 使用场景: 确认参与项目、确认退出登录
+#### API 重构
+- `/api/login` → 从 D1 验证密码（支持 `$demo$` 和 `$sha256$` 双模式）
+- `/api/members` → 从 D1 读取活跃学员
+- `/api/projects` → 从 D1 读取项目列表（含投资人关联）
+- `/api/user-stats/:id` → 从 D1 计算用户统计
 
-#### 参与成功动画
-- 全屏遮罩 + 白色卡片
-- 绿色 ✓ 图标 (fa-check-circle, 缩放弹出 scale 0→1)
-- "参与成功！" + "即将进入合同签署"
-- 2秒后自动关闭跳转
+#### 新增数据 API（18个端点）
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | /api/data/members | 全部学员（camelCase） |
+| GET | /api/data/teachers | 全部老师 |
+| GET | /api/data/projects | 全部项目 |
+| GET | /api/data/projects/:id | 单个项目详情 |
+| GET | /api/data/contracts | 全部合同 |
+| GET | /api/data/contracts/project/:id | 项目合同 |
+| GET | /api/data/revenue-reports | 分账记录 |
+| GET | /api/data/repayment-records | 回款明细 |
+| GET | /api/data/repayments | 简化回款列表 |
+| GET | /api/data/referrals | 引荐记录 |
+| GET | /api/data/notifications | 通知列表 |
+| GET | /api/data/share-logs | 分享记录 |
+| GET | /api/data/share-code/:code | 分享码查询 |
+| GET | /api/platform-stats | 平台统计 |
 
-#### 签约成功动画
-- 金色主题 ✓ 图标 (#D4A853)
-- "合同签署成功！"
-- 金色纸屑飘落效果 (CSS keyframes, 20个小方块)
+#### 登录页重构
+- 从"手机号+验证码(888888)"改为"手机号+密码"
+- 快速登录按钮改为通过 API 验证（不再前端硬编码）
+- 密码存储：`$demo$zhongliu2026`（demo模式）
 
-#### 空状态设计
-- 统一空状态样式: 居中灰色图标 + 提示文字 + 引导按钮
-- 项目大厅无匹配、我的投资/发起为空、回款明细为空
+### V1.0 ~ V1.7 (UI/UX) — 已完成
 
-#### 管理员后台 (/admin)
-- 仅 role='admin' 可访问，个人主页显示 [管理后台] 入口
-- 黑色导航栏 (#1C1917) 区分前台
-- **平台数据概览**: 学员总数、项目总数、累计融资、累计回款、活跃项目
-- **学员管理**: 表格列表 + [邀请新学员] 弹窗 (输入手机号+姓名)
-- **项目列表**: 全部项目，可按状态筛选
-
-#### 响应式优化
-- **桌面端**: 480px居中容器 + 两侧阴影 (模拟手机应用体验)
-- **移动端**: 底部Tab全宽，卡片全宽，筛选栏竖排，登录页减padding
-- **Tab Bar**: 桌面端限制在480px宽度内居中
-
-#### 其他优化
-- **Favicon**: 品牌红色双圆SVG图标
-- **Title**: 统一 "中流通 - {页面名}" 格式
-- **Loading**: 品牌红色旋转圆环 (page-spinner)
-
-### V1.7 — 关系标签 + 智能排序 + 引荐功能 (Prompt 8)
-
-#### 关系标签 (Relation Tags)
-- **`getRelationTag(project, currentUser)`**: 基于优先级返回标签
-  - 🌟 **老师推荐** (金色, #FFFBEB/#B45309/#FDE68A): 当前用户的老师推荐了该项目
-  - **同班** (绿色, #ECFDF5/#047857/#A7F3D0): 项目发起人与当前用户同班
-  - **期数** (灰色, #F5F5F4/#78716C/#E7E5E4): 其他期的项目
-- **项目大厅卡片**: 每张卡片第一行显示关系标签
-- **项目详情页**: 返回按钮下方显示关系标签
-- **数据**: p-002 (工业视觉检测新产线) 设置了 `recommendedByTeacher: ['t-002']`
-
-#### 智能排序
-- 排序选项更新为: "与我相关"(默认) / "最新发布" / "金额最大" / "分成最高"
-- **`getRelevanceScore` 评分**: 同班+30 / 老师推荐+20 / 募集中+10 / 运营中+5
-- 默认"与我相关"排序，按评分降序，同分按时间降序
-
-#### 请老师引荐完整流程
-- **引荐模态框**: 品牌红色渐变头部 + 老师信息卡 + 项目信息 + 留言框 + 双按钮
-- **提交后**:
-  - 创建 Referral 对象 (id, project/user/teacher/message, status:'pending', timestamps)
-  - 保存到 `localStorage` key `zlc_referrals`
-  - 关闭弹窗 + 成功 Toast
-  - 按钮变灰禁用 (文字"已请求引荐", 时钟图标)
-- **状态行显示**:
-  - pending → "⏳ 已请求引荐 · 等待{老师姓名}对接" (琥珀色背景)
-  - connected → "✅ {老师姓名}已帮你对接 · 你可以随时参与投资" (绿色背景)
-- **边缘情况**:
-  - 项目发起人 → 隐藏引荐按钮
-  - 同班同学发起的项目 → 按钮文字改为"请老师深入介绍"
-  - 无老师的用户 → 隐藏引荐按钮
-
-#### 首页分享码入口
-- 欢迎区下方新增轻量输入条
-- 自动转大写 + 限制6位 + 仅字母数字
-- 查找匹配 → 跳转项目详情 / 未找到 → Toast 提示
-- 支持回车键触发
-
-#### 分享码路由
-- `/share/:code` 路由：有效码 → 302重定向到 /projects/:id?from=share
-- 无效码 → 展示"项目不存在"错误页 (品牌Logo + 返回首页)
-- 项目详情页检测 `?from=share` 时显示蓝色"通过分享码查看"提示条
+详见下方功能列表。
 
 ## Demo 账号
 
-| 手机号 | 姓名 | 公司 | 角色 | 班级 | 验证码 |
-|--------|------|------|------|------|--------|
-| 13888888888 | 张建国 | 星火餐饮集团 | 学员 | 第12期 | 888888 |
-| 13966666666 | 李明远 | 新锐智造科技 | 学员 | 第10期 | 888888 |
-| 13733333333 | 王晓薇 | 优学教育科技 | 学员 | 第14期 | 888888 |
-| 13611111111 | 陈伟强 | 鼎盛供应链 | 学员 | 第8期 | 888888 |
-| 13599999999 | 赵丽华 | 芙蓉美业集团 | 学员 | 第11期 | 888888 |
-| **18000000000** | **管理员** | **一亿中流** | **admin** | 管理组 | **888888** |
-| 18011111111 | 刘老师 | 一亿中流 | teacher | — | 888888 |
-| 18022222222 | 陈老师 | 一亿中流 | teacher | — | 888888 |
-| 18033333333 | 周老师 | 一亿中流 | teacher | — | 888888 |
+| 手机号 | 姓名 | 角色 | 密码 |
+|--------|------|------|------|
+| 13800001111 | 张明远 | 学员(第12期) | zhongliu2026 |
+| 13800002222 | 李芳华 | 学员(第12期) | zhongliu2026 |
+| 13800003333 | 王建国 | 学员(第14期) | zhongliu2026 |
+| **18000000000** | **管理员** | **admin** | **zhongliu2026** |
+| 18011111111 | 刘老师 | teacher | zhongliu2026 |
+| 18022222222 | 陈老师 | teacher | zhongliu2026 |
 
-## 分享码对照表
-
-| 项目 | 分享码 | 发起人班级 |
-|------|--------|-----------|
-| 星火餐饮华南区20店扩张 | TH2K9A | 第12期 |
-| 工业视觉检测新产线 | MF7R3B | 第10期 |
-| 优学AI双师课堂全国推广 | HG4N8C | 第11期 |
-| 鼎盛冷链华东仓网优化 | CL9P5D | 第8期 |
-| AI英语口语APP开发 | ED6W2E | 第14期 |
-
-**测试建议**:
-- 用 `18000000000 管理员` 登录 → 个人主页 → 管理后台入口 → /admin
-- 用 `13611111111 陈伟强` 登录 → 回款中心 → 可看到2个投资项目
-- 用 `13966666666 李明远` 登录 → 回款中心 → 我的发起 → 上报收入
-- 用 `18011111111 刘老师` 登录 → 以老师身份登录首页
-- 首页输入分享码 `TH2K9A` → 跳转星火餐饮项目详情 (蓝色"通过分享码查看"提示)
-- 访问 /share/MF7R3B → 自动跳转工业视觉检测项目详情
-- 项目详情页 → 点击"分享项目" → 底部弹出精美分享卡片面板
-- 用 `13599999999 赵丽华 (第11期)` 登录 → 项目大厅 → p-002显示 "🌟 老师推荐" 金色标签 (因陈老师推荐)
-- 用 `13888888888 张建国 (第12期)` 登录 → 项目大厅 → p-001显示 "同班 · 第12期" 绿色标签
-- 项目大厅默认排序为"与我相关"，同班/老师推荐的项目排在前面
-- 项目详情页 → 点击"请老师引荐" → 弹出引荐模态框 → 填写留言 → 提交后按钮变灰 + 状态行显示
-
-## 最终路由总览
-
-| 路径 | 说明 | 认证 |
-|------|------|------|
-| / | 首页 (含分享码入口) | 需登录 |
-| /login | 登录页 (支持学员+老师) | — |
-| /projects | 项目大厅 | 需登录 |
-| /projects/:id | 项目详情 (含分享面板) | 需登录 |
-| /create | 发起项目 | 需登录 |
-| /contracts/:id/sign | 合同签署 | 需登录 |
-| /repayments | 回款中心 | 需登录 |
-| /investments/:contractId | 投资详情 | 需登录 |
-| /initiated/:projectId/report | 上报收入 | 需登录 |
-| /profile | 个人主页 | 需登录 |
-| /admin | 管理后台 | 仅admin |
-| /share/:code | 分享码跳转 | — |
-
-## API 端点
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | /api/login | 手机号+验证码登录 (支持学员+老师, 返回含role/classId字段) |
-| GET | /api/members | 获取活跃学员列表 |
-| GET | /api/projects | 获取项目列表 |
-| GET | /api/user-stats/:id | 获取用户统计数据 |
+> 所有 demo 账号密码统一为 `zhongliu2026`
 
 ## 数据架构
 
-### localStorage 数据键
-| Key | 说明 |
-|-----|------|
-| zlc_user | 当前登录用户信息 (含role/classId/className字段) |
-| zlc_token | 登录 token |
-| zlc_investments | 投资记录数组 |
-| zlc_user_projects | 用户创建的项目数组 |
-| zlc_contracts | 合同记录数组 |
-| zlc_revenue_reports | 收入上报记录数组 |
-| zlc_repayment_records | 回款明细记录数组 |
-| zlc_referrals | 引荐请求记录数组 |
+### 数据库表结构 (Cloudflare D1)
+
+| 表 | 说明 | 记录数(seed) |
+|----|------|-------------|
+| users | 用户(学员+老师+管理员) | 50 |
+| projects | 项目 | 30 |
+| project_investors | 项目-投资人关联 | ~90 |
+| contracts | 合同 | 46 |
+| settlement_batches | 分账批次 | — |
+| settlement_records | 分账记录 | 101 |
+| repayment_details | 回款明细 | 110 |
+| referrals | 引荐 | 8 |
+| notifications | 通知 | 21 |
+| invite_codes | 邀请码 | — |
+| share_logs | 分享记录 | 20 |
+| audit_logs | 审计日志 | — |
+| sessions | 用户会话 | — |
+
+### 数据流向
+
+```
+                     ┌─────────────┐
+                     │ 第三方分账   │
+                     │ 机构 (体外)  │
+                     └──────┬──────┘
+                            │ CSV/API 推送分账结果
+                            ▼
+┌────────────────────────────────────────┐
+│           中流通平台 (体内)              │
+│                                        │
+│  管理员导入CSV → settlement_batches     │
+│                → settlement_records     │
+│                → repayment_details      │
+│                → 更新 contracts.total_   │
+│                  repaid                 │
+│                                        │
+│  融资方: 查看分账结果、项目状态          │
+│  投资方: 查看回款明细、收益图表          │
+└────────────────────────────────────────┘
+```
 
 ## 技术栈
 
 - **框架**: Hono + TypeScript + JSX (SSR)
+- **数据库**: Cloudflare D1 (SQLite, --local 开发模式)
 - **部署**: Cloudflare Pages (wrangler)
-- **样式**: Tailwind CSS (CDN) + 自定义 CSS
+- **样式**: Tailwind CSS + 自定义 CSS
 - **图标**: FontAwesome 6.4 (CDN)
 - **字体**: Inter + Montserrat + Noto Sans SC
-- **交互**: 原生 JavaScript (全局工具函数 + inline script)
-- **数据**: localStorage (客户端) + Mock 数据 (服务端)
-- **图表**: SVG圆环 + 纯CSS柱状图 (无第三方库)
-- **动画**: CSS @keyframes + IntersectionObserver + requestAnimationFrame
+- **交互**: 原生 JavaScript
+- **图表**: SVG圆环 + 纯CSS柱状图
+- **动画**: CSS @keyframes + IntersectionObserver
 
 ## 项目结构
 
 ```
 src/
-├── index.tsx      # Hono 入口 + 路由 + 所有页面 + 交互 + Admin + 分享功能
-├── renderer.tsx   # JSX 渲染器 (HTML + CDN + 全局样式 + 响应式)
-└── data.ts        # Mock 数据 + 班级/老师 + 分享码 + RBF 计算 + 统计函数
+├── index.tsx        # Hono 入口 + API 路由 (D1)
+├── renderer.tsx     # JSX 渲染器
+├── types.ts         # D1 类型定义
+├── db.ts            # 数据库访问层
+├── db-bridge.ts     # D1 → camelCase 桥接层
+├── data.ts          # Mock 数据 (SSR 兼容层，将渐进废弃)
+├── components.tsx   # 全局组件
+├── guide.tsx        # 引导页
+└── routes/          # 14个页面路由模块
+    ├── login.tsx     # 登录 (已重构→密码认证)
+    ├── home.tsx      # 首页
+    ├── projects.tsx  # 项目大厅
+    ├── project-detail.tsx
+    ├── create.tsx    # 发起项目
+    ├── contract-sign.tsx
+    ├── repayments.tsx
+    ├── investments.tsx
+    ├── revenue-report.tsx
+    ├── admin.tsx     # 管理后台
+    ├── teacher.tsx   # 老师工作台
+    ├── profile.tsx
+    ├── share.tsx
+    └── notifications.tsx
+
+migrations/
+└── 0001_initial_schema.sql  # D1 数据库 DDL
+
+seed.sql                      # Demo 数据
+wrangler.jsonc               # Cloudflare 配置
+ecosystem.config.cjs         # PM2 配置
 ```
 
-## 待开发功能
+## 待开发功能 (MVP 路线图)
 
-- [ ] Cloudflare D1 数据持久化
-- [ ] 合同列表/管理页面
-- [ ] 消息通知系统
-- [ ] 数据导出/报表下载
-- [ ] 管理后台完整功能 (编辑/删除学员、审核项目)
+### Phase 2 — 写入操作 + SSR 迁移
+- [ ] 管理员创建项目 → 写入 D1
+- [ ] 学员参与项目 → 写入 project_investors + contracts
+- [ ] 合同签署 → 更新 contracts
+- [ ] 分账数据 CSV 导入 → settlement_batches/records + repayment_details
+- [ ] 前端 SSR 从 data.ts → D1 读取（渐进式）
 
-## 桌面端布局优化 (Prompt 19B)
+### Phase 3 — 管理后台增强
+- [ ] CSV 上传预览 + 确认导入分账数据
+- [ ] 项目审核工作流（待审核→通过/驳回）
+- [ ] 邀请码管理（生成、发放、查看使用状态）
+- [ ] 平台数据大盘（图表）
+- [ ] 审计日志查看
 
-所有优化仅在 `@media (min-width: 1025px)` 内生效，不影响手机和平板端。
+### Phase 4 — 认证增强
+- [ ] 首次登录强制修改密码
+- [ ] Session 管理（D1 sessions 表）
+- [ ] 密码重置功能
 
-### 各页面桌面布局
-
-| 页面 | 手机端 | 电脑端 |
-|------|--------|--------|
-| 首页 `/` | 单列堆叠 | 双栏 (1fr + 380px): 左列投资概览+项目网格, 右列sticky回款动态 |
-| 项目大厅 `/projects` | 单列卡片 | 三列网格 (repeat(3,1fr)), 筛选标签flex-wrap |
-| 项目详情 `/projects/:id` | 单列堆叠 | 左信息区+右sticky行动卡(类电商详情页) |
-| 回款页 `/repayments` | 单列 | 宽版布局, 更好利用空间 |
-| 我的 `/profile` | 纵向堆叠 | 横向信息卡(头像+信息+KPI一行展示) |
-| 管理后台 `/admin` | 2列KPI | 6列KPI, 宽版内容 |
-| 老师工作台 `/teacher` | 单列 | 双栏(引荐左/班级右), 统计横排 |
-
-### 弹窗适配
-- 底部弹出面板 → 居中弹窗 (max-width: 480-640px)
-- backdrop-filter: blur(4px) 毛玻璃遮罩
-
-### 全局卡片交互 (仅电脑端)
-- hover: translateY(-2px) + box-shadow 增强
-- active: 回弹效果
-- cursor: pointer
+### Phase 5 — 外部集成（远期）
+- [ ] 第三方分账机构 Webhook API
+- [ ] 短信验证码（阿里云SMS）
+- [ ] 电子签章（法大大/e签宝）
 
 ## 部署
 
 - **平台**: Cloudflare Pages
-- **状态**: 开发中
-- **最后更新**: 2026-03-20
+- **数据库**: Cloudflare D1 (zhongliu-production)
+- **状态**: 开发中 (Phase 1 完成)
+- **最后更新**: 2026-03-25

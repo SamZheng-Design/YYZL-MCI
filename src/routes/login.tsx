@@ -84,13 +84,12 @@ app.get('/login', (c) => {
 
           {/* Part 4: Phone Login Fold */}
           <div style="margin-top:24px;">
-            <div id="phone-login-toggle" style="color:rgba(255,255,255,0.5);font-size:13px;text-align:center;cursor:pointer;user-select:none;">使用手机号登录 ▾</div>
+            <div id="phone-login-toggle" style="color:rgba(255,255,255,0.5);font-size:13px;text-align:center;cursor:pointer;user-select:none;">使用手机号+密码登录 ▾</div>
             <div id="phone-login-area" style="max-height:0;overflow:hidden;transition:max-height 300ms ease;opacity:0;">
               <div style="padding-top:16px;">
                 <input id="phone-input" type="tel" maxlength={11} placeholder="请输入手机号" autocomplete="tel" style="width:100%;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:12px;color:white;padding:14px 16px;font-size:15px;outline:none;box-sizing:border-box;" />
                 <div style="display:flex;gap:10px;margin-top:12px;">
-                  <input id="code-input" type="text" maxlength={6} placeholder="请输入验证码" autocomplete="one-time-code" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:12px;color:white;padding:14px 16px;font-size:15px;outline:none;box-sizing:border-box;" />
-                  <button id="send-code-btn" type="button" style="white-space:nowrap;background:transparent;border:1px solid rgba(255,255,255,0.25);color:rgba(255,255,255,0.85);border-radius:12px;padding:0 16px;font-size:13px;cursor:pointer;flex-shrink:0;">获取验证码</button>
+                  <input id="code-input" type="password" maxlength={20} placeholder="请输入密码" autocomplete="current-password" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:12px;color:white;padding:14px 16px;font-size:15px;outline:none;box-sizing:border-box;" />
                 </div>
                 <button id="login-btn" type="button" style="width:100%;margin-top:16px;background:linear-gradient(135deg,#D4A853,#B8860B);color:white;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:600;cursor:pointer;">登录</button>
               </div>
@@ -191,48 +190,33 @@ app.get('/login', (c) => {
     var acc = allAccounts.find(function(a){ return a.id === accId; });
     if(!acc) return;
 
-    // Build user object compatible with existing zlc_user format
-    var userData;
-    if(acc.role === 'teacher'){
-      userData = {
-        id: acc.id, name: acc.name, phone: acc.phone, role: 'teacher',
-        company: '一亿中流', industry: '教育管理', title: '班主任',
-        bio: '一亿中流班主任老师', cohort: '导师团队', joinDate: '2023-01-01',
-        classIds: acc.classIds
-      };
-    } else if(acc.role === 'admin'){
-      userData = {
-        id: acc.id, name: acc.name, phone: acc.phone, role: 'admin',
-        company: '一亿中流', industry: '平台管理', title: '平台管理员',
-        bio: '一亿中流平台管理员', cohort: '管理团队', joinDate: '2023-01-01',
-        classId: acc.classId, className: acc.className
-      };
-    } else {
-      // member — use demo data directly
-      userData = {
-        id: acc.id, name: acc.name, phone: acc.phone, role: 'member',
-        company: '一亿中流学员', industry: '综合', title: '学员',
-        bio: '一亿中流私董会学员', cohort: acc.className || '',
-        joinDate: '2024-01-01',
-        classId: acc.classId || '', className: acc.className || ''
-      };
-    }
-
-    // Store zlc_current_user
-    var currentUserData = { id: acc.id, name: acc.name, phone: acc.phone, role: acc.role, classId: acc.classId || '', className: acc.className || '' };
-    if(acc.classIds) currentUserData.classIds = acc.classIds;
-    localStorage.setItem('zlc_current_user', JSON.stringify(currentUserData));
-    localStorage.setItem('zlc_user', JSON.stringify(userData));
-    localStorage.setItem('zlc_token', 'demo-token-' + Date.now());
-
-    // Redirect based on role
-    if(acc.role === 'teacher'){
-      window.location.href = '/teacher';
-    } else if(acc.role === 'admin'){
-      window.location.href = '/admin';
-    } else {
-      window.location.href = '/';
-    }
+    // Call API with demo password to authenticate via D1
+    showToast('正在登录...', 'info');
+    fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: acc.phone, password: 'zhongliu2026' })
+    }).then(function(r){ return r.json(); }).then(function(d){
+      if(d.ok){
+        var member = d.member;
+        localStorage.setItem('zlc_user', JSON.stringify(member));
+        var currentUserData = { id: member.id, name: member.name, phone: member.phone, role: member.role || 'member', classId: member.classId || '', className: member.className || '' };
+        if(member.classIds) currentUserData.classIds = member.classIds;
+        localStorage.setItem('zlc_current_user', JSON.stringify(currentUserData));
+        localStorage.setItem('zlc_token', 'session-' + Date.now());
+        showToast('登录成功，欢迎回来！', 'success');
+        setTimeout(function(){
+          var role = member.role || 'member';
+          if(role === 'teacher') window.location.href = '/teacher';
+          else if(role === 'admin') window.location.href = '/admin';
+          else window.location.href = '/';
+        }, 600);
+      } else {
+        showToast(d.error || '登录失败', 'error');
+      }
+    }).catch(function(){
+      showToast('网络错误，请重试', 'error');
+    });
   }
 
   renderAccounts();
@@ -246,31 +230,30 @@ app.get('/login', (c) => {
     if(phoneExpanded){
       areaEl.style.maxHeight = '300px';
       areaEl.style.opacity = '1';
-      toggleEl.textContent = '使用手机号登录 ▴';
+      toggleEl.textContent = '使用手机号+密码登录 ▴';
     } else {
       areaEl.style.maxHeight = '0';
       areaEl.style.opacity = '0';
-      toggleEl.textContent = '使用手机号登录 ▾';
+      toggleEl.textContent = '使用手机号+密码登录 ▾';
     }
   });
 
   // ── Phone login logic (kept from original) ──
   var phoneInput=document.getElementById('phone-input'),codeInput=document.getElementById('code-input'),
       sendCodeBtn=document.getElementById('send-code-btn'),loginBtn=document.getElementById('login-btn');
-  var countdown=0,cdTimer=null;
-  sendCodeBtn.addEventListener('click',function(){
-    if(countdown>0)return;var phone=phoneInput.value.trim();
+  sendCodeBtn && sendCodeBtn.addEventListener('click',function(){
+    var phone=phoneInput.value.trim();
     if(!/^1[3-9]\\d{9}$/.test(phone)){showToast('请输入正确的11位手机号','error');return;}
-    countdown=60;sendCodeBtn.disabled=true;sendCodeBtn.textContent='60s';showToast('验证码已发送（Demo: 888888）','success');
-    cdTimer=setInterval(function(){countdown--;if(countdown<=0){clearInterval(cdTimer);sendCodeBtn.disabled=false;sendCodeBtn.textContent='获取验证码';countdown=0;}else{sendCodeBtn.textContent=countdown+'s';}},1000);
+    // Password mode — no need for countdown
+    showToast('请使用您的密码登录','info');
   });
   var isLoading=false;
   loginBtn.addEventListener('click',function(){
     if(isLoading)return;var phone=phoneInput.value.trim(),code=codeInput.value.trim();
     if(!/^1[3-9]\\d{9}$/.test(phone)){showToast('请输入正确的11位手机号','error');return;}
-    if(!code||code.length<4){showToast('请输入验证码','error');return;}
+    if(!code||code.length<4){showToast('请输入密码','error');return;}
     isLoading=true;loginBtn.innerHTML='<span class="spinner"></span>';loginBtn.disabled=true;
-    fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:phone,code:code})})
+    fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:phone,password:code})})
     .then(function(r){return r.json();}).then(function(d){
       if(d.ok){
         localStorage.setItem('zlc_user',JSON.stringify(d.member));

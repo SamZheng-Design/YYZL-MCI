@@ -3,5 +3,14 @@
   "name": "zhongliu-connect",
   "compatibility_date": "2026-03-19",
   "pages_build_output_dir": "./dist",
-  "compatibility_flags": ["nodejs_compat"]
+  "compatibility_flags": ["nodejs_compat"],
+
+  // D1 Database — 用户、项目、合同、分账等所有业务数据
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "zhongliu-production",
+      "database_id": "placeholder-will-be-replaced-after-d1-create"
+    }
+  ]
 }
