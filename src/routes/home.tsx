@@ -244,14 +244,7 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
     var ALL_CONTRACTS = ${JSON.stringify(allContracts.map(c => ({ id:c.id, participantId:c.participantId, amount:c.amount, status:c.status, projectId:c.projectId })))};
     var ALL_REP_RECORDS = ${JSON.stringify(allRepRecords.map(r => ({ contractId:r.contractId, participantId:r.participantId, shareAmount:r.shareAmount })))};
 
-    // Merge localStorage contracts
-    var lsContracts = [];
-    try { lsContracts = JSON.parse(localStorage.getItem('zlc_contracts') || '[]'); } catch(e){}
-    lsContracts.forEach(function(c){
-      if(c.status === 'active' && !ALL_CONTRACTS.find(function(x){return x.id===c.id;})){
-        ALL_CONTRACTS.push({ id:c.id, participantId:c.userId||u.id, amount:c.amount, status:c.status, projectId:c.projectId });
-      }
-    });
+    // Data already loaded from D1 via SSR — no localStorage merge needed
 
     // Filter signed contracts for current user
     var myContracts = ALL_CONTRACTS.filter(function(c){
@@ -275,12 +268,7 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
     ALL_REP_RECORDS.forEach(function(r){
       if(myContractIds[r.contractId]){ totalRepaid += r.shareAmount; }
     });
-    // Also check localStorage repayment records
-    var lsRepRecords = [];
-    try { lsRepRecords = JSON.parse(localStorage.getItem('zlc_repayment_records') || '[]'); } catch(e){}
-    lsRepRecords.forEach(function(r){
-      if(myContractIds[r.contractId] && !ALL_REP_RECORDS.find(function(x){return x.contractId===r.contractId && x.shareAmount===r.shareAmount;})){ totalRepaid += r.shareAmount; }
-    });
+    // Repayment records already loaded from D1 via SSR
 
     var recoveryRate = totalInvested > 0 ? (totalRepaid / totalInvested) : 0;
     var displayRate = Math.min(recoveryRate, 1.5); // cap at 150%

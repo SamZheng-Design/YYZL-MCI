@@ -14,6 +14,37 @@ app.get('/contracts/:id/sign', async (c) => {
   ])
   const contractId = c.req.param('id')
 
+  // Find the specific contract and load SSR data
+  const targetContract = allContracts.find(ct => ct.id === contractId)
+  const targetProject = targetContract ? allProjects.find(p => p.id === targetContract.projectId) : null
+  const targetInitiator = targetContract ? allMembers.find(m => m.id === targetContract.initiatorId) : null
+
+  // Prepare contract data for client-side script
+  const contractData = targetContract ? {
+    id: targetContract.id,
+    projectId: targetContract.projectId,
+    projectName: targetContract.projectName,
+    userId: targetContract.participantId,
+    amount: targetContract.amount,
+    shares: targetContract.shares,
+    revenueShareRatio: targetContract.revenueShareRatio,
+    cooperationTerm: targetContract.cooperationTerm,
+    recoveryCap: targetContract.recoveryCap,
+    signedByInitiator: targetContract.signedByInitiator,
+    signedByParticipant: targetContract.signedByParticipant,
+    signedAt: targetContract.signedAt,
+    status: targetContract.status,
+    totalRepaid: targetContract.totalRepaid || 0,
+    ownerName: targetInitiator?.name || targetContract.initiatorName || '发起人',
+    project: targetProject ? {
+      id: targetProject.id, name: targetProject.name,
+      targetAmount: targetProject.targetAmount,
+      revenueShareRate: targetProject.revenueShareRate,
+      recoveryMultiple: targetProject.recoveryMultiple,
+      duration: targetProject.duration,
+    } : null,
+  } : null
+
   // Pre-generate contract HTML map for all known contracts (server-side)
   const contractHTMLMap: Record<string, string> = {}
   for (const ct of allContracts) {
@@ -126,16 +157,27 @@ app.get('/contracts/:id/sign', async (c) => {
   // Pre-rendered contract HTML from server (keyed by contract id)
   var CONTRACT_HTML_MAP = ${JSON.stringify(contractHTMLMap)};
 
-  // Load contract data from localStorage
-  var contracts = [];
-  try { contracts = JSON.parse(localStorage.getItem('zlc_contracts') || '[]'); } catch(e){}
-  var contract = contracts.find(function(c){ return c.id === CONTRACT_ID; });
+  // Contract data loaded from D1 via SSR
+  var contract = ${JSON.stringify(contractData)};
 
   if(!contract){
-    document.getElementById('contract-content').innerHTML = '<p style="text-align:center;color:#DC2626;">合同未找到</p>';
-    document.getElementById('sign-area').style.display = 'none';
-    return;
+    // Fallback: try fetching from API for newly created contracts
+    fetch('/api/admin/contracts/' + CONTRACT_ID).then(function(r){return r.json();}).then(function(res){
+      if(res.ok && res.data){
+        contract = res.data;
+        renderContract();
+      } else {
+        document.getElementById('contract-content').innerHTML = '<p style="text-align:center;color:#DC2626;">合同未找到</p>';
+        document.getElementById('sign-area').style.display = 'none';
+      }
+    }).catch(function(){
+      document.getElementById('contract-content').innerHTML = '<p style="text-align:center;color:#DC2626;">合同未找到</p>';
+      document.getElementById('sign-area').style.display = 'none';
+    });
   }
+
+  function renderContract(){
+  if(!contract) return;
 
   // Load project data
   var proj = contract.project;
@@ -360,6 +402,8 @@ app.get('/contracts/:id/sign', async (c) => {
       agreeCheck.disabled = false; verifyInput.disabled = false; verifyBtn.disabled = false;
     });
   });
+  } // end renderContract
+  if(contract) renderContract();
 })();
 `}} />
     </div>,

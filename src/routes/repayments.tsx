@@ -8,9 +8,9 @@ import {
 export function registerRepaymentsRoute(app: Hono<HonoEnv>) {
 app.get('/repayments', async (c) => {
   const db = c.env.DB
-  const { loadMembers, loadProjects, loadContracts, loadRevenueReports, loadRepaymentRecords, generateContractHTML } = await import('../db-bridge')
-  const [allMembers, allProjects, allContracts, allRevReports, allRepRecords] = await Promise.all([
-    loadMembers(db), loadProjects(db), loadContracts(db), loadRevenueReports(db), loadRepaymentRecords(db)
+  const { loadMembers, loadProjects, loadContracts, loadRevenueReports, loadRepaymentRecords, loadShareLogs, generateContractHTML } = await import('../db-bridge')
+  const [allMembers, allProjects, allContracts, allRevReports, allRepRecords, allShareLogs] = await Promise.all([
+    loadMembers(db), loadProjects(db), loadContracts(db), loadRevenueReports(db), loadRepaymentRecords(db), loadShareLogs(db)
   ])
   // Pre-generate contract HTML map for all known contracts (server-side)
   const contractHTMLMap: Record<string, string> = {}
@@ -81,23 +81,7 @@ app.get('/repayments', async (c) => {
   var REV_REPORTS = ${JSON.stringify(allRevReports)};
   var CONTRACT_HTML_MAP = ${JSON.stringify(contractHTMLMap)};
 
-  // Also merge localStorage contracts
-  var lsContracts = [];
-  try { lsContracts = JSON.parse(localStorage.getItem('zlc_contracts') || '[]'); } catch(e){}
-  // Also merge localStorage projects
-  var lsProjects = [];
-  try { lsProjects = JSON.parse(localStorage.getItem('zlc_user_projects') || '[]'); } catch(e){}
-  // Also merge localStorage revenue reports & repayment records
-  var lsReports = [];
-  try { lsReports = JSON.parse(localStorage.getItem('zlc_revenue_reports') || '[]'); } catch(e){}
-  var lsRepRecords = [];
-  try { lsRepRecords = JSON.parse(localStorage.getItem('zlc_repayment_records') || '[]'); } catch(e){}
-
-  // Merge all data
-  lsContracts.forEach(function(c){ if(!CONTRACTS.find(function(x){return x.id===c.id;})) CONTRACTS.push(c); });
-  lsProjects.forEach(function(p){ if(!PROJECTS.find(function(x){return x.id===p.id;})) PROJECTS.push(p); });
-  lsReports.forEach(function(r){ if(!REV_REPORTS.find(function(x){return x.id===r.id;})) REV_REPORTS.push(r); });
-  lsRepRecords.forEach(function(r){ if(!REP_RECORDS.find(function(x){return x.id===r.id;})) REP_RECORDS.push(r); });
+  // Data loaded from D1 via SSR — no localStorage merge needed
 
   // Tabs
   var tabInvest = document.getElementById('tab-invest');
@@ -214,9 +198,8 @@ app.get('/repayments', async (c) => {
   // ── 我的发起 ──
   var myProjects = PROJECTS.filter(function(p){ return p.ownerId === u.id; });
 
-  // Load share logs for share count
-  var shareLogs = [];
-  try { shareLogs = JSON.parse(localStorage.getItem('zlc_share_logs') || '[]'); } catch(e){}
+  // Share logs loaded from D1 via SSR
+  var shareLogs = ${JSON.stringify(allShareLogs || [])};
 
   var initiateHTML = '';
 
@@ -243,10 +226,7 @@ app.get('/repayments', async (c) => {
       var projContracts = CONTRACTS.filter(function(c){ return c.projectId === p.id && c.status === 'active'; });
       var participantCount = projContracts.length || p.investors.length;
 
-      // Get viewCount from localStorage or mock data (Task 3)
-      var viewCounts = {};
-      try { viewCounts = JSON.parse(localStorage.getItem('zlc_view_counts') || '{}'); } catch(e){}
-      var viewCount = viewCounts[p.id] !== undefined ? viewCounts[p.id] : (p.viewCount || 0);
+      var viewCount = p.viewCount || 0;
 
       initiateHTML += '<div style="background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,0.04),0 2px 8px rgba(0,0,0,0.03);padding:16px;position:relative;">';
       // Share icon button (Task 2) — top right

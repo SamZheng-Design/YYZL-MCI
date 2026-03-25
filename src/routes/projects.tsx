@@ -93,19 +93,9 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
   var CONTRACTS = ${JSON.stringify(allContracts.map(c => ({ id:c.id, projectId:c.projectId, amount:c.amount, recoveryCap:c.recoveryCap, status:c.status })))};
   var REP_RECORDS = ${JSON.stringify(allRepRecords.map(r => ({ contractId:r.contractId, cumulativeShare:r.cumulativeShare })))};
 
-  // Merge user-created projects from localStorage
-  var userProjects = [];
-  try { userProjects = JSON.parse(localStorage.getItem('zlc_user_projects') || '[]'); } catch(e){}
+  // All projects now loaded from D1 via SSR — no localStorage merge needed
   var u = null;
   try { u = JSON.parse(localStorage.getItem('zlc_user')); } catch(e){}
-  userProjects.forEach(function(up){
-    if(up.status !== 'draft'){
-      PROJECTS.push(up);
-      if(u && !MEMBERS.find(function(m){return m.id===u.id;})){
-        MEMBERS.push({id:u.id, name:u.name, company:u.company||'', cohort:u.cohort||'', classId:u.classId||''});
-      }
-    }
-  });
 
   // Find teacher for current user
   var myClassId = (u && u.classId) ? u.classId : '';

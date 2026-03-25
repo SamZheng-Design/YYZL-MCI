@@ -8,9 +8,9 @@ import {
 export function registerTeacherRoute(app: Hono<HonoEnv>) {
 app.get('/teacher', async (c) => {
   const db = c.env.DB
-  const { loadMembers, loadProjects, loadTeachers } = await import('../db-bridge')
-  const [allMembers, allProjects, allTeachers] = await Promise.all([
-    loadMembers(db), loadProjects(db), loadTeachers(db)
+  const { loadMembers, loadProjects, loadTeachers, loadReferrals } = await import('../db-bridge')
+  const [allMembers, allProjects, allTeachers, allReferrals] = await Promise.all([
+    loadMembers(db), loadProjects(db), loadTeachers(db), loadReferrals(db)
   ])
 
   return c.render(
@@ -152,27 +152,22 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
 
   // ── Teacher Stats Bar (Task 3 Enhancement 2) ──
   (function(){
-    // Pending referrals for this teacher
-    var referrals = [];
-    try { referrals = JSON.parse(localStorage.getItem('zlc_referrals') || '[]'); } catch(e){}
-    var pendingCount = referrals.filter(function(r){ return r.teacherId === myTeacher.id && r.status === 'pending'; }).length;
+    // Pending referrals for this teacher — loaded from D1 via SSR
+    var ALL_REFERRALS = ${JSON.stringify(allReferrals.map(r => ({
+      id:r.id, projectId:r.projectId, requesterId:r.requesterId, requesterName:r.requesterName||'',
+      requesterClass:r.requesterClassName||'', teacherId:r.teacherId, status:r.status, message:r.message||'',
+      createdAt:r.createdAt||'', requestedAt:r.requestedAt||'', completedAt:r.completedAt||'',
+      completedNote:r.completedNote||'', connectedAt:r.connectedAt||'', projectName:r.projectName||'',
+    })))};
+    var pendingCount = ALL_REFERRALS.filter(function(r){ return r.teacherId === myTeacher.id && r.status === 'pending'; }).length;
 
     // Recommended projects count
     var recommendedCount = ALL_PROJECTS.filter(function(p){ return p.recommendedByTeacher && p.recommendedByTeacher.indexOf(myTeacher.id) !== -1; }).length;
 
-    // Active projects in my classes
+    // Active projects in my classes — all projects already in D1
     var myClassIds = myTeacher.classIds || [];
     var activeProjectCount = 0;
-    // Also check user-created projects
     var allP = ALL_PROJECTS.slice();
-    try {
-      var up = JSON.parse(localStorage.getItem('zlc_user_projects') || '[]');
-      up.forEach(function(proj){
-        if(!allP.find(function(p){ return p.id === proj.id; })){
-          allP.push(proj);
-        }
-      });
-    } catch(e){}
     allP.forEach(function(p){
       if(p.status === 'open' || p.status === 'active'){
         // Check if project owner is in one of my classes
@@ -215,8 +210,7 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
   };
 
   function renderReferrals() {
-    var referrals = [];
-    try { referrals = JSON.parse(localStorage.getItem('zlc_referrals') || '[]'); } catch(e){}
+    var referrals = ALL_REFERRALS;
 
     // Filter by this teacher
     var myRefs = referrals.filter(function(r){ return r.teacherId === myTeacher.id; });
@@ -289,21 +283,29 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
   }
 
   window.handleRef = function(refId, newStatus) {
-    var referrals = [];
-    try { referrals = JSON.parse(localStorage.getItem('zlc_referrals') || '[]'); } catch(e){}
-    var ref = referrals.find(function(r){ return r.id === refId; });
-    if (ref) {
-      ref.status = newStatus;
-      if (newStatus === 'completed' || newStatus === 'connected') {
-        var today = new Date();
-        ref.completedAt = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
-        ref.completedNote = '已完成对接';
-        ref.connectedAt = new Date().toISOString();
+    // Call API to handle referral
+    fetch('/api/admin/referrals/' + refId + '/handle', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ status: newStatus === 'connected' ? 'completed' : newStatus })
+    }).then(function(r){return r.json();}).then(function(res){
+      if(res.ok){
+        // Update local data
+        var ref = ALL_REFERRALS.find(function(r){ return r.id === refId; });
+        if(ref){
+          ref.status = newStatus === 'connected' ? 'completed' : newStatus;
+          if(newStatus === 'completed' || newStatus === 'connected'){
+            var today = new Date();
+            ref.completedAt = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+            ref.completedNote = '已完成对接';
+          }
+        }
+        showToast(res.message || (newStatus === 'completed' || newStatus === 'connected' ? '已标记为已对接' : '已暂缓'));
+        renderReferrals();
+      } else {
+        showToast(res.error || '操作失败', 'error');
       }
-      localStorage.setItem('zlc_referrals', JSON.stringify(referrals));
-      showToast(newStatus === 'completed' || newStatus === 'connected' ? '已标记为已对接' : '已暂缓');
-      renderReferrals();
-    }
+    }).catch(function(){ showToast('网络错误', 'error'); });
   };
   renderReferrals();
 
@@ -350,15 +352,11 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
 
   // ── Recommend Projects ──
   function renderRecommended() {
-    // Reload projects to get updated recommendedByTeacher
     var projects = ${JSON.stringify(allProjects.map(p => ({ id:p.id, name:p.name, ownerId:p.ownerId, recommendedByTeacher:p.recommendedByTeacher||[] })))};
-    // Also check localStorage for updated recommendations
-    var lsRecs = {};
-    try { lsRecs = JSON.parse(localStorage.getItem('zlc_teacher_recommendations') || '{}'); } catch(e){}
 
     var recommended = [];
     projects.forEach(function(p) {
-      var recs = lsRecs[p.id] || p.recommendedByTeacher;
+      var recs = p.recommendedByTeacher;
       if (recs && recs.indexOf(myTeacher.id) !== -1) {
         var owner = ALL_MEMBERS.find(function(m){ return m.id === p.ownerId; });
         recommended.push({ id: p.id, name: p.name, ownerName: owner ? owner.name : '?' });
@@ -379,17 +377,19 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
   }
 
   window.removeRecommend = function(pid) {
-    var lsRecs = {};
-    try { lsRecs = JSON.parse(localStorage.getItem('zlc_teacher_recommendations') || '{}'); } catch(e){}
-    var recs = lsRecs[pid] || [];
-    // Also check mock data
-    var proj = ALL_PROJECTS.find(function(p){ return p.id === pid; });
-    if (proj && !lsRecs[pid]) recs = (proj.recommendedByTeacher || []).slice();
-    recs = recs.filter(function(tid){ return tid !== myTeacher.id; });
-    lsRecs[pid] = recs;
-    localStorage.setItem('zlc_teacher_recommendations', JSON.stringify(lsRecs));
-    showToast('已取消推荐');
-    renderRecommended();
+    fetch('/api/admin/projects/' + pid + '/recommend', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ teacherId: myTeacher.id, action: 'remove' })
+    }).then(function(r){return r.json();}).then(function(res){
+      if(res.ok){
+        // Update local projects data
+        var proj = ALL_PROJECTS.find(function(p){ return p.id === pid; });
+        if(proj) proj.recommendedByTeacher = proj.recommendedByTeacher.filter(function(t){ return t !== myTeacher.id; });
+        showToast('已取消推荐');
+        renderRecommended();
+      } else { showToast(res.error || '操作失败', 'error'); }
+    }).catch(function(){ showToast('网络错误', 'error'); });
   };
 
   renderRecommended();
@@ -427,18 +427,21 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
   });
 
   window.doRecommend = function(pid) {
-    var lsRecs = {};
-    try { lsRecs = JSON.parse(localStorage.getItem('zlc_teacher_recommendations') || '{}'); } catch(e){}
-    var proj = ALL_PROJECTS.find(function(p){ return p.id === pid; });
-    var recs = lsRecs[pid] || (proj ? (proj.recommendedByTeacher||[]).slice() : []);
-    if (recs.indexOf(myTeacher.id) === -1) recs.push(myTeacher.id);
-    lsRecs[pid] = recs;
-    localStorage.setItem('zlc_teacher_recommendations', JSON.stringify(lsRecs));
-    showToast('已推荐');
-    // Close panel
-    recPanel.style.transform = 'translateY(100%)';
-    setTimeout(function(){ recOverlay.style.display = 'none'; }, 250);
-    renderRecommended();
+    fetch('/api/admin/projects/' + pid + '/recommend', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ teacherId: myTeacher.id, action: 'add' })
+    }).then(function(r){return r.json();}).then(function(res){
+      if(res.ok){
+        // Update local projects data
+        var proj = ALL_PROJECTS.find(function(p){ return p.id === pid; });
+        if(proj && proj.recommendedByTeacher.indexOf(myTeacher.id) === -1) proj.recommendedByTeacher.push(myTeacher.id);
+        showToast('已推荐');
+        recPanel.style.transform = 'translateY(100%)';
+        setTimeout(function(){ recOverlay.style.display = 'none'; }, 250);
+        renderRecommended();
+      } else { showToast(res.error || '操作失败', 'error'); }
+    }).catch(function(){ showToast('网络错误', 'error'); });
   };
 
   // Logout

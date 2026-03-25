@@ -506,4 +506,295 @@ adminApi.post('/referrals/create', async (c) => {
   }
 })
 
+// ══════════════════════════════════════════════════════════
+// 引荐处理 API (老师操作)
+// ══════════════════════════════════════════════════════════
+
+/**
+ * POST /api/admin/referrals/:id/handle
+ * Body: { status: 'completed'|'declined', note?: string }
+ */
+adminApi.post('/referrals/:id/handle', async (c) => {
+  const db = c.env.DB
+  try {
+    const refId = c.req.param('id')
+    const { status, note } = await c.req.json<{ status: string; note?: string }>()
+    if (!['completed', 'declined'].includes(status)) {
+      return c.json({ ok: false, error: '无效状态' }, 400)
+    }
+
+    const ref = await db.prepare('SELECT * FROM referrals WHERE id = ?').bind(refId).first<any>()
+    if (!ref) return c.json({ ok: false, error: '引荐记录不存在' }, 404)
+
+    const now = new Date().toISOString()
+    await db.prepare(`
+      UPDATE referrals SET status = ?, completed_at = ?, completed_note = ? WHERE id = ?
+    `).bind(status, now, note || (status === 'completed' ? '已完成对接' : '已暂缓'), refId).run()
+
+    // Notify requester
+    const teacher = await db.prepare('SELECT name FROM users WHERE id = ?').bind(ref.teacher_id).first<{ name: string }>()
+    const project = await db.prepare('SELECT name FROM projects WHERE id = ?').bind(ref.project_id).first<{ name: string }>()
+    await createNotification(db, {
+      type: 'referral', title: status === 'completed' ? '引荐已对接' : '引荐已暂缓',
+      content: `${teacher?.name || '老师'}${status === 'completed' ? '已帮您对接' : '暂缓了'}项目「${project?.name || ''}」的引荐`,
+      icon: status === 'completed' ? '✅' : '⏸️', link: `/projects/${ref.project_id}`,
+      targetId: ref.requester_id,
+    })
+
+    return c.json({ ok: true, message: status === 'completed' ? '已标记为已对接' : '已暂缓' })
+  } catch (e: any) {
+    return c.json({ ok: false, error: '操作失败: ' + (e.message || '') }, 500)
+  }
+})
+
+// ══════════════════════════════════════════════════════════
+// 营收报告提交 API
+// ══════════════════════════════════════════════════════════
+
+/**
+ * POST /api/admin/revenue-report/submit
+ * Body: { projectId, reportedBy, period, totalRevenue, note? }
+ */
+adminApi.post('/revenue-report/submit', async (c) => {
+  const db = c.env.DB
+  try {
+    const { projectId, reportedBy, period, totalRevenue, note } = await c.req.json<{
+      projectId: string; reportedBy: string; period: string
+      totalRevenue: number; note?: string
+    }>()
+
+    // Check for duplicate
+    const existing = await db.prepare(
+      'SELECT id FROM settlement_records WHERE project_id = ? AND period = ?'
+    ).bind(projectId, period).first()
+    if (existing) return c.json({ ok: false, error: '该期已上报过，请选择其他月份' }, 400)
+
+    // Get project and contracts
+    const project = await db.prepare('SELECT * FROM projects WHERE id = ?').bind(projectId).first<any>()
+    if (!project) return c.json({ ok: false, error: '项目不存在' }, 404)
+
+    const shareRate = project.revenue_share_rate || 0
+    const shareTotal = +(totalRevenue * (shareRate / 100)).toFixed(4)
+
+    // Create settlement record
+    const recordId = `sr-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,6)}`
+    await db.prepare(`
+      INSERT INTO settlement_records (id, project_id, period, total_revenue, total_share_amount, share_rate, settlement_date, source)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 'self_report')
+    `).bind(recordId, projectId, period, totalRevenue, shareTotal, shareRate, new Date().toISOString().slice(0, 10)).run()
+
+    // Get active contracts for this project
+    const contracts = await db.prepare(
+      `SELECT * FROM contracts WHERE project_id = ? AND status = 'active'`
+    ).bind(projectId).all<any>()
+
+    const totalInvested = contracts.results.reduce((s: number, c: any) => s + (c.amount || 0), 0)
+    const repaymentDetails: any[] = []
+
+    for (const ct of contracts.results) {
+      const ratio = totalInvested > 0 ? ct.amount / totalInvested : 0
+      let share = +(shareTotal * ratio).toFixed(4)
+
+      // Get previous cumulative
+      const prevRec = await db.prepare(
+        `SELECT cumulative_share FROM repayment_details WHERE contract_id = ? ORDER BY created_at DESC LIMIT 1`
+      ).bind(ct.id).first<{ cumulative_share: number }>()
+      const prevCumulative = prevRec?.cumulative_share || ct.total_repaid || 0
+
+      // Cap check
+      let newCumulative = +(prevCumulative + share).toFixed(4)
+      if (ct.recovery_cap && newCumulative > ct.recovery_cap) {
+        share = +(ct.recovery_cap - prevCumulative).toFixed(4)
+        if (share < 0) share = 0
+        newCumulative = +(prevCumulative + share).toFixed(4)
+      }
+
+      const repId = `rep-${Date.now().toString(36)}-${ct.id}`
+      await db.prepare(`
+        INSERT INTO repayment_details (id, contract_id, settlement_record_id, participant_id, project_name, date, project_revenue, share_amount, cumulative_share, recovery_progress)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).bind(
+        repId, ct.id, recordId, ct.participant_id, project.name,
+        new Date().toISOString().slice(0, 10),
+        totalRevenue, share, newCumulative,
+        ct.recovery_cap ? +(newCumulative / ct.recovery_cap * 100).toFixed(2) : 0
+      ).run()
+
+      // Update contract totalRepaid
+      await db.prepare(
+        'UPDATE contracts SET total_repaid = ? WHERE id = ?'
+      ).bind(newCumulative, ct.id).run()
+
+      repaymentDetails.push({ contractId: ct.id, share, cumulative: newCumulative })
+    }
+
+    // Notify project owner
+    await createNotification(db, {
+      type: 'settlement', title: '营收报告已提交',
+      content: `项目「${project.name}」${period}营收报告已提交，总收入¥${totalRevenue}万，分账¥${shareTotal}万`,
+      icon: '📊', link: `/repayments`,
+      targetId: project.owner_id,
+    })
+
+    await logAudit(db, {
+      userId: reportedBy, action: 'submit_revenue_report',
+      entityType: 'settlement_record', entityId: recordId,
+      detail: { projectId, period, totalRevenue, shareTotal, contracts: repaymentDetails.length },
+    })
+
+    return c.json({
+      ok: true, data: { recordId, shareTotal, repayments: repaymentDetails.length },
+      message: '营收报告已提交'
+    })
+  } catch (e: any) {
+    return c.json({ ok: false, error: '提交失败: ' + (e.message || '') }, 500)
+  }
+})
+
+// ══════════════════════════════════════════════════════════
+// 老师推荐项目 API
+// ══════════════════════════════════════════════════════════
+
+/**
+ * POST /api/admin/projects/:id/recommend
+ * Body: { teacherId, action: 'add'|'remove' }
+ */
+adminApi.post('/projects/:id/recommend', async (c) => {
+  const db = c.env.DB
+  try {
+    const projectId = c.req.param('id')
+    const { teacherId, action } = await c.req.json<{ teacherId: string; action: 'add' | 'remove' }>()
+
+    const project = await db.prepare('SELECT * FROM projects WHERE id = ?').bind(projectId).first<any>()
+    if (!project) return c.json({ ok: false, error: '项目不存在' }, 404)
+
+    let recs: string[] = project.recommended_by_teachers ? JSON.parse(project.recommended_by_teachers) : []
+
+    if (action === 'add') {
+      if (!recs.includes(teacherId)) recs.push(teacherId)
+    } else {
+      recs = recs.filter((t: string) => t !== teacherId)
+    }
+
+    await db.prepare(
+      'UPDATE projects SET recommended_by_teachers = ? WHERE id = ?'
+    ).bind(JSON.stringify(recs), projectId).run()
+
+    return c.json({ ok: true, message: action === 'add' ? '已推荐' : '已取消推荐' })
+  } catch (e: any) {
+    return c.json({ ok: false, error: '操作失败: ' + (e.message || '') }, 500)
+  }
+})
+
+// ══════════════════════════════════════════════════════════
+// 通知已读 API
+// ══════════════════════════════════════════════════════════
+
+/**
+ * POST /api/admin/notifications/mark-read
+ * Body: { userId, notificationIds?: string[] } — 不传ids则标记全部
+ */
+adminApi.post('/notifications/mark-read', async (c) => {
+  const db = c.env.DB
+  try {
+    const { userId, notificationIds } = await c.req.json<{
+      userId: string; notificationIds?: string[]
+    }>()
+
+    if (notificationIds && notificationIds.length > 0) {
+      // Mark specific notifications
+      const placeholders = notificationIds.map(() => '?').join(',')
+      await db.prepare(
+        `UPDATE notifications SET is_read = 1 WHERE id IN (${placeholders}) AND (target_id = ? OR target_id IS NULL)`
+      ).bind(...notificationIds, userId).run()
+    } else {
+      // Mark all as read for user
+      await db.prepare(
+        `UPDATE notifications SET is_read = 1 WHERE (target_id = ? OR target_id IS NULL OR target_role IN (SELECT role FROM users WHERE id = ?)) AND is_read = 0`
+      ).bind(userId, userId).run()
+    }
+
+    return c.json({ ok: true, message: '已标为已读' })
+  } catch (e: any) {
+    return c.json({ ok: false, error: '操作失败: ' + (e.message || '') }, 500)
+  }
+})
+
+// ══════════════════════════════════════════════════════════
+// 浏览量 API
+// ══════════════════════════════════════════════════════════
+
+/**
+ * POST /api/admin/projects/:id/view
+ * Body: { userId? }
+ */
+adminApi.post('/projects/:id/view', async (c) => {
+  const db = c.env.DB
+  try {
+    const projectId = c.req.param('id')
+    await db.prepare(
+      'UPDATE projects SET view_count = COALESCE(view_count, 0) + 1 WHERE id = ?'
+    ).bind(projectId).run()
+    const proj = await db.prepare('SELECT view_count FROM projects WHERE id = ?').bind(projectId).first<{ view_count: number }>()
+    return c.json({ ok: true, viewCount: proj?.view_count || 0 })
+  } catch (e: any) {
+    return c.json({ ok: false, error: '操作失败' }, 500)
+  }
+})
+
+// ══════════════════════════════════════════════════════════
+// 用户合同查询 API (for contract-sign page)
+// ══════════════════════════════════════════════════════════
+
+/**
+ * GET /api/admin/contracts/:id
+ * Returns single contract with full details
+ */
+adminApi.get('/contracts/:id', async (c) => {
+  const db = c.env.DB
+  try {
+    const contractId = c.req.param('id')
+    const contract = await db.prepare('SELECT * FROM contracts WHERE id = ?').bind(contractId).first<any>()
+    if (!contract) return c.json({ ok: false, error: '合同不存在' }, 404)
+
+    const project = await db.prepare('SELECT * FROM projects WHERE id = ?').bind(contract.project_id).first<any>()
+    const initiator = await db.prepare('SELECT id, name, company FROM users WHERE id = ?').bind(contract.initiator_id).first<any>()
+    const participant = await db.prepare('SELECT id, name, company FROM users WHERE id = ?').bind(contract.participant_id).first<any>()
+
+    return c.json({
+      ok: true, data: {
+        id: contract.id,
+        projectId: contract.project_id,
+        projectName: contract.project_name || project?.name,
+        initiatorId: contract.initiator_id,
+        initiatorName: contract.initiator_name || initiator?.name,
+        initiatorCompany: contract.initiator_company || initiator?.company,
+        participantId: contract.participant_id,
+        participantName: contract.participant_name || participant?.name,
+        amount: contract.amount,
+        shares: contract.shares,
+        revenueShareRatio: contract.revenue_share_ratio,
+        cooperationTerm: contract.cooperation_term,
+        recoveryCap: contract.recovery_cap,
+        signedByInitiator: !!contract.signed_by_initiator,
+        signedByParticipant: !!contract.signed_by_participant,
+        signedAt: contract.signed_at,
+        status: contract.status,
+        totalRepaid: contract.total_repaid || 0,
+        createdAt: contract.created_at,
+        project: project ? {
+          id: project.id, name: project.name,
+          targetAmount: project.target_amount,
+          revenueShareRate: project.revenue_share_rate,
+          recoveryMultiple: project.recovery_multiple,
+          duration: project.duration,
+        } : null,
+        ownerName: initiator?.name || '发起人',
+      }
+    })
+  } catch (e: any) {
+    return c.json({ ok: false, error: '查询失败: ' + (e.message || '') }, 500)
+  }
+})
+
 export default adminApi

@@ -71,15 +71,7 @@ app.get('/notifications', (c) => {
       notifs.sort(function(a,b){ return new Date(b.time||b.createdAt) - new Date(a.time||a.createdAt); });
       renderList();
     }).catch(function(){
-      // Fallback to localStorage
-      try { allNotifs = JSON.parse(localStorage.getItem(NOTIFS_KEY) || '[]'); } catch(e){}
-      notifs = allNotifs.filter(function(n){
-        if(!n.targetRole && !n.targetId) return true;
-        if(n.targetId === u.id) return true;
-        if(n.targetRole === u.role && (!n.targetId)) return true;
-        return false;
-      });
-      notifs.sort(function(a,b){ return new Date(b.time) - new Date(a.time); });
+      // API failed — show empty state
       renderList();
     });
   }
@@ -125,9 +117,9 @@ app.get('/notifications', (c) => {
         var link = item.getAttribute('data-link');
         // Mark as read in the full allNotifs array
         allNotifs.forEach(function(n){ if(n.id === nid) n.read = true; });
-        // Also mark in filtered view
         notifs.forEach(function(n){ if(n.id === nid) n.read = true; });
-        localStorage.setItem(NOTIFS_KEY, JSON.stringify(allNotifs));
+        // Mark read via API
+        fetch('/api/admin/notifications/mark-read', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:u.id,notificationIds:[nid]})}).catch(function(){});
         if(link) window.location.href = link;
         else renderList();
       });
@@ -140,7 +132,8 @@ app.get('/notifications', (c) => {
     var myIds = {};
     notifs.forEach(function(n){ myIds[n.id] = true; n.read = true; });
     allNotifs.forEach(function(n){ if(myIds[n.id]) n.read = true; });
-    localStorage.setItem(NOTIFS_KEY, JSON.stringify(allNotifs));
+    // Mark all read via API
+    fetch('/api/admin/notifications/mark-read', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:u.id})}).catch(function(){});
     renderList();
     showToast('已全部标为已读');
   });

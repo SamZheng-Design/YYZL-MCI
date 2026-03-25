@@ -97,19 +97,12 @@ app.get('/admin', async (c) => {
   var MOCK_REP_RECORDS = ${JSON.stringify(allRepRecords)};
   var MOCK_TEACHERS = ${JSON.stringify(allTeachers)};
 
-  // Merge localStorage members
+  // Members loaded from D1 — no localStorage merge needed
   function getMembers(){
-    var members = MOCK_MEMBERS.slice();
-    try {
-      var lsM = JSON.parse(localStorage.getItem('zlc_mock_members') || '[]');
-      lsM.forEach(function(m){ if(!members.find(function(x){return x.id===m.id;})) members.push(m); });
-    } catch(e){}
-    return members;
+    return MOCK_MEMBERS.slice();
   }
   function saveMembers(members){
-    // Save the FULL updated array so other pages can read it
-    var newOnes = members.filter(function(m){ return !MOCK_MEMBERS.find(function(x){return x.id===m.id;}); });
-    localStorage.setItem('zlc_mock_members', JSON.stringify(newOnes));
+    // No-op: members are now in D1
   }
 
   // ── Admin nav dropdown ──
@@ -802,8 +795,7 @@ app.get('/admin', async (c) => {
   function renderProjectsTab(){
     var html = '<div style="padding:16px;">';
     var projects = MOCK_PROJECTS.slice();
-    // Merge localStorage projects
-    try{var lp=JSON.parse(localStorage.getItem('zlc_user_projects')||'[]');lp.forEach(function(p){if(!projects.find(function(x){return x.id===p.id;}))projects.push(p);});}catch(e){}
+    // All projects already in D1 — no localStorage merge needed
 
     var statusMap = {draft:'草稿',open:'募集中',funded:'已满额',active:'运营中',completed:'已完成'};
     var badgeStyles = {draft:'background:#F5F5F4;color:#78716C;border:1px solid #E7E5E4;',open:'background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;',active:'background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0;',completed:'background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0;',funded:'background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0;'};

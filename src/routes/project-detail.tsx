@@ -505,6 +505,7 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
   })};
   var OWNER = ${JSON.stringify({ name: owner.name, className: owner.className || owner.cohort || '' })};
   var MOCK_CONTRACTS_FOR_COUNT = ${JSON.stringify(allContracts.filter(c => c.projectId === proj.id && c.status === 'active').length)};
+  var CONTRACTS_FOR_PROJECT = ${JSON.stringify(allContracts.filter(c => c.projectId === proj.id).map(c => ({ id:c.id, participantId:c.participantId, amount:c.amount, status:c.status })))};
   var MEMBERS = ${JSON.stringify(allMembers.map(m => ({ id:m.id, name:m.name, classId:m.classId||'' })))};
   var TEACHERS = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name:t.name, classIds:t.classIds })))};
 
@@ -516,24 +517,16 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
 
   // ── Task 3: viewCount increment + display ──
   (function(){
-    // Read stored view counts from localStorage
-    var viewCounts = {};
-    try { viewCounts = JSON.parse(localStorage.getItem('zlc_view_counts') || '{}'); } catch(e){}
-    var currentCount = viewCounts[PROJ.id] !== undefined ? viewCounts[PROJ.id] : PROJ.viewCount;
-    currentCount++;
-    viewCounts[PROJ.id] = currentCount;
-    localStorage.setItem('zlc_view_counts', JSON.stringify(viewCounts));
-
-    // Get participant count (signed contracts)
-    var participantCount = MOCK_CONTRACTS_FOR_COUNT;
-    // Also check localStorage contracts
-    var lsContracts = [];
-    try { lsContracts = JSON.parse(localStorage.getItem('zlc_contracts') || '[]'); } catch(e){}
-    var lsSignedCount = lsContracts.filter(function(c){ return c.projectId === PROJ.id && c.status === 'active'; }).length;
-    participantCount = Math.max(participantCount, participantCount + lsSignedCount);
-
-    var vcEl = document.getElementById('detail-view-count');
-    if(vcEl) vcEl.textContent = currentCount + '人浏览 · ' + participantCount + '人参与';
+    // Increment view count via API
+    fetch('/api/admin/projects/' + PROJ.id + '/view', {method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).then(function(r){return r.json();}).then(function(res){
+      var currentCount = res.ok ? res.viewCount : (PROJ.viewCount || 0);
+      var participantCount = MOCK_CONTRACTS_FOR_COUNT;
+      var vcEl = document.getElementById('detail-view-count');
+      if(vcEl) vcEl.textContent = currentCount + '人浏览 · ' + participantCount + '人参与';
+    }).catch(function(){
+      var vcEl = document.getElementById('detail-view-count');
+      if(vcEl) vcEl.textContent = (PROJ.viewCount || 0) + '人浏览 · ' + MOCK_CONTRACTS_FOR_COUNT + '人参与';
+    });
   })();
 
   // Render relation tag on detail page
@@ -689,10 +682,11 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
 
   if(partBtn) partBtn.addEventListener('click', doParticipate);
 
-  // Check if already invested on load
-  var investments = [];
-  try { investments = JSON.parse(localStorage.getItem('zlc_investments') || '[]'); } catch(e){}
-  var alreadyIn = investments.find(function(inv){ return inv.projectId === PROJ.id && inv.userId === u.id; });
+  // Check if already invested on load (from D1 contracts data in SSR)
+  var alreadyIn = null;
+  if(typeof CONTRACTS_FOR_PROJECT !== 'undefined'){
+    CONTRACTS_FOR_PROJECT.forEach(function(c){ if(c.participantId === u.id) alreadyIn = c; });
+  }
   if(alreadyIn && partBtn){
     partBtn.disabled = true;
     partBtn.textContent = '已参与 ¥' + alreadyIn.amount + '万';
@@ -764,15 +758,18 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
     }
   }
 
-  // Load existing referrals from localStorage
+  // Load existing referrals from D1 via API
   var referrals = [];
-  try { referrals = JSON.parse(localStorage.getItem('zlc_referrals') || '[]'); } catch(e){}
-  var existingRef = referrals.find(function(r){ return r.projectId === PROJ.id && r.requesterId === u.id; });
+  var existingRef = null;
+  fetch('/api/data/referrals').then(function(r){return r.json();}).then(function(data){
+    referrals = (data || []).filter(function(r){ return r.projectId === PROJ.id; });
+    existingRef = referrals.find(function(r){ return r.requesterId === u.id; });
+    updateReferralUI();
+  }).catch(function(){});
 
   function updateReferralUI(){
     if(!btnReferral) return;
-    referrals = [];
-    try { referrals = JSON.parse(localStorage.getItem('zlc_referrals') || '[]'); } catch(e){}
+    // Re-check from current referrals data
     existingRef = referrals.find(function(r){ return r.projectId === PROJ.id && r.requesterId === u.id; });
 
     if(existingRef){

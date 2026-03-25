@@ -57,19 +57,7 @@ app.get('/initiated/:projectId/report', async (c) => {
   var REP_RECORDS = ${JSON.stringify(allRepRecords)};
   var MEMBERS = ${JSON.stringify(allMembers.map(m => ({ id:m.id, name:m.name, company:m.company })))};
 
-  // Merge localStorage
-  var lsContracts = [];
-  try { lsContracts = JSON.parse(localStorage.getItem('zlc_contracts') || '[]'); } catch(e){}
-  lsContracts.forEach(function(c){ if(!CONTRACTS.find(function(x){return x.id===c.id;})) CONTRACTS.push(c); });
-  var lsProjects = [];
-  try { lsProjects = JSON.parse(localStorage.getItem('zlc_user_projects') || '[]'); } catch(e){}
-  lsProjects.forEach(function(p){ if(!PROJECTS.find(function(x){return x.id===p.id;})) PROJECTS.push(p); });
-  var lsReports = [];
-  try { lsReports = JSON.parse(localStorage.getItem('zlc_revenue_reports') || '[]'); } catch(e){}
-  lsReports.forEach(function(r){ if(!REV_REPORTS.find(function(x){return x.id===r.id;})) REV_REPORTS.push(r); });
-  var lsRepRecords = [];
-  try { lsRepRecords = JSON.parse(localStorage.getItem('zlc_repayment_records') || '[]'); } catch(e){}
-  lsRepRecords.forEach(function(r){ if(!REP_RECORDS.find(function(x){return x.id===r.id;})) REP_RECORDS.push(r); });
+  // Data loaded from D1 via SSR — no localStorage merge needed
 
   var proj = PROJECTS.find(function(p){ return p.id === PROJECT_ID; });
   var el = document.getElementById('report-content');
@@ -232,81 +220,52 @@ app.get('/initiated/:projectId/report', async (c) => {
           return;
         }
 
-        // Create RevenueReport
-        var reportId = 'rr-' + Date.now().toString(36);
-        var shareTotal = revenue * (shareRatio / 100);
-        var newReport = {
-          id: reportId,
-          projectId: proj.id,
-          reportedBy: u.id,
-          period: period,
-          periodType: 'monthly',
-          totalRevenue: revenue,
-          totalShareAmount: +shareTotal.toFixed(4),
-          reportedAt: new Date().toISOString().slice(0, 10),
-          note: note
-        };
+        // Submit via API
+        var submitBtn = document.getElementById('submit-btn');
+        if(submitBtn) { submitBtn.disabled = true; submitBtn.textContent = '提交中...'; }
 
-        // Save to localStorage
-        var savedReports = [];
-        try { savedReports = JSON.parse(localStorage.getItem('zlc_revenue_reports') || '[]'); } catch(e){}
-        savedReports.push(newReport);
-        localStorage.setItem('zlc_revenue_reports', JSON.stringify(savedReports));
-        REV_REPORTS.push(newReport);
-
-        // Auto-distribute to participants
-        var totalInvested = projContracts.reduce(function(s,c){ return s + c.amount; }, 0);
-        var savedRepRecords = [];
-        try { savedRepRecords = JSON.parse(localStorage.getItem('zlc_repayment_records') || '[]'); } catch(e){}
-
-        projContracts.forEach(function(c){
-          var ratio = totalInvested > 0 ? c.amount / totalInvested : 0;
-          var share = +(shareTotal * ratio).toFixed(4);
-          var prevRecs = REP_RECORDS.filter(function(r){ return r.contractId === c.id; });
-          var prevCumulative = prevRecs.length > 0 ? prevRecs[prevRecs.length-1].cumulativeShare : (c.totalRepaid || 0);
-          var newCumulative = +(prevCumulative + share).toFixed(4);
-
-          // Cap check
-          if(newCumulative > c.recoveryCap){
-            share = +(c.recoveryCap - prevCumulative).toFixed(4);
-            if(share < 0) share = 0;
-            newCumulative = +(prevCumulative + share).toFixed(4);
+        fetch('/api/admin/revenue-report/submit', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            projectId: proj.id,
+            reportedBy: u.id,
+            period: period,
+            totalRevenue: revenue,
+            note: note
+          })
+        }).then(function(r){return r.json();}).then(function(res){
+          if(!res.ok){
+            showToast(res.error || '提交失败', 'error');
+            if(submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '确认提交'; }
+            return;
           }
 
-          var recId = 'rep-' + Date.now().toString(36) + '-' + c.id;
-          var newRec = {
-            id: recId,
-            contractId: c.id,
-            revenueReportId: reportId,
-            participantId: c.participantId,
-            projectName: proj.name,
-            date: new Date().toISOString().slice(0, 10),
-            projectRevenue: revenue,
-            shareAmount: share,
-            cumulativeShare: newCumulative,
-            recoveryProgress: +(newCumulative / c.recoveryCap * 100).toFixed(2)
-          };
-          savedRepRecords.push(newRec);
-          REP_RECORDS.push(newRec);
+          // Refresh data from server
+          Promise.all([
+            fetch('/api/data/revenue-reports').then(function(r){return r.json();}),
+            fetch('/api/data/repayment-records').then(function(r){return r.json();}),
+            fetch('/api/data/contracts').then(function(r){return r.json();})
+          ]).then(function(results){
+            // Update local data arrays
+            var newReports = results[0] || [];
+            var newRepRecords = results[1] || [];
+            var newContracts = results[2] || [];
+            REV_REPORTS.length = 0;
+            newReports.forEach(function(r){ REV_REPORTS.push(r); });
+            REP_RECORDS.length = 0;
+            newRepRecords.forEach(function(r){ REP_RECORDS.push(r); });
+            // Update contract totalRepaid
+            projContracts.forEach(function(c){
+              var updated = newContracts.find(function(nc){ return nc.id === c.id; });
+              if(updated) c.totalRepaid = updated.totalRepaid;
+            });
+          }).catch(function(){});
 
-          // Update contract totalRepaid
-          c.totalRepaid = newCumulative;
-        });
-        localStorage.setItem('zlc_repayment_records', JSON.stringify(savedRepRecords));
-
-        // Update contracts in localStorage
-        var allLsContracts = [];
-        try { allLsContracts = JSON.parse(localStorage.getItem('zlc_contracts') || '[]'); } catch(e){}
-        projContracts.forEach(function(c){
-          var idx = allLsContracts.findIndex(function(x){ return x.id === c.id; });
-          if(idx >= 0) allLsContracts[idx].totalRepaid = c.totalRepaid;
-        });
-        localStorage.setItem('zlc_contracts', JSON.stringify(allLsContracts));
-
-        // Show success
-        var overlay = document.getElementById('report-success-overlay');
-        overlay.classList.add('show');
-        setTimeout(function(){
+          // Show success
+          var overlay = document.getElementById('report-success-overlay');
+          overlay.classList.add('show');
+          setTimeout(function(){
           overlay.classList.remove('show');
           render(); // re-render page
         }, 2000);

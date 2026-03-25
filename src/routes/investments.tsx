@@ -71,13 +71,7 @@ app.get('/investments/:contractId', async (c) => {
   var MEMBERS = ${JSON.stringify(allMembers.map(m => ({ id:m.id, name:m.name, company:m.company })))};
   var CONTRACT_HTML_MAP = ${JSON.stringify(contractHTMLMap)};
 
-  // Merge localStorage data
-  var lsContracts = [];
-  try { lsContracts = JSON.parse(localStorage.getItem('zlc_contracts') || '[]'); } catch(e){}
-  lsContracts.forEach(function(c){ if(!CONTRACTS.find(function(x){return x.id===c.id;})) CONTRACTS.push(c); });
-  var lsRepRecords = [];
-  try { lsRepRecords = JSON.parse(localStorage.getItem('zlc_repayment_records') || '[]'); } catch(e){}
-  lsRepRecords.forEach(function(r){ if(!REP_RECORDS.find(function(x){return x.id===r.id;})) REP_RECORDS.push(r); });
+  // Data loaded from D1 via SSR — no localStorage merge needed
 
   var contract = CONTRACTS.find(function(c){ return c.id === CONTRACT_ID; });
   var el = document.getElementById('invest-detail-content');
