@@ -469,10 +469,24 @@ app.get('/create', (c) => {
       return;
     }
     goStep(2, 'right');
-    // Coach Mark for create page - share ratio
+    // Inline hint for share ratio (replaces Coach Mark overlay)
     setTimeout(function(){
-      showCoachMark('#input-share-ratio', '这是你愿意分给参与人的月收入比例。填高了回款快但你让利多，填低了可能不够吸引人。一般在8%-20%', 'bottom', 'create-ratio');
-    }, 800);
+      var hintKey = 'zlc_create_ratio_hint';
+      if(localStorage.getItem(hintKey)) return;
+      var target = document.getElementById('input-share-ratio');
+      if(!target) return;
+      var hint = document.createElement('div');
+      hint.id = 'create-ratio-hint';
+      hint.style.cssText = 'background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:10px 14px;margin-top:8px;display:flex;align-items:flex-start;gap:8px;animation:coachFadeIn 0.4s ease forwards;';
+      hint.innerHTML = '<span style="flex-shrink:0;">💡</span><div style="flex:1;font-size:12px;color:#92400E;line-height:1.5;">这是你愿意分给参与人的月收入比例。填高了回款快但让利多，填低了可能不够吸引人。一般在8%-20%。<button id="create-ratio-hint-dismiss" style="color:#B45309;font-weight:600;background:none;border:none;cursor:pointer;margin-left:4px;padding:0;font-size:12px;">知道了</button></div>';
+      target.parentNode.insertBefore(hint, target.nextSibling);
+      document.getElementById('create-ratio-hint-dismiss').addEventListener('click', function(){
+        localStorage.setItem(hintKey, '1');
+        hint.style.opacity = '0';
+        hint.style.transition = 'opacity 0.3s';
+        setTimeout(function(){ hint.remove(); }, 300);
+      });
+    }, 600);
     // ── Nudge B: Terms step 30s without number input ──
     if (!localStorage.getItem('zlc_nudge_create_terms')) {
       var termsNudgeTimer = setTimeout(function(){ showNudge('\\uD83D\\uDCCA', '不确定怎么填？展开上方的「同行案例参考」看看', 'create_terms'); }, 30000);

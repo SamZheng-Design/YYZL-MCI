@@ -336,13 +336,26 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
   // ── Onboarding (first-time) ──
   showOnboarding();
 
-  // ── Coach Marks for Home Page ──
-  setTimeout(function(){
-    showCoachMark('#quick-actions', '从这里开始：发起你的项目，或去大厅看看同学的项目', 'bottom', 'home-quick');
-  }, 800);
-  setTimeout(function(){
-    showCoachMark('#share-code-input', '收到同学的分享码？在这里输入就能直接查看项目', 'bottom', 'home-share');
-  }, 1500);
+  // ── Inline First-Visit Hints (replaces Coach Marks) ──
+  (function(){
+    var userId = '';
+    try { userId = JSON.parse(localStorage.getItem('zlc_user')).id; } catch(e){}
+    var hintKey = userId ? 'zlc_home_hint_' + userId : 'zlc_home_hint';
+    if(localStorage.getItem(hintKey)) return;
+    var qa = document.getElementById('quick-actions');
+    if(!qa) return;
+    var hint = document.createElement('div');
+    hint.style.cssText = 'background:#FFFBEB;border:1px solid #FDE68A;border-radius:12px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:flex-start;gap:10px;animation:coachFadeIn 0.4s ease 0.6s both;';
+    hint.innerHTML = '<span style="font-size:16px;flex-shrink:0;">👋</span>'
+      + '<div style="flex:1;"><div style="font-size:13px;color:#92400E;line-height:1.6;">欢迎！从上方快捷入口开始：发起你的项目，或去大厅看看同学的项目。收到分享码？在下方输入就能直接查看。</div>'
+      + '<button id="home-hint-dismiss" style="font-size:12px;color:#B45309;font-weight:600;background:none;border:none;cursor:pointer;margin-top:6px;padding:0;">我知道了</button></div>';
+    qa.parentNode.insertBefore(hint, qa.nextSibling);
+    document.getElementById('home-hint-dismiss').addEventListener('click', function(){
+      localStorage.setItem(hintKey, 'true');
+      hint.style.opacity = '0'; hint.style.transition = 'opacity 0.3s';
+      setTimeout(function(){ hint.remove(); }, 300);
+    });
+  })();
 })();
 `}} />
     </div>,

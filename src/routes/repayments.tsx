@@ -290,9 +290,25 @@ app.get('/repayments', async (c) => {
     window.location.reload();
   };
 
-  // ── Coach Mark for Repayments Page ──
+  // ── Inline Hint for repayment tabs (replaces Coach Mark) ──
   setTimeout(function(){
-    showCoachMark('#repayment-tabs', '左边看你投出去的钱的回款，右边管理你自己发起的项目', 'bottom', 'repay-tabs');
+    var userId = '';
+    try { userId = JSON.parse(localStorage.getItem('zlc_user')).id; } catch(e){}
+    var hintKey = userId ? 'zlc_repay_hint_' + userId : 'zlc_repay_hint';
+    if(localStorage.getItem(hintKey)) return;
+    var tabs = document.getElementById('repayment-tabs');
+    if(!tabs) return;
+    var hint = document.createElement('div');
+    hint.style.cssText = 'background:#FFFBEB;border:1px solid #FDE68A;border-radius:12px;padding:10px 14px;margin:0 16px 12px;display:flex;align-items:flex-start;gap:8px;animation:coachFadeIn 0.4s ease forwards;';
+    hint.innerHTML = '<span style="flex-shrink:0;">💡</span>'
+      + '<div style="flex:1;font-size:12px;color:#92400E;line-height:1.5;">左边查看你投出去的钱的回款情况，右边管理你自己发起的项目。'
+      + '<button id="repay-hint-dismiss" style="color:#B45309;font-weight:600;background:none;border:none;cursor:pointer;margin-left:4px;padding:0;font-size:12px;">知道了</button></div>';
+    tabs.parentNode.insertBefore(hint, tabs.nextSibling);
+    document.getElementById('repay-hint-dismiss').addEventListener('click', function(){
+      localStorage.setItem(hintKey, 'true');
+      hint.style.opacity = '0'; hint.style.transition = 'opacity 0.3s';
+      setTimeout(function(){ hint.remove(); }, 300);
+    });
   }, 800);
 
   // ── Contract Modal Logic (repayments page) ──

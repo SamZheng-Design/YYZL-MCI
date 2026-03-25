@@ -219,9 +219,27 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
   fSort.addEventListener('change', render);
   render();
 
-  // ── Coach Mark for Projects Hall ──
+  // ── Inline Hint for relation tags (replaces Coach Mark) ──
   setTimeout(function(){
-    showCoachMark('.relation-tag', '绿色表示同班同学，金色是老师推荐的项目，帮你快速识别', 'bottom', 'hall-tags');
+    var userId = '';
+    try { userId = JSON.parse(localStorage.getItem('zlc_user')).id; } catch(e){}
+    var hintKey = userId ? 'zlc_hall_hint_' + userId : 'zlc_hall_hint';
+    if(localStorage.getItem(hintKey)) return;
+    var tag = document.querySelector('.relation-tag');
+    if(!tag) return;
+    var listEl = document.getElementById('project-list');
+    if(!listEl) return;
+    var hint = document.createElement('div');
+    hint.style.cssText = 'background:#FFFBEB;border:1px solid #FDE68A;border-radius:12px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:flex-start;gap:8px;animation:coachFadeIn 0.4s ease forwards;';
+    hint.innerHTML = '<span style="flex-shrink:0;">🏷️</span>'
+      + '<div style="flex:1;font-size:12px;color:#92400E;line-height:1.5;">绿色标签表示同班同学，金色是老师推荐的项目，帮你快速识别。'
+      + '<button id="hall-hint-dismiss" style="color:#B45309;font-weight:600;background:none;border:none;cursor:pointer;margin-left:4px;padding:0;font-size:12px;">知道了</button></div>';
+    listEl.insertBefore(hint, listEl.firstChild);
+    document.getElementById('hall-hint-dismiss').addEventListener('click', function(){
+      localStorage.setItem(hintKey, 'true');
+      hint.style.opacity = '0'; hint.style.transition = 'opacity 0.3s';
+      setTimeout(function(){ hint.remove(); }, 300);
+    });
   }, 800);
 
   // ── Nudge A: Browse 30s without clicking any project ──

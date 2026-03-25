@@ -961,13 +961,30 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
     });
   }
 
-  // ── Coach Marks for Project Detail ──
-  setTimeout(function(){
-    showCoachMark('#participate-calculator', '选择份额数，系统自动帮你算预估回款', 'top', 'detail-calc');
-  }, 800);
-  setTimeout(function(){
-    showCoachMark('#btn-referral', '不认识发起人？点这里请你的老师帮忙对接，先见面再投资', 'top', 'detail-referral');
-  }, 1500);
+  // ── Inline First-Visit Hints (replaces Coach Marks to avoid overlay issues) ──
+  (function(){
+    var userId = '';
+    try { userId = JSON.parse(localStorage.getItem('zlc_user')).id; } catch(e){}
+    var hintKey = userId ? 'zlc_detail_hint_' + userId : 'zlc_detail_hint';
+    if(localStorage.getItem(hintKey)) return;
+
+    // Show inline hint below calculator
+    var calcEl = document.getElementById('participate-calculator');
+    if(calcEl){
+      var hint = document.createElement('div');
+      hint.style.cssText = 'background:#FFFBEB;border:1px solid #FDE68A;border-radius:12px;padding:12px 16px;margin-top:-8px;margin-bottom:16px;display:flex;align-items:flex-start;gap:10px;animation:coachFadeIn 0.4s ease forwards;';
+      hint.innerHTML = '<span style="font-size:16px;flex-shrink:0;">💡</span>'
+        + '<div style="flex:1;"><div style="font-size:13px;color:#92400E;line-height:1.6;">选择份额数，系统自动帮你算预估回款。不认识发起人？可以请老师帮忙引荐对接。</div>'
+        + '<button id="detail-hint-dismiss" style="font-size:12px;color:#B45309;font-weight:600;background:none;border:none;cursor:pointer;margin-top:6px;padding:0;">我知道了</button></div>';
+      calcEl.parentNode.insertBefore(hint, calcEl.nextSibling);
+      document.getElementById('detail-hint-dismiss').addEventListener('click', function(){
+        localStorage.setItem(hintKey, 'true');
+        hint.style.opacity = '0';
+        hint.style.transition = 'opacity 0.3s';
+        setTimeout(function(){ hint.remove(); }, 300);
+      });
+    }
+  })();
 
   // ── Nudge C: Detail page 30s without action ──
   if (PROJ.status === 'open' && !localStorage.getItem('zlc_nudge_detail_action')) {
