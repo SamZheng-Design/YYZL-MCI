@@ -1199,9 +1199,9 @@ adminApi.post('/contracts/:id/confirm-terms', async (c) => {
       return c.json({ ok: false, error: '您不是该合同的参与人' }, 403)
     }
 
-    // 只有 draft 状态的合同可以确认条款
-    if (contract.approval_status !== 'draft') {
-      return c.json({ ok: false, error: '该合同条款已确认，无法重复操作' }, 400)
+    // draft 或 rejected 状态的合同可以（重新）确认条款
+    if (contract.approval_status !== 'draft' && contract.approval_status !== 'rejected') {
+      return c.json({ ok: false, error: '该合同条款已确认或正在审批中，无法重复操作' }, 400)
     }
 
     // 获取项目信息以计算退出条件

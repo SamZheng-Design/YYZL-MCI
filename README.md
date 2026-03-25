@@ -8,7 +8,7 @@
 - **名称**: 中流通 ZhongLiu Connect
 - **目标**: 私域RBF协作平台，数据透明，分账体外执行，结果在平台展示
 - **模式**: 投资人 → 第三方分账机构 → 融资方，分账结果推送至中流通平台
-- **状态**: MVP 功能完整 (Phase 1~4 已完成)
+- **状态**: MVP 功能完整 (Phase 1~4 + V22 条款通 已完成)
 
 ## URLs
 
@@ -18,8 +18,9 @@
 - **项目大厅**: /projects
 - **项目详情**: /projects/:id
 - **个人主页**: /profile
-- **发起项目**: /create (3步骤表单)
-- **合同签署**: /contracts/:id/sign
+- **发起项目**: /create (4步骤表单: 基本信息→条款→企业信息→预览)
+- **条款通**: /contracts/:id/terms (滑块联动、退出条件确认、审批流)
+- **合同签署**: /contracts/:id/sign (审批通过后才可签署)
 - **回款中心**: /repayments (双Tab: 我的投资+我的发起)
 - **投资详情**: /investments/:contractId
 - **营收上报**: /initiated/:projectId/report
@@ -73,6 +74,55 @@
 - **Profile**: 新增「修改密码」菜单项
 - 移除 GlobalScripts 中 mock 数据 localStorage 种子注入
 
+### V22 — 条款通 (Terms Connect) (2026-03-25)
+
+**核心变更：引入「条款通」滑块联动确认 + 审批流 + 四步项目创建表单**
+
+#### 新增页面
+- **条款通** `/contracts/:id/terms`
+  - 融资额 ↔ 分成比例 等比滑块联动（锚点 k = 融资额/分成比例）
+  - 退出条件可视化卡片（期限到期 / 封顶倍数 / 双条件先到为准）
+  - 实时计算面板（每月预估分成、回本月数、回收上限、等效封顶倍数）
+  - 简明大白话摘要（"简单来说"）
+  - 审批状态横幅（draft → pending_approval → approved/rejected）
+
+#### 新增 API（3个）
+- `POST /api/admin/contracts/:id/confirm-terms` — 投资人确认条款
+- `POST /api/admin/contracts/:id/approve` — 班主任审批（approve/reject）
+- `POST /api/admin/contracts/:id/send-to-esign` — 电子签约桩接口
+
+#### 数据库升级（migration 0003）
+- **projects 表新增 20 列**: 企业主体（company_full_name, credit_code, registered_address, legal_representative 等）、退出条件（annual_yield_rate, exit_mode）、风控阈值、数据传输模式、收款银行信息
+- **contracts 表新增 11 列**: annual_yield_rate, exit_mode, end_date, cap_multiple_at_term, approval_status, approved_by/at/note, terms_confirmed_at, esign_url/status
+
+#### 项目创建表单升级
+- 从 3 步扩展为 4 步: ① 基本信息 → ② 条款与退出 → ③ 企业+银行 → ④ 预览
+- 新增年化收益率滑块（8%~24%，默认12%）
+- 新增退出条件选择（期限到期/封顶倍数/先到为准）
+- 新增风控阈值（连续亏损月数/金额）
+- 新增企业主体信息（全称、信用代码、法人、注册地址等）
+- 新增收款银行信息
+
+#### 合同签署页升级
+- 新增审批状态门禁（draft/pending_approval → 跳转条款通；rejected → 重新修改）
+- approved 状态显示绿色横幅后才允许签署
+
+#### 合同模板升级
+- 完整联合经营协议 HTML（含甲方企业信息、信用代码、退出条件条款）
+- 退出条件根据 exit_mode 动态生成（期限到期 / 封顶倍数 / 双条件先到为准）
+- 封顶公式：联营资金 × (1 + 年收益率 ÷ 360 × 联营天数)
+
+#### 业务流程
+```
+会员认购项目
+  → 跳转条款通 /contracts/:id/terms
+  → 滑块调整融资额/分成比例（等比联动）
+  → 确认条款（approval_status: draft → pending_approval）
+  → 通知班主任审批
+  → 班主任审批（approved / rejected）
+  → 通过后跳转合同签署 /contracts/:id/sign
+```
+
 ## API 端点清单
 
 ### 认证 API
@@ -106,7 +156,7 @@
 | GET | /api/platform-stats | 平台统计 |
 | GET | /api/user-stats/:id | 用户投资统计 |
 
-### 管理写入 API (10个)
+### 管理写入 API (13个)
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | POST | /api/admin/settlement/import | CSV 分账导入 |
@@ -114,7 +164,10 @@
 | POST | /api/admin/projects/:id/review | 项目审核 |
 | POST | /api/admin/projects/:id/participate | 参与投资 |
 | POST | /api/admin/contracts/:id/sign | 合同签署 |
-| POST | /api/admin/projects/create | 创建项目 |
+| POST | /api/admin/contracts/:id/confirm-terms | 投资人确认条款（V22） |
+| POST | /api/admin/contracts/:id/approve | 班主任审批合同（V22） |
+| POST | /api/admin/contracts/:id/send-to-esign | 电子签约桩接口（V22） |
+| POST | /api/admin/projects/create | 创建项目（含企业+银行信息） |
 | POST | /api/admin/referrals/create | 发起引荐请求 |
 | POST | /api/admin/invite-codes/generate | 生成邀请码 |
 | POST | /api/admin/projects/:id/recommend | 教师推荐项目 |
@@ -217,8 +270,9 @@ src/
     ├── home.tsx      # 首页
     ├── projects.tsx  # 项目大厅
     ├── project-detail.tsx
-    ├── create.tsx    # 发起项目 (3步骤表单)
-    ├── contract-sign.tsx
+    ├── create.tsx    # 发起项目 (4步骤: 基本→条款→企业→预览)
+    ├── terms-connect.tsx  # 条款通 (滑块联动+审批流) [V22]
+    ├── contract-sign.tsx  # 合同签署 (含审批门禁)
     ├── repayments.tsx
     ├── investments.tsx
     ├── revenue-report.tsx  # 营收上报
@@ -229,7 +283,9 @@ src/
     └── notifications.tsx
 
 migrations/
-└── 0001_initial_schema.sql  # D1 数据库 DDL (13表)
+├── 0001_initial_schema.sql  # D1 数据库 DDL (13表)
+├── 0002_rate_limits.sql     # 登录限流表
+└── 0003_contract_terms_upgrade.sql  # 条款通字段升级 (V22)
 
 seed.sql                      # Demo 数据 (484行)
 wrangler.jsonc               # Cloudflare 配置
@@ -240,11 +296,11 @@ ecosystem.config.cjs         # PM2 配置
 
 | 分类 | 行数 |
 |------|------|
-| TypeScript/TSX 源码 | ~15,100 |
-| SQL (migration+seed) | ~780 |
-| API 端点总数 | 31 |
-| 页面路由 | 14 |
-| 打包大小 (dist/_worker.js) | ~638 KB |
+| TypeScript/TSX 源码 | ~16,700 |
+| SQL (migration+seed) | ~850 |
+| API 端点总数 | 34 |
+| 页面路由 | 15（含条款通） |
+| 打包大小 (dist/_worker.js) | ~757 KB |
 
 ## 待开发功能 (远期路线图)
 
@@ -265,8 +321,8 @@ ecosystem.config.cjs         # PM2 配置
 
 - **平台**: Cloudflare Pages
 - **数据库**: Cloudflare D1 (zhongliu-production)
-- **状态**: MVP 完整, 待部署至生产环境
-- **最后更新**: 2026-03-25
+- **状态**: MVP + V22条款通 完整, 待部署至生产环境
+- **最后更新**: 2026-03-25 (V22)
 
 ## 本地开发
 
