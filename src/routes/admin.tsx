@@ -1,7 +1,7 @@
 // Route: /admin
 import { Hono } from 'hono'
 import {
-  GlobalScripts, LogoSVG, Navbar, TabBar, statusLabel,
+  GlobalScripts, LogoSVG, Navbar, TabBar, statusLabel, AuthCheckScript,
 } from '../components'
 import type { HonoEnv } from '../types'
 
@@ -15,6 +15,16 @@ app.get('/admin', async (c) => {
   ])
   return c.render(
     <div class="app-container has-tabbar" style="background:#F8F7F6;">
+      <AuthCheckScript />
+      {/* Admin-only: redirect non-admin users */}
+      <script dangerouslySetInnerHTML={{ __html: `
+(function(){
+  try {
+    var cu = JSON.parse(localStorage.getItem('zlc_current_user'));
+    if(!cu || cu.role !== 'admin'){ window.location.replace('/'); return; }
+  } catch(e){ window.location.replace('/login'); }
+})();
+`}} />
       <GlobalScripts />
 
       {/* Admin Navbar */}

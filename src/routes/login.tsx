@@ -88,7 +88,7 @@ app.get('/login', (c) => {
             <div id="phone-login-toggle" style="color:rgba(255,255,255,0.5);font-size:13px;text-align:center;cursor:pointer;user-select:none;">使用手机号+密码登录 ▾</div>
             <div id="phone-login-area" style="max-height:0;overflow:hidden;transition:max-height 300ms ease;opacity:0;">
               {/* Login form */}
-              <div id="login-form" style="padding-top:16px;">
+              <form id="login-form" style="padding-top:16px;" onsubmit="return false;" autocomplete="on">
                 <input id="phone-input" type="tel" maxlength={11} placeholder="请输入手机号" autocomplete="tel" style="width:100%;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:12px;color:white;padding:14px 16px;font-size:15px;outline:none;box-sizing:border-box;" />
                 <div style="display:flex;gap:10px;margin-top:12px;">
                   <input id="code-input" type="password" maxlength={20} placeholder="请输入密码" autocomplete="current-password" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:12px;color:white;padding:14px 16px;font-size:15px;outline:none;box-sizing:border-box;" />
@@ -97,9 +97,9 @@ app.get('/login', (c) => {
                 <div id="switch-to-register" style="margin-top:12px;text-align:center;font-size:13px;color:rgba(255,255,255,0.5);cursor:pointer;">
                   还没有账号？<span style="color:#D4A853;font-weight:500;">申请注册</span>
                 </div>
-              </div>
+              </form>
               {/* Self-register form (hidden by default) */}
-              <div id="register-form" style="padding-top:16px;display:none;">
+              <form id="register-form" style="padding-top:16px;display:none;" onsubmit="return false;" autocomplete="on">
                 <div style="font-size:14px;color:rgba(255,255,255,0.8);text-align:center;margin-bottom:14px;line-height:1.5;">
                   <i class="fas fa-info-circle" style="margin-right:4px;" />注册后需管理员审核通过才能登录
                 </div>
@@ -114,7 +114,7 @@ app.get('/login', (c) => {
                 <div id="switch-to-login" style="margin-top:12px;text-align:center;font-size:13px;color:rgba(255,255,255,0.5);cursor:pointer;">
                   已有账号？<span style="color:#D4A853;font-weight:500;">返回登录</span>
                 </div>
-              </div>
+              </form>
             </div>
           </div>
 
@@ -154,6 +154,7 @@ app.get('/login', (c) => {
   };
 
   var currentRole = 'member';
+  var _lastUsedPassword = 'zhongliu2026'; // Track password for change-password modal
 
   // ── Role card selection ──
   var roleCards = document.querySelectorAll('.login-role-card');
@@ -213,6 +214,7 @@ app.get('/login', (c) => {
     if(!acc) return;
 
     // Call API with demo password to authenticate via D1
+    _lastUsedPassword = 'zhongliu2026';
     showToast('正在登录...', 'info');
     fetch('/api/login', {
       method: 'POST',
@@ -296,7 +298,7 @@ app.get('/login', (c) => {
       this.disabled = true; this.textContent = '修改中...';
       fetch('/api/change-password', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ userId: member.id, oldPassword: codeInput.value.trim(), newPassword: newPw })
+        body: JSON.stringify({ userId: member.id, oldPassword: _lastUsedPassword, newPassword: newPw })
       }).then(function(r){return r.json();}).then(function(res){
         if(res.ok){
           showToast('密码已修改，欢迎使用！', 'success');
@@ -328,6 +330,7 @@ app.get('/login', (c) => {
     if(isLoading)return;var phone=phoneInput.value.trim(),code=codeInput.value.trim();
     if(!/^1[3-9]\\d{9}$/.test(phone)){showToast('请输入正确的11位手机号','error');return;}
     if(!code||code.length<4){showToast('请输入密码','error');return;}
+    _lastUsedPassword = code;
     isLoading=true;loginBtn.innerHTML='<span class="spinner"></span>';loginBtn.disabled=true;
     fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:phone,password:code})})
     .then(function(r){return r.json();}).then(function(d){

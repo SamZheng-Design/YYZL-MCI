@@ -930,7 +930,7 @@ adminApi.post('/members/:id/reject', async (c) => {
     // Delete related records first (audit logs, notifications), then user
     // Or safer: just delete the user and clean up FKs
     try {
-      await db.prepare('DELETE FROM audit_log WHERE user_id = ?').bind(userId).run()
+      await db.prepare('DELETE FROM audit_logs WHERE user_id = ?').bind(userId).run()
       await db.prepare('DELETE FROM notifications WHERE target_id = ?').bind(userId).run()
       await db.prepare('DELETE FROM sessions WHERE user_id = ?').bind(userId).run()
       await db.prepare('DELETE FROM users WHERE id = ?').bind(userId).run()

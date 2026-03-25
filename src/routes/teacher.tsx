@@ -2,7 +2,7 @@
 import { Hono } from 'hono'
 import type { HonoEnv } from '../types'
 import {
-  GlobalScripts, LogoSVG, Navbar, TabBar,
+  GlobalScripts, LogoSVG, Navbar, TabBar, AuthCheckScript,
 } from '../components'
 
 export function registerTeacherRoute(app: Hono<HonoEnv>) {
@@ -15,6 +15,16 @@ app.get('/teacher', async (c) => {
 
   return c.render(
     <div class="app-container has-tabbar">
+      <AuthCheckScript />
+      {/* Teacher-only: redirect non-teacher users */}
+      <script dangerouslySetInnerHTML={{ __html: `
+(function(){
+  try {
+    var cu = JSON.parse(localStorage.getItem('zlc_current_user'));
+    if(!cu || cu.role !== 'teacher'){ window.location.replace('/'); return; }
+  } catch(e){ window.location.replace('/login'); }
+})();
+`}} />
       <GlobalScripts />
       {/* Navbar */}
       <nav class="app-navbar">
