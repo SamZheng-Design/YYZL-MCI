@@ -109,12 +109,16 @@ export async function getTeacherForClass(db: D1Database, classId: string): Promi
 export async function generateUserId(db: D1Database, role: UserRole): Promise<string> {
   const prefix = role === 'teacher' ? 't' : 'm'
   const result = await db.prepare(
-    `SELECT id FROM users WHERE id LIKE ? ORDER BY id DESC LIMIT 1`
-  ).bind(`${prefix}-%`).first<{ id: string }>()
+    `SELECT id FROM users WHERE id LIKE ? ORDER BY id DESC`
+  ).bind(`${prefix}-%`).all<{ id: string }>()
 
-  if (!result) return `${prefix}-001`
-  const num = parseInt(result.id.split('-')[1]) + 1
-  return `${prefix}-${String(num).padStart(3, '0')}`
+  let maxNum = 0
+  for (const row of result.results) {
+    const parts = row.id.split('-')
+    const n = parseInt(parts[1])
+    if (!isNaN(n) && n > maxNum) maxNum = n
+  }
+  return `${prefix}-${String(maxNum + 1).padStart(3, '0')}`
 }
 
 // ══════════════════════════════════════════════════════════════

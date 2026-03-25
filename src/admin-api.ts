@@ -830,4 +830,172 @@ adminApi.post('/invite-codes/generate', async (c) => {
   }
 })
 
+// ══════════════════════════════════════════════════════════
+// 学员管理 API — Phase 5B
+// ══════════════════════════════════════════════════════════
+
+/**
+ * POST /api/admin/members/:id/toggle-status
+ * Body: { adminId: string }
+ * 启用/禁用学员账号
+ */
+adminApi.post('/members/:id/toggle-status', async (c) => {
+  const db = c.env.DB
+  const userId = c.req.param('id')
+  try {
+    const { adminId } = await c.req.json<{ adminId: string }>()
+
+    // Verify admin
+    const admin = await db.prepare('SELECT role FROM users WHERE id = ?').bind(adminId).first<{ role: string }>()
+    if (!admin || admin.role !== 'admin') return c.json({ ok: false, error: '无管理员权限' }, 403)
+
+    // Get current status
+    const user = await db.prepare('SELECT id, name, status FROM users WHERE id = ?').bind(userId).first<{ id: string; name: string; status: string }>()
+    if (!user) return c.json({ ok: false, error: '用户不存在' }, 404)
+
+    const newStatus = user.status === 'active' ? 'inactive' : 'active'
+    await db.prepare('UPDATE users SET status = ?, updated_at = datetime(\'now\') WHERE id = ?').bind(newStatus, userId).run()
+
+    await logAudit(db, {
+      userId: adminId, action: 'toggle_user_status',
+      entityType: 'user', entityId: userId,
+      detail: { userName: user.name, from: user.status, to: newStatus },
+    })
+
+    return c.json({ ok: true, data: { newStatus }, message: newStatus === 'active' ? '已启用' : '已禁用' })
+  } catch (e: any) {
+    return c.json({ ok: false, error: '操作失败: ' + (e.message || '') }, 500)
+  }
+})
+
+/**
+ * POST /api/admin/members/:id/approve
+ * Body: { adminId: string }
+ * 审核通过待审批的自注册学员
+ */
+adminApi.post('/members/:id/approve', async (c) => {
+  const db = c.env.DB
+  const userId = c.req.param('id')
+  try {
+    const { adminId } = await c.req.json<{ adminId: string }>()
+
+    const admin = await db.prepare('SELECT role FROM users WHERE id = ?').bind(adminId).first<{ role: string }>()
+    if (!admin || admin.role !== 'admin') return c.json({ ok: false, error: '无管理员权限' }, 403)
+
+    const user = await db.prepare('SELECT id, name, status, phone FROM users WHERE id = ?').bind(userId).first<{ id: string; name: string; status: string; phone: string }>()
+    if (!user) return c.json({ ok: false, error: '用户不存在' }, 404)
+    if (user.status !== 'pending') return c.json({ ok: false, error: '该用户不在待审核状态' }, 400)
+
+    await db.prepare('UPDATE users SET status = \'active\', updated_at = datetime(\'now\') WHERE id = ?').bind(userId).run()
+
+    await logAudit(db, {
+      userId: adminId, action: 'approve_registration',
+      entityType: 'user', entityId: userId,
+      detail: { userName: user.name, phone: user.phone },
+    })
+
+    // Create notification for the user
+    await createNotification(db, {
+      type: 'system',
+      title: '注册审核通过',
+      content: '您的账号已通过审核，可以登录使用中流通平台了',
+      targetId: userId,
+      icon: '✅',
+    })
+
+    return c.json({ ok: true, message: '已通过 ' + user.name + ' 的注册申请' })
+  } catch (e: any) {
+    return c.json({ ok: false, error: '审核失败: ' + (e.message || '') }, 500)
+  }
+})
+
+/**
+ * POST /api/admin/members/:id/reject
+ * Body: { adminId: string, reason?: string }
+ * 拒绝待审批的自注册学员
+ */
+adminApi.post('/members/:id/reject', async (c) => {
+  const db = c.env.DB
+  const userId = c.req.param('id')
+  try {
+    const { adminId, reason } = await c.req.json<{ adminId: string; reason?: string }>()
+
+    const admin = await db.prepare('SELECT role FROM users WHERE id = ?').bind(adminId).first<{ role: string }>()
+    if (!admin || admin.role !== 'admin') return c.json({ ok: false, error: '无管理员权限' }, 403)
+
+    const user = await db.prepare('SELECT id, name, status, phone FROM users WHERE id = ?').bind(userId).first<{ id: string; name: string; status: string; phone: string }>()
+    if (!user) return c.json({ ok: false, error: '用户不存在' }, 404)
+    if (user.status !== 'pending') return c.json({ ok: false, error: '该用户不在待审核状态' }, 400)
+
+    // Delete related records first (audit logs, notifications), then user
+    // Or safer: just delete the user and clean up FKs
+    try {
+      await db.prepare('DELETE FROM audit_log WHERE user_id = ?').bind(userId).run()
+      await db.prepare('DELETE FROM notifications WHERE target_id = ?').bind(userId).run()
+      await db.prepare('DELETE FROM sessions WHERE user_id = ?').bind(userId).run()
+      await db.prepare('DELETE FROM users WHERE id = ?').bind(userId).run()
+    } catch (fkErr: any) {
+      // If FK still fails, just mark as rejected/inactive instead of deleting
+      await db.prepare("UPDATE users SET status = 'inactive', bio = ? WHERE id = ?")
+        .bind('已拒绝: ' + (reason || '管理员拒绝') + ' | 原: ' + (user.bio || ''), userId).run()
+    }
+
+    await logAudit(db, {
+      userId: adminId, action: 'reject_registration',
+      entityType: 'user', entityId: userId,
+      detail: { userName: user.name, phone: user.phone, reason: reason || '' },
+    })
+
+    return c.json({ ok: true, message: '已拒绝 ' + user.name + ' 的注册申请' })
+  } catch (e: any) {
+    return c.json({ ok: false, error: '操作失败: ' + (e.message || '') }, 500)
+  }
+})
+
+/**
+ * POST /api/admin/members/:id/update
+ * Body: { adminId: string, name?: string, company?: string, title?: string, className?: string }
+ * 管理员编辑学员信息
+ */
+adminApi.post('/members/:id/update', async (c) => {
+  const db = c.env.DB
+  const userId = c.req.param('id')
+  try {
+    const { adminId, name, company, title, className, industry } = await c.req.json<{
+      adminId: string; name?: string; company?: string; title?: string; className?: string; industry?: string
+    }>()
+
+    const admin = await db.prepare('SELECT role FROM users WHERE id = ?').bind(adminId).first<{ role: string }>()
+    if (!admin || admin.role !== 'admin') return c.json({ ok: false, error: '无管理员权限' }, 403)
+
+    const user = await db.prepare('SELECT id FROM users WHERE id = ?').bind(userId).first()
+    if (!user) return c.json({ ok: false, error: '用户不存在' }, 404)
+
+    const updates: string[] = []
+    const values: any[] = []
+
+    if (name) { updates.push('name = ?'); values.push(name) }
+    if (company !== undefined) { updates.push('company = ?'); values.push(company) }
+    if (title !== undefined) { updates.push('title = ?'); values.push(title) }
+    if (industry !== undefined) { updates.push('industry = ?'); values.push(industry) }
+    if (className) {
+      const classId = 'class-' + className.replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, '')
+      updates.push('class_name = ?'); values.push(className)
+      updates.push('class_id = ?'); values.push(classId)
+      updates.push('cohort = ?'); values.push(className)
+    }
+
+    if (updates.length === 0) return c.json({ ok: false, error: '没有要更新的字段' }, 400)
+
+    updates.push("updated_at = datetime('now')")
+    values.push(userId)
+
+    await db.prepare(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`).bind(...values).run()
+
+    return c.json({ ok: true, message: '更新成功' })
+  } catch (e: any) {
+    return c.json({ ok: false, error: '更新失败: ' + (e.message || '') }, 500)
+  }
+})
+
 export default adminApi

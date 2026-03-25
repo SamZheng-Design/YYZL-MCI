@@ -11,6 +11,7 @@ import {
   getActiveMembers, getTeachers,
   getPlatformStats, getUserInvestmentStats,
   getUnreadNotificationCount,
+  logAudit, generateUserId,
 } from './db'
 import {
   loadMembers, loadTeachers, loadProjects, loadContracts,
@@ -71,6 +72,15 @@ app.post('/api/login', async (c) => {
     const user = await getUserByPhone(db, phone)
     if (!user) return c.json({ ok: false, error: '该手机号未认证为一亿中流学员' }, 403)
 
+    // Check if user is pending approval
+    if (user.status === 'pending') {
+      return c.json({ ok: false, error: '您的账号正在审核中，请等待管理员通过后再登录', isPending: true }, 403)
+    }
+    // Check if user is disabled
+    if (user.status === 'inactive') {
+      return c.json({ ok: false, error: '您的账号已被禁用，请联系管理员', isInactive: true }, 403)
+    }
+
     const valid = await verifyPassword(password, user.password_hash || '')
     if (!valid) return c.json({ ok: false, error: '密码错误' }, 400)
 
@@ -82,7 +92,7 @@ app.post('/api/login', async (c) => {
     ).bind(sessionId, user.id, expiresAt).run()
 
     // Check if using demo password (needs change)
-    const needsPasswordChange = (user.password_hash || '').startsWith('$demo$')
+    const needsPasswordChange = user.must_change_password === 1 || (user.password_hash || '').startsWith('$demo$')
 
     // Build response
     const memberData = user.role === 'teacher' ? {
@@ -158,6 +168,55 @@ app.post('/api/admin/reset-password', async (c) => {
     return c.json({ ok: true, data: { tempPassword }, message: '密码已重置' })
   } catch (e: any) {
     return c.json({ ok: false, error: '操作失败: ' + (e.message || '') }, 500)
+  }
+})
+
+/** 学员自助注册 API — 提交后状态为 pending，需管理员审核 */
+app.post('/api/self-register', async (c) => {
+  try {
+    const { name, phone, password, teacherName, company, title } = await c.req.json<{
+      name: string; phone: string; password: string; teacherName: string; company?: string; title?: string
+    }>()
+
+    if (!name || !phone || !password || !teacherName) {
+      return c.json({ ok: false, error: '请填写姓名、手机号、密码和班主任名称' }, 400)
+    }
+    if (password.length < 6) {
+      return c.json({ ok: false, error: '密码至少6位' }, 400)
+    }
+    if (!/^1\d{10}$/.test(phone)) {
+      return c.json({ ok: false, error: '请输入正确的手机号' }, 400)
+    }
+
+    const db = c.env.DB
+
+    // Check if phone already registered
+    const existing = await db.prepare('SELECT id, status FROM users WHERE phone = ?').bind(phone).first<{ id: string; status: string }>()
+    if (existing) {
+      if (existing.status === 'pending') {
+        return c.json({ ok: false, error: '该手机号已提交注册申请，请等待审核' }, 400)
+      }
+      return c.json({ ok: false, error: '该手机号已注册' }, 400)
+    }
+
+    const userId = await generateUserId(db, 'member')
+    const passwordHash = await hashPassword(password)
+
+    // Store teacherName in bio temporarily for admin to review
+    await db.prepare(`
+      INSERT INTO users (id, phone, name, password_hash, role, status, company, title, bio, join_date, must_change_password)
+      VALUES (?, ?, ?, ?, 'member', 'pending', ?, ?, ?, date('now'), 0)
+    `).bind(userId, phone, name, passwordHash, company || '', title || '', '班主任：' + teacherName).run()
+
+    await logAudit(db, {
+      userId: userId, action: 'self_register',
+      entityType: 'user', entityId: userId,
+      detail: { name, phone, teacherName },
+    })
+
+    return c.json({ ok: true, message: '注册申请已提交，请等待管理员审核通过后登录' })
+  } catch (e: any) {
+    return c.json({ ok: false, error: '注册失败: ' + (e.message || '') }, 500)
   }
 })
 

@@ -87,12 +87,33 @@ app.get('/login', (c) => {
           <div style="margin-top:24px;">
             <div id="phone-login-toggle" style="color:rgba(255,255,255,0.5);font-size:13px;text-align:center;cursor:pointer;user-select:none;">使用手机号+密码登录 ▾</div>
             <div id="phone-login-area" style="max-height:0;overflow:hidden;transition:max-height 300ms ease;opacity:0;">
-              <div style="padding-top:16px;">
+              {/* Login form */}
+              <div id="login-form" style="padding-top:16px;">
                 <input id="phone-input" type="tel" maxlength={11} placeholder="请输入手机号" autocomplete="tel" style="width:100%;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:12px;color:white;padding:14px 16px;font-size:15px;outline:none;box-sizing:border-box;" />
                 <div style="display:flex;gap:10px;margin-top:12px;">
                   <input id="code-input" type="password" maxlength={20} placeholder="请输入密码" autocomplete="current-password" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:12px;color:white;padding:14px 16px;font-size:15px;outline:none;box-sizing:border-box;" />
                 </div>
                 <button id="login-btn" type="button" style="width:100%;margin-top:16px;background:linear-gradient(135deg,#D4A853,#B8860B);color:white;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:600;cursor:pointer;">登录</button>
+                <div id="switch-to-register" style="margin-top:12px;text-align:center;font-size:13px;color:rgba(255,255,255,0.5);cursor:pointer;">
+                  还没有账号？<span style="color:#D4A853;font-weight:500;">申请注册</span>
+                </div>
+              </div>
+              {/* Self-register form (hidden by default) */}
+              <div id="register-form" style="padding-top:16px;display:none;">
+                <div style="font-size:14px;color:rgba(255,255,255,0.8);text-align:center;margin-bottom:14px;line-height:1.5;">
+                  <i class="fas fa-info-circle" style="margin-right:4px;" />注册后需管理员审核通过才能登录
+                </div>
+                <input id="reg-name" type="text" maxlength={20} placeholder="姓名 *" style="width:100%;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:12px;color:white;padding:14px 16px;font-size:15px;outline:none;box-sizing:border-box;margin-bottom:10px;" />
+                <input id="reg-phone" type="tel" maxlength={11} placeholder="手机号 *" style="width:100%;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:12px;color:white;padding:14px 16px;font-size:15px;outline:none;box-sizing:border-box;margin-bottom:10px;" />
+                <input id="reg-teacher" type="text" maxlength={20} placeholder="班主任名称 *" style="width:100%;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:12px;color:white;padding:14px 16px;font-size:15px;outline:none;box-sizing:border-box;margin-bottom:10px;" />
+                <input id="reg-company" type="text" maxlength={30} placeholder="公司名称（选填）" style="width:100%;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:12px;color:white;padding:14px 16px;font-size:15px;outline:none;box-sizing:border-box;margin-bottom:10px;" />
+                <input id="reg-title" type="text" maxlength={20} placeholder="职务（选填）" style="width:100%;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:12px;color:white;padding:14px 16px;font-size:15px;outline:none;box-sizing:border-box;margin-bottom:10px;" />
+                <input id="reg-password" type="password" maxlength={20} placeholder="设置密码（至少6位）*" style="width:100%;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:12px;color:white;padding:14px 16px;font-size:15px;outline:none;box-sizing:border-box;margin-bottom:10px;" />
+                <input id="reg-password2" type="password" maxlength={20} placeholder="确认密码 *" style="width:100%;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:12px;color:white;padding:14px 16px;font-size:15px;outline:none;box-sizing:border-box;" />
+                <button id="register-btn" type="button" style="width:100%;margin-top:16px;background:linear-gradient(135deg,#B91C1C,#991B1B);color:white;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:600;cursor:pointer;">提交注册申请</button>
+                <div id="switch-to-login" style="margin-top:12px;text-align:center;font-size:13px;color:rgba(255,255,255,0.5);cursor:pointer;">
+                  已有账号？<span style="color:#D4A853;font-weight:500;">返回登录</span>
+                </div>
               </div>
             </div>
           </div>
@@ -236,7 +257,7 @@ app.get('/login', (c) => {
   toggleEl.addEventListener('click', function(){
     phoneExpanded = !phoneExpanded;
     if(phoneExpanded){
-      areaEl.style.maxHeight = '300px';
+      areaEl.style.maxHeight = '800px';
       areaEl.style.opacity = '1';
       toggleEl.textContent = '使用手机号+密码登录 ▴';
     } else {
@@ -325,11 +346,88 @@ app.get('/login', (c) => {
         showToast('登录成功，欢迎回来！','success');
         setTimeout(function(){window.location.href=d.member.role==='teacher'?'/teacher':(d.member.role==='admin'?'/admin':'/');},800);
       }
-      else{showToast(d.error||'登录失败','error');loginBtn.innerHTML='登录';loginBtn.disabled=false;isLoading=false;}
+      else{
+        if(d.isPending){
+          showToast('账号审核中，请等待管理员通过','error');
+          // Show a persistent banner
+          var banner = document.createElement('div');
+          banner.style.cssText = 'margin-top:14px;padding:14px 16px;background:rgba(234,179,8,0.15);border:1px solid rgba(234,179,8,0.3);border-radius:12px;color:rgba(255,255,255,0.9);font-size:13px;line-height:1.6;text-align:center;';
+          banner.innerHTML = '<i class="fas fa-clock" style="color:#EAB308;margin-right:6px;"></i>您的注册申请正在审核中<br><span style="font-size:12px;color:rgba(255,255,255,0.5);">管理员审核通过后即可登录使用</span>';
+          var existingBanner = document.getElementById('pending-banner');
+          if(existingBanner) existingBanner.remove();
+          banner.id = 'pending-banner';
+          loginBtn.parentNode.appendChild(banner);
+        } else {
+          showToast(d.error||'登录失败','error');
+        }
+        loginBtn.innerHTML='登录';loginBtn.disabled=false;isLoading=false;
+      }
     }).catch(function(){showToast('网络错误，请重试','error');loginBtn.innerHTML='登录';loginBtn.disabled=false;isLoading=false;});
   });
   codeInput.addEventListener('keydown',function(e){if(e.key==='Enter')loginBtn.click();});
   phoneInput.addEventListener('keydown',function(e){if(e.key==='Enter')codeInput.focus();});
+
+  // ── Register / Login mode switching ──
+  var loginForm = document.getElementById('login-form');
+  var registerForm = document.getElementById('register-form');
+  var switchToRegister = document.getElementById('switch-to-register');
+  var switchToLogin = document.getElementById('switch-to-login');
+
+  if(switchToRegister){
+    switchToRegister.addEventListener('click', function(){
+      loginForm.style.display = 'none';
+      registerForm.style.display = 'block';
+    });
+  }
+  if(switchToLogin){
+    switchToLogin.addEventListener('click', function(){
+      registerForm.style.display = 'none';
+      loginForm.style.display = 'block';
+    });
+  }
+
+  // ── Self Register submit ──
+  var regBtn = document.getElementById('register-btn');
+  if(regBtn){
+    regBtn.addEventListener('click', function(){
+      var regName = document.getElementById('reg-name').value.trim();
+      var regPhone = document.getElementById('reg-phone').value.trim();
+      var regTeacher = document.getElementById('reg-teacher').value.trim();
+      var regCompany = document.getElementById('reg-company').value.trim();
+      var regTitle = document.getElementById('reg-title').value.trim();
+      var regPw = document.getElementById('reg-password').value;
+      var regPw2 = document.getElementById('reg-password2').value;
+
+      if(!regName){ showToast('请输入姓名', 'error'); return; }
+      if(!/^1[3-9]\\d{9}$/.test(regPhone)){ showToast('请输入正确的11位手机号', 'error'); return; }
+      if(!regTeacher){ showToast('请输入班主任名称', 'error'); return; }
+      if(!regPw || regPw.length < 6){ showToast('密码至少6位', 'error'); return; }
+      if(regPw !== regPw2){ showToast('两次密码不一致', 'error'); return; }
+
+      regBtn.disabled = true; regBtn.innerHTML = '<span class="spinner"></span>';
+
+      fetch('/api/self-register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: regName, phone: regPhone, password: regPw, teacherName: regTeacher, company: regCompany, title: regTitle })
+      }).then(function(r){ return r.json(); }).then(function(d){
+        regBtn.disabled = false; regBtn.textContent = '提交注册申请';
+        if(d.ok){
+          showToast(d.message || '注册申请已提交', 'success');
+          // Switch back to login
+          setTimeout(function(){
+            registerForm.style.display = 'none';
+            loginForm.style.display = 'block';
+          }, 1500);
+        } else {
+          showToast(d.error || '注册失败', 'error');
+        }
+      }).catch(function(){
+        regBtn.disabled = false; regBtn.textContent = '提交注册申请';
+        showToast('网络错误，请重试', 'error');
+      });
+    });
+  }
 
   // ── Desktop split layout ──
   if(window.innerWidth >= 1025){

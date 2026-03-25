@@ -18,7 +18,7 @@ import type {
 export interface Member {
   id: string; phone: string; name: string; company: string
   industry: string; title: string; bio: string; cohort: string
-  status: 'active' | 'inactive'; joinDate: string
+  status: 'active' | 'inactive' | 'pending'; joinDate: string
   role?: 'member' | 'admin' | 'teacher'; classId?: string; className?: string
 }
 
@@ -101,7 +101,7 @@ function dbUserToMember(u: DBUser): Member {
     id: u.id, phone: u.phone, name: u.name,
     company: u.company || '', industry: u.industry || '',
     title: u.title || '', bio: u.bio || '', cohort: u.cohort || '',
-    status: u.status === 'active' ? 'active' : 'inactive',
+    status: (u.status === 'active' ? 'active' : u.status === 'pending' ? 'pending' : 'inactive') as Member['status'],
     joinDate: u.join_date || u.created_at || '',
     role: u.role as any, classId: u.class_id || '', className: u.class_name || '',
   }
@@ -206,7 +206,7 @@ function dbNotificationToNotification(n: DBNotification): Notification {
 /** 加载所有活跃学员 (member + admin) */
 export async function loadMembers(db: D1Database): Promise<Member[]> {
   const res = await db.prepare(
-    "SELECT * FROM users WHERE (role = 'member' OR role = 'admin') AND status = 'active' ORDER BY cohort, name"
+    "SELECT * FROM users WHERE (role = 'member' OR role = 'admin') ORDER BY CASE status WHEN 'pending' THEN 0 WHEN 'active' THEN 1 ELSE 2 END, cohort, name"
   ).all<DBUser>()
   return res.results.map(dbUserToMember)
 }

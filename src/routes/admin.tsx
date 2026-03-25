@@ -213,6 +213,8 @@ app.get('/admin', async (c) => {
 
     // Pending review count
     var pendingReviewCount = MOCK_PROJECTS.filter(function(p){return p.status==='pending_review';}).length;
+    // Pending registration count
+    var pendingRegCount = members.filter(function(m){return m.status==='pending';}).length;
 
     var html = '<div style="padding:20px 16px 12px;"><p style="font-size:15px;color:#44403C;">管理员您好，以下是平台运营概况</p></div>';
 
@@ -233,9 +235,16 @@ app.get('/admin', async (c) => {
     });
     html += '</div>';
 
-    // Pending review alert
+    // Pending alerts
+    if(pendingRegCount > 0){
+      html += '<div style="margin:16px 16px 0;padding:12px 16px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:12px;display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="switchTab(\\'members\\')">';
+      html += '<span style="font-size:20px;">👤</span>';
+      html += '<span style="font-size:14px;color:#92400E;font-weight:600;">有 ' + pendingRegCount + ' 位学员待审核注册</span>';
+      html += '<i class="fas fa-chevron-right" style="margin-left:auto;color:#92400E;font-size:12px;"></i>';
+      html += '</div>';
+    }
     if(pendingReviewCount > 0){
-      html += '<div style="margin:16px 16px 0;padding:12px 16px;background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="switchTab(\\'review\\')">';
+      html += '<div style="margin:'+(pendingRegCount>0?'8':'16')+'px 16px 0;padding:12px 16px;background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="switchTab(\\'review\\')">';
       html += '<span style="font-size:20px;">⚠️</span>';
       html += '<span style="font-size:14px;color:#B91C1C;font-weight:600;">有 ' + pendingReviewCount + ' 个项目待审核</span>';
       html += '<i class="fas fa-chevron-right" style="margin-left:auto;color:#B91C1C;font-size:12px;"></i>';
@@ -503,7 +512,9 @@ app.get('/admin', async (c) => {
   var memberClassFilter = '全部';
 
   function renderMembers(){
-    var members = getMembers().filter(function(m){return m.role!=='admin';});
+    var allMem = getMembers();
+    var members = allMem.filter(function(m){return m.role!=='admin' && m.status!=='pending';});
+    var pendingMembers = allMem.filter(function(m){return m.status==='pending';});
 
     // Extract unique class names
     var classNames = ['全部'];
@@ -520,10 +531,36 @@ app.get('/admin', async (c) => {
     }
 
     var html = '';
-    // Search + Batch Register
-    html += '<div style="padding:16px 16px 0;display:flex;gap:10px;align-items:center;">';
-    html += '<input id="member-search" type="text" placeholder="搜索学员姓名或手机号" value="'+(memberSearchTerm||'')+'" style="width:60%;background:#F5F5F4;border:none;border-radius:12px;padding:12px 16px;font-size:14px;outline:none;" />';
-    html += '<button id="batch-register-btn" style="background:linear-gradient(135deg,#B91C1C,#991B1B);color:white;border:none;border-radius:12px;padding:10px 16px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;">+批量注册</button>';
+
+    // ── Pending Registrations Section ──
+    if(pendingMembers.length > 0){
+      html += '<div style="margin:12px 16px;background:linear-gradient(135deg,#FFFBEB,#FEF3C7);border:1px solid #FDE68A;border-radius:14px;padding:16px;">';
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">';
+      html += '<span style="font-size:14px;font-weight:600;color:#92400E;"><i class="fas fa-user-clock" style="margin-right:6px;"></i>待审核注册 <span style="background:#F59E0B;color:white;border-radius:10px;padding:1px 8px;font-size:12px;margin-left:4px;">'+pendingMembers.length+'</span></span>';
+      html += '</div>';
+      pendingMembers.forEach(function(pm){
+        var bio = pm.bio || '';
+        html += '<div style="background:white;border-radius:10px;padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:12px;">';
+        html += '<div style="width:40px;height:40px;background:#FEF3C7;color:#B45309;font-weight:700;font-size:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+pm.name.charAt(0)+'</div>';
+        html += '<div style="flex:1;min-width:0;">';
+        html += '<div style="font-size:14px;font-weight:600;color:#1C1917;">'+pm.name+'</div>';
+        html += '<div style="font-size:12px;color:#78716C;margin-top:2px;">'+pm.phone+'</div>';
+        if(bio) html += '<div style="font-size:11px;color:#A8A29E;margin-top:2px;">'+bio+'</div>';
+        html += '</div>';
+        html += '<div style="display:flex;gap:6px;flex-shrink:0;">';
+        html += '<button class="pending-approve-btn" data-uid="'+pm.id+'" data-uname="'+pm.name+'" style="background:#16A34A;color:white;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;">通过</button>';
+        html += '<button class="pending-reject-btn" data-uid="'+pm.id+'" data-uname="'+pm.name+'" style="background:#F5F5F4;color:#78716C;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:500;cursor:pointer;">拒绝</button>';
+        html += '</div></div>';
+      });
+      html += '</div>';
+    }
+
+    // Search + Action buttons
+    html += '<div style="padding:16px 16px 0;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">';
+    html += '<input id="member-search" type="text" placeholder="搜索学员姓名或手机号" value="'+(memberSearchTerm||'')+'" style="flex:1;min-width:150px;background:#F5F5F4;border:none;border-radius:12px;padding:12px 16px;font-size:14px;outline:none;" />';
+    html += '<button id="add-single-member-btn" style="background:#FAFAF9;border:1.5px solid #B91C1C;color:#B91C1C;border-radius:12px;padding:10px 14px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;"><i class="fas fa-user-plus" style="margin-right:4px;"></i>新增</button>';
+    html += '<button id="batch-register-btn" style="background:linear-gradient(135deg,#B91C1C,#991B1B);color:white;border:none;border-radius:12px;padding:10px 14px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;"><i class="fas fa-file-import" style="margin-right:4px;"></i>批量</button>';
+    html += '<button id="export-members-btn" style="background:#FAFAF9;border:1px solid #E7E5E4;color:#57534E;border-radius:12px;padding:10px 14px;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;"><i class="fas fa-download" style="margin-right:4px;"></i>导出</button>';
     html += '</div>';
 
     // Class filter tags
@@ -544,36 +581,47 @@ app.get('/admin', async (c) => {
         var initiated = MOCK_PROJECTS.filter(function(p){return p.ownerId===m.id;}).length;
         var participated = MOCK_CONTRACTS.filter(function(c){return c.participantId===m.id;}).length;
         var investSum = MOCK_CONTRACTS.filter(function(c){return c.participantId===m.id;}).reduce(function(s,c){return s+c.amount;},0);
+        var isInactive = m.status === 'inactive';
 
-        html += '<div class="member-card-item" data-member-id="'+m.id+'" style="margin:8px 16px;background:white;border-radius:14px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,0.04);cursor:pointer;display:flex;align-items:center;gap:14px;">';
-        html += '<div style="width:48px;height:48px;background:#FEE2E2;color:#B91C1C;font-weight:700;font-size:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+m.name.charAt(0)+'</div>';
+        html += '<div class="member-card-item" data-member-id="'+m.id+'" style="margin:8px 16px;background:white;border-radius:14px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,0.04);cursor:pointer;display:flex;align-items:center;gap:14px;'+(isInactive?'opacity:0.5;':'')+'">';
+        html += '<div style="width:48px;height:48px;background:'+(isInactive?'#E7E5E4':'#FEE2E2')+';color:'+(isInactive?'#A8A29E':'#B91C1C')+';font-weight:700;font-size:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+m.name.charAt(0)+'</div>';
         html += '<div style="flex:1;min-width:0;">';
-        html += '<div style="display:flex;align-items:center;gap:8px;"><span style="font-size:15px;font-weight:600;color:#1C1917;">'+m.name+'</span><span style="font-size:11px;background:#F5F5F4;color:#78716C;border-radius:6px;padding:2px 8px;">'+(m.className||m.cohort||'')+'</span></div>';
+        html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">';
+        html += '<span style="font-size:15px;font-weight:600;color:#1C1917;">'+m.name+'</span>';
+        html += '<span style="font-size:11px;background:#F5F5F4;color:#78716C;border-radius:6px;padding:2px 8px;">'+(m.className||m.cohort||'')+'</span>';
+        if(isInactive) html += '<span style="font-size:10px;background:#FEE2E2;color:#DC2626;border-radius:4px;padding:1px 6px;">已禁用</span>';
+        html += '</div>';
         html += '<div style="font-size:13px;color:#A8A29E;margin-top:4px;">'+maskedPhone+'</div>';
         html += '<div style="margin-top:8px;font-size:12px;color:#78716C;display:flex;gap:16px;">'
           +'<span>发起 '+initiated+'</span><span>参与 '+participated+'</span><span>投资 ¥'+investSum+'万</span></div>';
         html += '</div>';
-        html += '<button class="reset-pw-btn" data-uid="'+m.id+'" data-uname="'+m.name+'" style="font-size:11px;color:#A8A29E;background:#F5F5F4;border:none;border-radius:6px;padding:4px 8px;cursor:pointer;white-space:nowrap;flex-shrink:0;" title="重置密码">🔑</button>';
+        html += '<div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">';
+        html += '<button class="reset-pw-btn" data-uid="'+m.id+'" data-uname="'+m.name+'" style="font-size:11px;color:#A8A29E;background:#F5F5F4;border:none;border-radius:6px;padding:4px 8px;cursor:pointer;white-space:nowrap;" title="重置密码">🔑</button>';
+        html += '<button class="toggle-status-btn" data-uid="'+m.id+'" data-uname="'+m.name+'" data-status="'+m.status+'" style="font-size:10px;color:'+(isInactive?'#16A34A':'#DC2626')+';background:'+(isInactive?'#ECFDF5':'#FEF2F2')+';border:none;border-radius:6px;padding:4px 8px;cursor:pointer;white-space:nowrap;">'+(isInactive?'启用':'禁用')+'</button>';
+        html += '</div>';
         html += '</div>';
       });
-      html += '<div style="font-size:13px;color:#A8A29E;text-align:center;padding:16px;">共 '+filtered.length+' 位认证学员</div>';
+      html += '<div style="font-size:13px;color:#A8A29E;text-align:center;padding:16px;">共 '+filtered.length+' 位学员</div>';
     }
 
     panels.members.innerHTML = html;
 
-    // Bind events
+    // ── Bind events ──
     var searchEl = document.getElementById('member-search');
     if(searchEl){
       searchEl.addEventListener('input',function(e){
         memberSearchTerm = e.target.value.trim();
         renderMembers();
       });
-      // Keep focus after re-render
       searchEl.focus();
       searchEl.setSelectionRange(searchEl.value.length, searchEl.value.length);
     }
     var batchBtn = document.getElementById('batch-register-btn');
     if(batchBtn) batchBtn.addEventListener('click', openBatchRegister);
+    var addSingleBtn = document.getElementById('add-single-member-btn');
+    if(addSingleBtn) addSingleBtn.addEventListener('click', openSingleMemberCreate);
+    var exportBtn = document.getElementById('export-members-btn');
+    if(exportBtn) exportBtn.addEventListener('click', exportMembersCSV);
     document.querySelectorAll('.member-class-tag').forEach(function(btn){
       btn.addEventListener('click',function(){
         memberClassFilter = btn.dataset.class;
@@ -582,8 +630,7 @@ app.get('/admin', async (c) => {
     });
     document.querySelectorAll('.member-card-item').forEach(function(card){
       card.addEventListener('click',function(e){
-        // Don't trigger if reset button was clicked
-        if(e.target.closest && e.target.closest('.reset-pw-btn')) return;
+        if(e.target.closest && (e.target.closest('.reset-pw-btn') || e.target.closest('.toggle-status-btn'))) return;
         openMemberDetail(card.dataset.memberId);
       });
     });
@@ -592,17 +639,146 @@ app.get('/admin', async (c) => {
         e.stopPropagation();
         var uid = btn.dataset.uid;
         var uname = btn.dataset.uname;
-        if(!confirm('确定重置「' + uname + '」的密码？')) return;
-        fetch('/api/admin/reset-password', {
-          method:'POST',headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ adminId: u.id, targetUserId: uid })
-        }).then(function(r){return r.json();}).then(function(res){
-          if(res.ok){
-            showToast('✅ 已重置，临时密码: ' + res.data.tempPassword, 'success', 10000);
-          } else { showToast(res.error || '重置失败', 'error'); }
-        }).catch(function(){ showToast('网络错误', 'error'); });
+        showConfirm({
+          title: '重置密码',
+          desc: '确定重置「' + uname + '」的密码？重置后会生成临时密码',
+          onConfirm: function(){
+            fetch('/api/admin/reset-password', {
+              method:'POST',headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({ adminId: u.id, targetUserId: uid })
+            }).then(function(r){return r.json();}).then(function(res){
+              if(res.ok){
+                showToast('已重置，临时密码: ' + res.data.tempPassword, 'success', 10000);
+              } else { showToast(res.error || '重置失败', 'error'); }
+            }).catch(function(){ showToast('网络错误', 'error'); });
+          }
+        });
       });
     });
+    // Toggle status buttons
+    document.querySelectorAll('.toggle-status-btn').forEach(function(btn){
+      btn.addEventListener('click',function(e){
+        e.stopPropagation();
+        var uid = btn.dataset.uid;
+        var uname = btn.dataset.uname;
+        var curStatus = btn.dataset.status;
+        var action = curStatus === 'active' ? '禁用' : '启用';
+        showConfirm({
+          title: action + '账号',
+          desc: '确定' + action + '「' + uname + '」的账号？',
+          onConfirm: function(){
+            fetch('/api/admin/members/' + uid + '/toggle-status', {
+              method:'POST',headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({ adminId: u.id })
+            }).then(function(r){return r.json();}).then(function(res){
+              if(res.ok){
+                showToast(res.message, 'success');
+                refreshMembers();
+              } else { showToast(res.error || '操作失败', 'error'); }
+            }).catch(function(){ showToast('网络错误', 'error'); });
+          }
+        });
+      });
+    });
+    // Pending approve/reject buttons
+    document.querySelectorAll('.pending-approve-btn').forEach(function(btn){
+      btn.addEventListener('click',function(){
+        var uid = btn.dataset.uid;
+        var uname = btn.dataset.uname;
+        btn.disabled = true; btn.textContent = '...';
+        fetch('/api/admin/members/' + uid + '/approve', {
+          method:'POST',headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ adminId: u.id })
+        }).then(function(r){return r.json();}).then(function(res){
+          if(res.ok){
+            showToast('已通过 '+uname+' 的注册', 'success');
+            refreshMembers();
+          } else { showToast(res.error || '操作失败', 'error'); btn.disabled=false; btn.textContent='通过'; }
+        }).catch(function(){ showToast('网络错误', 'error'); btn.disabled=false; btn.textContent='通过'; });
+      });
+    });
+    document.querySelectorAll('.pending-reject-btn').forEach(function(btn){
+      btn.addEventListener('click',function(){
+        var uid = btn.dataset.uid;
+        var uname = btn.dataset.uname;
+        showConfirm({
+          title: '拒绝注册',
+          desc: '确定拒绝「'+uname+'」的注册申请？此操作将删除其申请记录',
+          onConfirm: function(){
+            fetch('/api/admin/members/' + uid + '/reject', {
+              method:'POST',headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({ adminId: u.id })
+            }).then(function(r){return r.json();}).then(function(res){
+              if(res.ok){ showToast('已拒绝', 'success'); refreshMembers(); }
+              else { showToast(res.error || '操作失败', 'error'); }
+            }).catch(function(){ showToast('网络错误', 'error'); });
+          }
+        });
+      });
+    });
+  }
+
+  // ── Refresh members from API ──
+  function refreshMembers(){
+    fetch('/api/data/members').then(function(r){return r.json();}).then(function(md){
+      if(md.ok) MOCK_MEMBERS = md.data;
+      else if(Array.isArray(md)) MOCK_MEMBERS = md;
+      renderMembers();
+    }).catch(function(){ renderMembers(); });
+  }
+
+  // ── Single member create modal ──
+  function openSingleMemberCreate(){
+    var overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+    overlay.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:420px;width:100%;overflow:hidden;">'
+      +'<div style="background:linear-gradient(135deg,#B91C1C,#991B1B);padding:18px 24px;color:white;"><div style="font-size:17px;font-weight:600;">新增学员</div><div style="font-size:12px;opacity:0.8;margin-top:4px;">管理员直接创建账号，自动生成初始密码</div></div>'
+      +'<div style="padding:20px 24px;">'
+      +'<div style="margin-bottom:12px;"><label style="font-size:13px;color:#44403C;display:block;margin-bottom:4px;">姓名 *</label><input id="sc-name" type="text" placeholder="学员姓名" style="width:100%;box-sizing:border-box;padding:12px;border:1px solid #E7E5E4;border-radius:10px;font-size:14px;outline:none;" /></div>'
+      +'<div style="margin-bottom:12px;"><label style="font-size:13px;color:#44403C;display:block;margin-bottom:4px;">手机号 *</label><input id="sc-phone" type="tel" maxlength="11" placeholder="11位手机号" style="width:100%;box-sizing:border-box;padding:12px;border:1px solid #E7E5E4;border-radius:10px;font-size:14px;outline:none;" /></div>'
+      +'<div style="margin-bottom:12px;"><label style="font-size:13px;color:#44403C;display:block;margin-bottom:4px;">班级/期数 *</label><input id="sc-class" type="text" placeholder="如：第12期" style="width:100%;box-sizing:border-box;padding:12px;border:1px solid #E7E5E4;border-radius:10px;font-size:14px;outline:none;" /></div>'
+      +'<div style="display:flex;gap:10px;margin-bottom:12px;"><div style="flex:1;"><label style="font-size:13px;color:#44403C;display:block;margin-bottom:4px;">公司</label><input id="sc-company" type="text" placeholder="选填" style="width:100%;box-sizing:border-box;padding:12px;border:1px solid #E7E5E4;border-radius:10px;font-size:14px;outline:none;" /></div>'
+      +'<div style="flex:1;"><label style="font-size:13px;color:#44403C;display:block;margin-bottom:4px;">职位</label><input id="sc-title" type="text" placeholder="选填" style="width:100%;box-sizing:border-box;padding:12px;border:1px solid #E7E5E4;border-radius:10px;font-size:14px;outline:none;" /></div></div>'
+      +'<div style="display:flex;gap:12px;margin-top:20px;">'
+      +'<button id="sc-cancel" style="flex:1;height:44px;background:#F5F5F4;border:none;border-radius:12px;color:#78716C;font-weight:600;font-size:14px;cursor:pointer;">取消</button>'
+      +'<button id="sc-submit" style="flex:1;height:44px;background:#B91C1C;border:none;border-radius:12px;color:#fff;font-weight:600;font-size:14px;cursor:pointer;">创建账号</button>'
+      +'</div></div></div>';
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click',function(e){if(e.target===overlay)overlay.remove();});
+    document.getElementById('sc-cancel').addEventListener('click',function(){overlay.remove();});
+    document.getElementById('sc-submit').addEventListener('click',function(){
+      var name = document.getElementById('sc-name').value.trim();
+      var phone = document.getElementById('sc-phone').value.trim();
+      var cls = document.getElementById('sc-class').value.trim();
+      if(!name||!phone||!cls){ showToast('请填写必填项', 'error'); return; }
+      if(!/^1\\d{10}$/.test(phone)){ showToast('请输入正确手机号', 'error'); return; }
+      this.disabled=true; this.textContent='创建中...';
+      fetch('/api/admin/members/batch-register', {
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({adminId:u.id,members:[{name:name,phone:phone,className:cls}]})
+      }).then(function(r){return r.json();}).then(function(res){
+        if(res.ok){
+          showToast('创建成功！初始密码: '+res.data.initialPassword, 'success', 10000);
+          overlay.remove();
+          refreshMembers();
+        } else { showToast(res.error||'创建失败','error'); document.getElementById('sc-submit').disabled=false; document.getElementById('sc-submit').textContent='创建账号'; }
+      }).catch(function(){ showToast('网络错误','error'); document.getElementById('sc-submit').disabled=false; document.getElementById('sc-submit').textContent='创建账号'; });
+    });
+  }
+
+  // ── Export Members CSV ──
+  function exportMembersCSV(){
+    var members = getMembers().filter(function(m){return m.role!=='admin';});
+    var csv = '姓名,手机号,班级,公司,职位,状态\\n';
+    members.forEach(function(m){
+      csv += '"'+m.name+'","'+m.phone+'","'+(m.className||'')+'","'+(m.company||'')+'","'+(m.title||'')+'","'+(m.status||'active')+'\"\\n';
+    });
+    var blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+    var link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = '学员列表_' + new Date().toISOString().slice(0,10) + '.csv';
+    link.click();
+    showToast('已导出 '+members.length+' 位学员', 'success');
   }
 
   // ── Member Detail Modal ──
@@ -677,23 +853,54 @@ app.get('/admin', async (c) => {
     members.forEach(function(m){if(m.className&&classNames.indexOf(m.className)===-1)classNames.push(m.className);});
 
     var overlay = document.getElementById('batch-register-overlay');
-    var html = '<div style="background:white;border-radius:20px;padding:28px;max-width:400px;width:90%;margin:auto;max-height:90vh;overflow-y:auto;" id="batch-register-box">';
+    var html = '<div style="background:white;border-radius:20px;padding:28px;max-width:480px;width:92%;margin:auto;max-height:90vh;overflow-y:auto;" id="batch-register-box">';
     html += '<div style="font-size:18px;font-weight:700;color:#1C1917;">批量注册学员</div>';
-    html += '<div style="font-size:13px;color:#78716C;margin-top:4px;">输入学员信息，每行一位，系统将自动创建账户并发送邀请</div>';
+    html += '<div style="font-size:13px;color:#78716C;margin-top:4px;">支持手动输入或导入 CSV 文件，系统自动创建账户</div>';
 
     // Class select
     html += '<div style="margin-top:20px;"><label style="font-size:13px;font-weight:600;color:#44403C;">所属班级</label>';
-    html += '<select id="batch-class-select" style="width:100%;padding:12px 16px;border:1px solid #E7E5E4;border-radius:12px;font-size:14px;background:white;margin-top:6px;outline:none;">';
+    html += '<select id="batch-class-select" style="width:100%;padding:12px 16px;border:1px solid #E7E5E4;border-radius:12px;font-size:14px;background:white;margin-top:6px;outline:none;box-sizing:border-box;">';
     classNames.forEach(function(cn){html += '<option value="'+cn+'">'+cn+'</option>';});
     html += '<option value="__new__">新建班级...</option>';
     html += '</select></div>';
 
     // New class input (hidden)
-    html += '<div id="new-class-row" style="display:none;margin-top:8px;"><input id="new-class-input" type="text" placeholder="班级名称（如第18期）" style="width:100%;padding:12px 16px;border:1px solid #E7E5E4;border-radius:12px;font-size:14px;outline:none;" /></div>';
+    html += '<div id="new-class-row" style="display:none;margin-top:8px;"><input id="new-class-input" type="text" placeholder="班级名称（如第18期）" style="width:100%;padding:12px 16px;border:1px solid #E7E5E4;border-radius:12px;font-size:14px;outline:none;box-sizing:border-box;" /></div>';
 
-    // Textarea
-    html += '<div style="margin-top:16px;"><label style="font-size:13px;font-weight:600;color:#44403C;">学员信息（每行一位：姓名 手机号）</label>';
-    html += '<textarea id="batch-textarea" placeholder="张三 13800001234&#10;李四 13900005678&#10;王五 13700009012" style="width:100%;height:160px;padding:14px 16px;border:1px solid #E7E5E4;border-radius:12px;font-size:14px;font-family:monospace;resize:vertical;margin-top:6px;outline:none;box-sizing:border-box;"></textarea></div>';
+    // Mode tabs: manual / file
+    html += '<div style="display:flex;gap:8px;margin-top:16px;">';
+    html += '<button id="batch-mode-manual" style="flex:1;padding:10px;border:1.5px solid #B91C1C;background:#FEF2F2;color:#B91C1C;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;">✏️ 手动输入</button>';
+    html += '<button id="batch-mode-file" style="flex:1;padding:10px;border:1.5px solid #E7E5E4;background:white;color:#78716C;border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;">📁 CSV文件导入</button>';
+    html += '</div>';
+
+    // Manual input area
+    html += '<div id="batch-manual-area" style="margin-top:14px;">';
+    html += '<label style="font-size:13px;font-weight:600;color:#44403C;">学员信息（每行一位：姓名 手机号）</label>';
+    html += '<textarea id="batch-textarea" placeholder="张三 13800001234&#10;李四 13900005678&#10;王五 13700009012" style="width:100%;height:160px;padding:14px 16px;border:1px solid #E7E5E4;border-radius:12px;font-size:14px;font-family:monospace;resize:vertical;margin-top:6px;outline:none;box-sizing:border-box;"></textarea>';
+    html += '</div>';
+
+    // File import area (hidden)
+    html += '<div id="batch-file-area" style="display:none;margin-top:14px;">';
+    html += '<div id="batch-drop-zone" style="border:2px dashed #D6D3D1;border-radius:14px;padding:32px 20px;text-align:center;cursor:pointer;transition:all 0.2s;background:#FAFAF9;">';
+    html += '<div style="font-size:36px;margin-bottom:10px;">📄</div>';
+    html += '<div style="font-size:14px;color:#44403C;font-weight:500;">点击选择或拖拽 CSV 文件</div>';
+    html += '<div style="font-size:12px;color:#A8A29E;margin-top:6px;">格式：姓名, 手机号（表头可选）</div>';
+    html += '<input id="batch-file-input" type="file" accept=".csv,.txt" style="display:none;" />';
+    html += '</div>';
+    html += '<div id="batch-file-preview" style="display:none;margin-top:12px;">';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">';
+    html += '<span id="batch-file-name" style="font-size:13px;color:#44403C;font-weight:500;"></span>';
+    html += '<button id="batch-file-clear" style="font-size:12px;color:#DC2626;background:none;border:none;cursor:pointer;">✕ 清除</button>';
+    html += '</div>';
+    html += '<div id="batch-file-table" style="max-height:200px;overflow-y:auto;border:1px solid #E7E5E4;border-radius:10px;font-size:12px;"></div>';
+    html += '</div>';
+    html += '<div style="margin-top:10px;padding:10px;background:#F0FDF4;border-radius:8px;font-size:12px;color:#166534;line-height:1.5;">';
+    html += '<strong>CSV 格式说明：</strong><br>';
+    html += '• 每行一位学员，用逗号分隔<br>';
+    html += '• 第一列：姓名，第二列：手机号<br>';
+    html += '• 如有表头行会自动跳过<br>';
+    html += '• 示例：<span style="font-family:monospace;background:#DCFCE7;padding:1px 4px;border-radius:3px;">张三,13800001234</span>';
+    html += '</div></div>';
 
     // Buttons
     html += '<div style="margin-top:20px;display:flex;gap:10px;">';
@@ -708,12 +915,45 @@ app.get('/admin', async (c) => {
     var newClassRow = document.getElementById('new-class-row');
     var textarea = document.getElementById('batch-textarea');
     var submitBtn = document.getElementById('batch-submit');
+    var manualArea = document.getElementById('batch-manual-area');
+    var fileArea = document.getElementById('batch-file-area');
+    var modeManualBtn = document.getElementById('batch-mode-manual');
+    var modeFileBtn = document.getElementById('batch-mode-file');
+    var dropZone = document.getElementById('batch-drop-zone');
+    var fileInput = document.getElementById('batch-file-input');
+    var filePreview = document.getElementById('batch-file-preview');
+    var fileNameEl = document.getElementById('batch-file-name');
+    var fileTableEl = document.getElementById('batch-file-table');
+    var fileClearBtn = document.getElementById('batch-file-clear');
+    var currentMode = 'manual';
+    var fileImportData = [];
+
+    // Mode switching
+    modeManualBtn.addEventListener('click', function(){
+      currentMode = 'manual';
+      manualArea.style.display = 'block'; fileArea.style.display = 'none';
+      modeManualBtn.style.cssText = 'flex:1;padding:10px;border:1.5px solid #B91C1C;background:#FEF2F2;color:#B91C1C;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;';
+      modeFileBtn.style.cssText = 'flex:1;padding:10px;border:1.5px solid #E7E5E4;background:white;color:#78716C;border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;';
+      updateCount();
+    });
+    modeFileBtn.addEventListener('click', function(){
+      currentMode = 'file';
+      manualArea.style.display = 'none'; fileArea.style.display = 'block';
+      modeFileBtn.style.cssText = 'flex:1;padding:10px;border:1.5px solid #B91C1C;background:#FEF2F2;color:#B91C1C;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;';
+      modeManualBtn.style.cssText = 'flex:1;padding:10px;border:1.5px solid #E7E5E4;background:white;color:#78716C;border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;';
+      updateCount();
+    });
 
     classSelect.addEventListener('change',function(){
       newClassRow.style.display = classSelect.value==='__new__'?'block':'none';
     });
 
-    function countValid(){
+    function updateCount(){
+      var count = currentMode === 'file' ? fileImportData.length : countManual();
+      submitBtn.textContent = '确认注册 '+count+' 位';
+      return count;
+    }
+    function countManual(){
       var lines = textarea.value.split(/\\n|\\r\\n?/);
       var count = 0;
       lines.forEach(function(line){
@@ -722,35 +962,102 @@ app.get('/admin', async (c) => {
         var parts = line.split(/\\s+/);
         if(parts.length>=2 && /^1[3-9]\\d{9}$/.test(parts[parts.length-1])) count++;
       });
-      submitBtn.textContent = '确认注册 '+count+' 位';
       return count;
     }
-    textarea.addEventListener('input', countValid);
+    textarea.addEventListener('input', updateCount);
+
+    // ── File Import Logic ──
+    dropZone.addEventListener('click', function(){ fileInput.click(); });
+    dropZone.addEventListener('dragover', function(e){
+      e.preventDefault(); e.stopPropagation();
+      dropZone.style.borderColor = '#B91C1C'; dropZone.style.background = '#FEF2F2';
+    });
+    dropZone.addEventListener('dragleave', function(e){
+      e.preventDefault(); e.stopPropagation();
+      dropZone.style.borderColor = '#D6D3D1'; dropZone.style.background = '#FAFAF9';
+    });
+    dropZone.addEventListener('drop', function(e){
+      e.preventDefault(); e.stopPropagation();
+      dropZone.style.borderColor = '#D6D3D1'; dropZone.style.background = '#FAFAF9';
+      if(e.dataTransfer.files && e.dataTransfer.files.length > 0) processFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener('change', function(){
+      if(fileInput.files && fileInput.files.length > 0) processFile(fileInput.files[0]);
+    });
+    fileClearBtn.addEventListener('click', function(){
+      fileImportData = [];
+      filePreview.style.display = 'none'; dropZone.style.display = 'block';
+      fileInput.value = ''; updateCount();
+    });
+
+    function processFile(file){
+      if(!file) return;
+      var ext = file.name.split('.').pop().toLowerCase();
+      if(ext !== 'csv' && ext !== 'txt'){ showToast('请上传 CSV 或 TXT 格式文件','error'); return; }
+      var reader = new FileReader();
+      reader.onload = function(e){ parseCSVContent(e.target.result, file.name); };
+      reader.readAsText(file, 'UTF-8');
+    }
+
+    function parseCSVContent(text, fileName){
+      var lines = text.split(/\\r?\\n/);
+      fileImportData = [];
+      var errors = [];
+      var tableHtml = '<table style="width:100%;border-collapse:collapse;">';
+      tableHtml += '<tr style="background:#F5F5F4;"><th style="padding:6px 10px;text-align:left;font-weight:600;color:#44403C;">姓名</th><th style="padding:6px 10px;text-align:left;font-weight:600;color:#44403C;">手机号</th><th style="padding:6px 10px;text-align:center;font-weight:600;color:#44403C;">状态</th></tr>';
+      lines.forEach(function(line, idx){
+        line = line.trim();
+        if(!line) return;
+        var parts = line.split(/[,\\t]+/).map(function(s){return s.trim().replace(/^["']|["']$/g,'');});
+        if(parts.length < 2) return;
+        var name = parts[0]; var phone = parts[1];
+        // Skip header row
+        if(idx === 0 && !/^\\d/.test(phone)) return;
+        var isValid = /^1[3-9]\\d{9}$/.test(phone);
+        if(isValid){
+          fileImportData.push({name: name, phone: phone});
+          tableHtml += '<tr style="border-bottom:1px solid #F5F5F4;"><td style="padding:6px 10px;color:#1C1917;">'+name+'</td><td style="padding:6px 10px;color:#44403C;font-family:monospace;">'+phone+'</td><td style="padding:6px 10px;text-align:center;"><span style="color:#16A34A;">✓</span></td></tr>';
+        } else {
+          errors.push(name);
+          tableHtml += '<tr style="border-bottom:1px solid #F5F5F4;background:#FEF2F2;"><td style="padding:6px 10px;color:#DC2626;">'+name+'</td><td style="padding:6px 10px;color:#DC2626;font-family:monospace;">'+(phone||'?')+'</td><td style="padding:6px 10px;text-align:center;"><span style="color:#DC2626;">✗</span></td></tr>';
+        }
+      });
+      tableHtml += '</table>';
+      if(fileImportData.length === 0){ showToast('文件中没有找到有效的学员数据','error'); return; }
+      dropZone.style.display = 'none'; filePreview.style.display = 'block';
+      fileNameEl.innerHTML = '<i class="fas fa-file-csv" style="color:#16A34A;margin-right:4px;"></i>' + fileName + ' <span style="color:#A8A29E;font-size:11px;">('+ fileImportData.length + ' 位有效' + (errors.length > 0 ? ', '+errors.length+' 位无效' : '') + ')</span>';
+      fileTableEl.innerHTML = tableHtml;
+      if(errors.length > 0) showToast(errors.length + ' 条记录手机号无效，已跳过', 'info');
+      updateCount();
+    }
 
     document.getElementById('batch-cancel').addEventListener('click',function(){overlay.style.display='none';});
     overlay.addEventListener('click',function(e){if(e.target===overlay)overlay.style.display='none';});
 
     submitBtn.addEventListener('click',function(){
-      var count = countValid();
-      if(count===0){showToast('请输入有效的学员信息','error');return;}
+      var count = updateCount();
+      if(count===0){showToast('请输入或导入有效的学员信息','error');return;}
       var className = classSelect.value;
       if(className==='__new__'){
         className = document.getElementById('new-class-input').value.trim();
         if(!className){showToast('请输入班级名称','error');return;}
       }
 
-      var lines = textarea.value.split(/\\n|\\r\\n?/);
       var memberData = [];
-      lines.forEach(function(line){
-        line = line.trim();
-        if(!line) return;
-        var parts = line.split(/\\s+/);
-        if(parts.length<2) return;
-        var phone = parts[parts.length-1];
-        if(!/^1[3-9]\\d{9}$/.test(phone)) return;
-        var name = parts.slice(0,parts.length-1).join(' ');
-        memberData.push({name:name, phone:phone, className:className});
-      });
+      if(currentMode === 'file'){
+        fileImportData.forEach(function(d){ memberData.push({name:d.name, phone:d.phone, className:className}); });
+      } else {
+        var lines = textarea.value.split(/\\n|\\r\\n?/);
+        lines.forEach(function(line){
+          line = line.trim(); if(!line) return;
+          var parts = line.split(/\\s+/);
+          if(parts.length<2) return;
+          var phone = parts[parts.length-1];
+          if(!/^1[3-9]\\d{9}$/.test(phone)) return;
+          var name = parts.slice(0,parts.length-1).join(' ');
+          memberData.push({name:name, phone:phone, className:className});
+        });
+      }
 
       submitBtn.disabled = true;
       submitBtn.textContent = '注册中...';
@@ -765,11 +1072,10 @@ app.get('/admin', async (c) => {
           if(d.data && d.data.initialPassword){
             showToast('初始密码: '+d.data.initialPassword, 'info', 8000);
           }
-          // Reload data from API
-          fetch('/api/data/members').then(function(r){return r.json();}).then(function(md){
-            if(md.ok) MOCK_MEMBERS = md.data;
-            rendered['members']=false;renderMembers();rendered['members']=true;
-          });
+          if(d.data && d.data.skipped && d.data.skipped.length > 0){
+            showToast('跳过 '+d.data.skipped.length+' 位（已注册）', 'info', 5000);
+          }
+          refreshMembers();
         } else {
           showToast(d.error||'注册失败','error');
           submitBtn.disabled=false;submitBtn.textContent='确认注册 '+count+' 位';
