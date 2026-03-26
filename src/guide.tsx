@@ -158,7 +158,7 @@ guide.get('/member', (c) => {
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <title>学员使用指南 — 中流通</title>
 <link rel="icon" type="image/svg+xml" href="/favicon.ico">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!-- System fonts used, no external font loading needed -->
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#FAFAF9;font-family:-apple-system,BlinkMacSystemFont,'Inter','SF Pro Display','Segoe UI','Roboto','Noto Sans SC',sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
@@ -604,7 +604,7 @@ guide.get('/teacher', (c) => {
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <title>老师使用指南 — 中流通</title>
 <link rel="icon" type="image/svg+xml" href="/favicon.ico">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!-- System fonts used, no external font loading needed -->
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#FAFAF9;font-family:-apple-system,BlinkMacSystemFont,'Inter','SF Pro Display','Segoe UI','Roboto','Noto Sans SC',sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
@@ -862,7 +862,7 @@ guide.get('/admin', (c) => {
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <title>管理员使用指南 — 中流通</title>
 <link rel="icon" type="image/svg+xml" href="/favicon.ico">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!-- System fonts used, no external font loading needed -->
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#FAFAF9;font-family:-apple-system,BlinkMacSystemFont,'Inter','SF Pro Display','Segoe UI','Roboto','Noto Sans SC',sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
