@@ -53,9 +53,9 @@ app.get('/login', (c) => {
       {/* Full-screen gradient background (mobile/tablet) */}
       <div id="login-mobile-bg" style="position:fixed;inset:0;background:linear-gradient(135deg,#7F1D1D 0%,#B91C1C 50%,#991B1B 100%);" />
 
-      <div id="login-form-area" style="position:relative;z-index:10;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px;">
+      <div id="login-form-area" style="position:relative;z-index:10;min-height:100vh;min-height:100dvh;display:flex;align-items:flex-start;justify-content:center;padding:24px 16px;overflow-y:auto;-webkit-overflow-scrolling:touch;">
         {/* Glass card */}
-        <div id="login-card" style="max-width:460px;width:90%;background:rgba(255,255,255,0.12);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.2);border-radius:24px;padding:40px 32px;opacity:0;transform:translateY(30px);animation:loginCardIn 600ms ease-out forwards;">
+        <div id="login-card" style="max-width:460px;width:90%;background:rgba(255,255,255,0.12);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.2);border-radius:24px;padding:40px 32px;opacity:0;transform:translateY(30px);animation:loginCardIn 600ms ease-out forwards;margin:auto 0;flex-shrink:0;">
 
           {/* Part 1: Brand */}
           <div style="text-align:center;">
@@ -94,7 +94,7 @@ app.get('/login', (c) => {
           {/* Part 4: Phone Login Fold */}
           <div style="margin-top:24px;">
             <div id="phone-login-toggle" style="color:rgba(255,255,255,0.5);font-size:13px;text-align:center;cursor:pointer;user-select:none;">使用手机号+密码登录 ▾</div>
-            <div id="phone-login-area" style="max-height:0;overflow:hidden;transition:max-height 300ms ease;opacity:0;">
+            <div id="phone-login-area" style="max-height:0;overflow:hidden;transition:max-height 300ms ease,opacity 300ms ease;opacity:0;">
               {/* Login form */}
               <form id="login-form" style="padding-top:16px;" onsubmit="return false;" autocomplete="on">
                 <input id="phone-input" type="tel" maxlength={11} placeholder="请输入手机号" autocomplete="tel" style="width:100%;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:12px;color:white;padding:14px 16px;font-size:15px;outline:none;box-sizing:border-box;" />
@@ -424,8 +424,8 @@ app.get('/login', (c) => {
   // ── Change Password Modal (方案B：输入完整手机号验证 + 强制改密) ──
   function showChangePasswordModal(member){
     var overlay = document.createElement('div');
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
-    overlay.innerHTML = '<div id="cp-modal" style="background:#fff;border-radius:20px;padding:32px 24px;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">'
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto;';
+    overlay.innerHTML = '<div id="cp-modal" style="background:rgba(255,255,255,0.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:20px;padding:32px 24px;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">'    
       // ── Step 1: 输入完整手机号验证 ──
       +'<div id="cp-step1">'
       +'<div style="text-align:center;margin-bottom:24px;">'
