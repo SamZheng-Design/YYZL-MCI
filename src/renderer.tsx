@@ -36,6 +36,12 @@ export const renderer = jsxRenderer(({ children, title }) => {
         {/* Global Styles — extracted to external CSS for caching + smaller Worker bundle */}
         <link rel="stylesheet" href="/static/app.css" />
 
+        {/* SPA Router progress bar styles */}
+        <style dangerouslySetInnerHTML={{__html: `
+          #zlc-spa-progress{position:fixed;top:0;left:0;width:100%;height:3px;z-index:99999;pointer-events:none;display:none;}
+          .zlc-spa-progress-inner{height:100%;background:linear-gradient(90deg,#DC2626,#B91C1C,#DC2626);border-radius:0 2px 2px 0;box-shadow:0 0 8px rgba(185,28,28,0.4);width:0%;opacity:1;}
+          #zlc-page-content{min-height:50vh;}
+        `}} />
 
       </head>
       <body class="bg-surface-page text-text-primary">
@@ -181,7 +187,7 @@ export const renderer = jsxRenderer(({ children, title }) => {
             <div class="dt-title" id="dt-page-title">首页</div>
             <div class="dt-actions">
               <button class="dt-demo-btn" id="dt-demo-btn" style="display:none;">📖 演示</button>
-              <button class="dt-bell" id="dt-bell" onclick="window.location.href='/notifications'">
+              <button class="dt-bell" id="dt-bell" onclick="(window.__zlcNavigate||function(u){window.location.href=u})('/notifications')">
                 <i class="fas fa-bell" style="font-size:18px;color:#78716C;"></i>
                 <span class="dt-bell-dot" id="dt-bell-dot"></span>
               </button>
@@ -189,7 +195,10 @@ export const renderer = jsxRenderer(({ children, title }) => {
             </div>
           </div>
 
-          {children}
+          {/* ══ SPA content swap target ══ */}
+          <div id="zlc-page-content">
+            {children}
+          </div>
         </div>
 
         {/* ══ Desktop Sidebar + TopBar init logic ══ */}
@@ -342,7 +351,7 @@ export const renderer = jsxRenderer(({ children, title }) => {
   var dtUserBtn = document.getElementById('dt-user-btn');
   if(dtUserBtn && u){
     dtUserBtn.textContent = u.name ? u.name.charAt(0) : '?';
-    dtUserBtn.addEventListener('click', function(){ window.location.href = '/profile'; });
+    dtUserBtn.addEventListener('click', function(){ (window.__zlcNavigate||function(u){window.location.href=u})('/profile'); });
   }
 })();
 `}} />
@@ -372,6 +381,9 @@ export const renderer = jsxRenderer(({ children, title }) => {
 
         {/* ══ AI Assistant (智能助理浮窗) ══ */}
         <AIAssistantScript />
+
+        {/* ══ SPA Router (must be last — after all page scripts) ══ */}
+        <script src="/static/router.js" defer></script>
       </body>
     </html>
   )

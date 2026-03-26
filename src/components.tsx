@@ -747,7 +747,7 @@ const Navbar = () => (
     <div style="display:flex;align-items:center;gap:8px;">
       {/* Demo guide button (Task 5) */}
       <span id="nav-demo-btn" style="font-size:12px;color:#B91C1C;background:rgba(185,28,28,0.08);border-radius:8px;padding:4px 10px;cursor:pointer;display:none;" />
-      <button id="nav-bell" class="flex items-center justify-center" style="width:36px;height:36px;background:none;border:none;cursor:pointer;position:relative;" onclick="window.location.href='/notifications'">
+      <button id="nav-bell" class="flex items-center justify-center" style="width:36px;height:36px;background:none;border:none;cursor:pointer;position:relative;" onclick="(window.__zlcNavigate||function(u){window.location.href=u})('/notifications')">
         <i class="fas fa-bell" style="font-size:18px;color:#78716C;" />
         <span id="nav-bell-dot" style="position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;background:#DC2626;color:#fff;font-size:10px;font-weight:700;border-radius:8px;text-align:center;line-height:16px;padding:0 3px;display:none;" />
       </button>
@@ -783,7 +783,7 @@ const Navbar = () => (
     var href = guideMap[cu.role] || '/guide/member';
     demoBtn.textContent = '📖 演示';
     demoBtn.style.display = 'inline-block';
-    demoBtn.addEventListener('click', function(){ window.location.href = href; });
+    demoBtn.addEventListener('click', function(){ window.location.href = href; }); // guide pages do full reload
   } catch(e){}
 })();
 `}} />
