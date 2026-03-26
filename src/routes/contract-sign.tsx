@@ -269,12 +269,11 @@ app.get('/contracts/:id/sign', async (c) => {
     var amount = contract.amount;
     var ratio = proj.revenueShareRate;
     var estRevenue = proj.estimatedMonthlyRevenue;
-    var multiple = proj.recoveryMultiple;
     var totalAmount = proj.targetAmount;
     var monthlyShare = estRevenue * ratio / 100;
     var myMonthly = monthlyShare * (amount / totalAmount);
     var myMonths = myMonthly > 0 ? Math.ceil(amount / myMonthly) : 0;
-    var myCap = amount * multiple;
+    var myCap = contract.recoveryCap || (amount * (proj.recoveryMultiple || 1));
 
     plEl.style.display = 'block';
     plEl.innerHTML = '<div class="plain-lang-title">\\uD83D\\uDCAC 简单来说</div>'
@@ -407,7 +406,7 @@ app.get('/contracts/:id/sign', async (c) => {
             var proj = contract.project || contract;
             var sharePercentage = (investmentAmount / (proj.targetAmount||1) * 100).toFixed(1);
             var monthlyShare = (investmentAmount * (proj.revenueShareRate||0) / 100).toFixed(2);
-            var recoveryCap = (investmentAmount * (proj.recoveryMultiple||1)).toFixed(1);
+            var recoveryCap = contract.recoveryCap ? contract.recoveryCap.toFixed(1) : (investmentAmount * (proj.recoveryMultiple||1)).toFixed(1);
 
             var summaryEl = document.getElementById('ceremony-summary');
             if(summaryEl){

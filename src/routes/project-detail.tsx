@@ -68,7 +68,7 @@ app.get('/projects/:id', async (c) => {
   html += '<div class="detail-card" style="padding:0;overflow:hidden;">';
   html += '<div style="padding:18px 20px;border-bottom:1px solid #F5F5F4;display:flex;align-items:center;gap:10px;"><i class="fas fa-file-contract" style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#FEE2E2,#FECDD3);color:#B91C1C;display:flex;align-items:center;justify-content:center;font-size:13px;"></i><span style="font-size:16px;font-weight:600;color:#1C1917;">收入分成条款</span></div>';
   html += '<div style="display:grid;grid-template-columns:1fr 1fr;">';
-  var terms = [["融资总额","¥"+proj.targetAmount+"万"],["分成比例",proj.revenueShareRate+"%"],["联营期限",proj.duration+"月"],["回收倍数",proj.recoveryMultiple+"x"],["回收上限","¥"+cap.toFixed(1)+"万"],["预估月收入","¥"+proj.estimatedMonthlyRevenue+"万"]];
+  var terms = [["融资总额","¥"+proj.targetAmount+"万"],["分成比例",proj.revenueShareRate+"%"],["联营期限",proj.duration+"月"],["年化收益率",yieldRate+"%"],["回收上限","¥"+cap.toFixed(1)+"万"],["预估月收入","¥"+proj.estimatedMonthlyRevenue+"万"]];
   terms.forEach(function(t,i){ html += "<div style=\\"padding:14px 20px;border-bottom:1px solid #F5F5F4;"+(i%2===0?"border-right:1px solid #F5F5F4;":"")+"\\"><div style=\\"font-size:12px;color:#78716C;margin-bottom:4px;\\">"+t[0]+"</div><div style=\\"font-size:18px;font-weight:700;color:#1C1917;\\">"+t[1]+"</div></div>"; });
   html += '</div><div style="background:linear-gradient(135deg,#FEF2F2,#FFF1F2);padding:18px 20px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">';
   html += '<div><div style="font-size:12px;color:#78716C;margin-bottom:4px;">预估月回款</div><div style="font-size:20px;font-weight:800;color:#B91C1C;">¥'+monthly.toFixed(1)+'万</div></div>';
@@ -199,18 +199,18 @@ app.get('/projects/:id', async (c) => {
               </div>
               <div class="terms-cell">
                 <div style="display:flex;align-items:center;gap:4px;">
-                  <span class="terms-label" style="margin-bottom:0;">回收倍数</span>
-                  <span class="help-icon" data-help-id="recoveryMultiple">?</span>
+                  <span class="terms-label" style="margin-bottom:0;">年化收益率</span>
+                  <span class="help-icon" data-help-id="annualYieldRate">?</span>
                 </div>
-                <div class="help-text">参与人最多能拿回投资额的多少倍。1.5倍意味着投10万最多拿回15万。达到上限后合同自动结束。</div>
-                <div class="terms-value">{proj.recoveryMultiple}<span style="font-size:13px;font-weight:400;color:#A8A29E;">x</span></div>
+                <div class="help-text">投资人按年化收益率计算回收上限。年化12%意味着月平息1%，投入的本金按平息×占用期计算最大收益。</div>
+                <div class="terms-value">{proj.annualYieldRate || 12}<span style="font-size:13px;font-weight:400;color:#A8A29E;">%</span></div>
               </div>
               <div class="terms-cell">
                 <div style="display:flex;align-items:center;gap:4px;">
                   <span class="terms-label" style="margin-bottom:0;">回收上限</span>
                   <span class="help-icon" data-help-id="recoveryCap">?</span>
                 </div>
-                <div class="help-text">你最多能拿回的总金额 = 投资额 × 回收倍数。</div>
+                <div class="help-text">你最多能拿回的总金额 = 本金 + 本金 × 平息 × 占用期。</div>
                 <div class="terms-value">¥{rbf.recoveryCap}<span style="font-size:13px;font-weight:400;color:#A8A29E;">万</span></div>
               </div>
               <div class="terms-cell">
@@ -692,7 +692,7 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
     // Update calculator plain-language hint
     var hintEl = document.getElementById('calc-plain-hint');
     if(hintEl && monthly > 0){
-      hintEl.innerHTML = '\\uD83D\\uDCA1 你投入 ' + cost + ' 万参与这个项目。按预估，你每月大约拿到 ' + monthly.toFixed(2) + ' 万。约 ' + months + ' 个月收回本金，最多拿回 ' + cap.toFixed(2) + ' 万。';
+      hintEl.innerHTML = '\\uD83D\\uDCA1 你投入 ' + cost + ' 万参与这个项目。按预估，你每月大约拿到 ' + monthly.toFixed(2) + ' 万。约 ' + months + ' 个月收回本金，回收上限 ' + cap.toFixed(2) + ' 万。';
     }
   }
   if(sel) { sel.addEventListener('change', updateCalc); updateCalc(); }
@@ -715,7 +715,7 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
       + '<div style="font-size:14px;font-weight:600;color:#92400E;margin-bottom:8px;">\\uD83D\\uDCAC 简单来说</div>'
       + '<div style="font-size:13px;line-height:1.8;color:#78716C;">'
       + '这个项目总共需要 ' + totalAmount + ' 万资金。发起人承诺把项目每月收入的 ' + ratio + '% 分给所有参与人。按目前预估每月收入 ' + estRevenue + ' 万计算，每月总共分出约 ' + monthlyShare.toFixed(2) + ' 万。'
-      + '<br/><br/>如果你参与 ' + minPart + ' 万（1份），你每月大约能拿到 ' + perShareMonthly.toFixed(2) + ' 万，大概 ' + paybackMonths + ' 个月收回本金，最多能拿回 ' + perShareCap.toFixed(2) + ' 万（投资额的 ' + multiple + ' 倍）。'
+      + '<br/><br/>如果你参与 ' + minPart + ' 万（1份），你每月大约能拿到 ' + perShareMonthly.toFixed(2) + ' 万，大概 ' + paybackMonths + ' 个月收回本金，回收上限 ' + perShareCap.toFixed(2) + ' 万（年化' + pYieldRate + '%，' + pBasisLabel + '平息' + (pFlat*100).toFixed(3) + '%）。'
       + '<br/><br/><span style="color:#DC2626;">\\u26A0\\uFE0F 以上基于预估收入，实际回款取决于项目真实经营情况。</span>'
       + '</div></div>';
   })();

@@ -382,7 +382,9 @@ export interface Project {
   raisedAmount: number        // 已募金额 (万)
   revenueShareRate: number    // 分成比例 %
   duration: number            // 联营期限 (月)
-  recoveryMultiple: number    // 回收倍数
+  recoveryMultiple: number    // 回收倍数（兼容旧逻辑，新项目通过年化+平息计算）
+  annualYieldRate?: number    // 年化收益率 %
+  settlementCycle?: 'monthly' | 'weekly' | 'daily'  // 平息口径
   estimatedMonthlyRevenue: number // 预估月收入 (万)
   totalShares: number         // 总份数
   raisedShares: number        // 已募份数

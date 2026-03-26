@@ -45,7 +45,7 @@ export interface Project {
   actualController?: string; actualControllerId?: string
   businessAddress?: string
   // 退出条件
-  annualYieldRate: number; exitMode: string
+  annualYieldRate: number; exitMode: string; settlementCycle?: string
   // 风控
   lossThresholdMonths?: number; lossThresholdAmount?: number
   // 数据传输与收款
@@ -170,6 +170,7 @@ function dbProjectToProject(p: DBProject, investors: string[]): Project {
     // 退出条件
     annualYieldRate: p.annual_yield_rate || 12.0,
     exitMode: p.exit_mode || 'both',
+    settlementCycle: p.settlement_cycle || 'monthly',
     // 风控
     lossThresholdMonths: p.loss_threshold_months || undefined,
     lossThresholdAmount: p.loss_threshold_amount || undefined,
@@ -529,7 +530,13 @@ export function generateContractHTML(
   // 退出条件
   const annualYieldRate = contract.annualYieldRate || project.annualYieldRate || 12
   const exitMode = contract.exitMode || project.exitMode || 'both'
-  const capMultiple = contract.capMultipleAtTerm || (1 + annualYieldRate / 100 * termMonths / 12)
+  const settlementCycle = project.settlementCycle || 'monthly'
+  const basisLabel = settlementCycle === 'weekly' ? '周' : settlementCycle === 'daily' ? '日' : '月'
+  const flatRatePct = settlementCycle === 'weekly' ? annualYieldRate / 52 : settlementCycle === 'daily' ? annualYieldRate / 365 : annualYieldRate / 12
+  let capPeriods = termMonths
+  if (settlementCycle === 'weekly') capPeriods = Math.ceil(termMonths * 4.33)
+  if (settlementCycle === 'daily') capPeriods = Math.ceil(termMonths * 30.42)
+  const capMultiple = contract.capMultipleAtTerm || (investmentAmount > 0 ? (investmentAmount + investmentAmount * flatRatePct / 100 * capPeriods) / investmentAmount : 1)
   const endDate = contract.endDate || '—'
 
   // 企业信息
@@ -542,12 +549,13 @@ export function generateContractHTML(
 
   // 退出条件文本
   let exitClause = ''
+  const capFormulaText = `本金 + 本金 × ${basisLabel}平息${flatRatePct.toFixed(3)}% × ${capPeriods}${basisLabel} = ${recoveryCap}万元（等效${capMultiple.toFixed(2)}倍）`
   if (exitMode === 'term_only') {
     exitClause = `联营期限届满（${termMonths}个月，即${endDate}）时，本协议自动终止，无论乙方是否已收回全部投资。`
   } else if (exitMode === 'cap_only') {
-    exitClause = `当乙方累计分成金额达到联营资金 × (1 + 年收益率${annualYieldRate}% ÷ 360 × 联营天数) = 人民币 ${recoveryCap} 万元（等效约${capMultiple.toFixed(2)}倍）时，收入分成自动终止，无期限限制。`
+    exitClause = `当乙方累计分成金额达到人民币 ${recoveryCap} 万元时，收入分成自动终止，无期限限制。<br/>封顶计算：${capFormulaText}`
   } else {
-    exitClause = `以下两个条件以先满足者为准终止合同：<br/>（1）期限到期：联营期限${termMonths}个月届满（即${endDate}）；<br/>（2）封顶回收：乙方累计分成金额达到人民币 ${recoveryCap} 万元（年化${annualYieldRate}%，等效约${capMultiple.toFixed(2)}倍）。<br/>封顶计算公式：联营资金 × (1 + ${annualYieldRate}% ÷ 360 × 联营天数)`
+    exitClause = `以下两个条件以先满足者为准终止合同：<br/>（1）期限到期：联营期限${termMonths}个月届满（即${endDate}）；<br/>（2）封顶回收：乙方累计分成金额达到人民币 ${recoveryCap} 万元。<br/>封顶计算：${capFormulaText}`
   }
 
   return `<div style="font-family:'SimSun','Songti SC',serif;color:#1C1917;line-height:1.8;font-size:14px;">
@@ -589,8 +597,9 @@ export function generateContractHTML(
       <tr style="border-bottom:1px solid #E7E5E4;"><td style="padding:10px 0;color:#78716C;">固定分成比例</td><td style="padding:10px 0;font-weight:600;">${sharePercentage}%</td></tr>
       <tr style="border-bottom:1px solid #E7E5E4;"><td style="padding:10px 0;color:#78716C;">项目总分成比例</td><td style="padding:10px 0;font-weight:600;">${revenueShareRate}%</td></tr>
       <tr style="border-bottom:1px solid #E7E5E4;"><td style="padding:10px 0;color:#78716C;">联营期限</td><td style="padding:10px 0;font-weight:600;">${termMonths} 个月（至 ${endDate}）</td></tr>
-      <tr style="border-bottom:1px solid #E7E5E4;"><td style="padding:10px 0;color:#78716C;">年收益率</td><td style="padding:10px 0;font-weight:600;">${annualYieldRate}%</td></tr>
-      <tr style="border-bottom:1px solid #E7E5E4;"><td style="padding:10px 0;color:#78716C;">封顶倍数（等效）</td><td style="padding:10px 0;font-weight:600;">${capMultiple.toFixed(2)} 倍</td></tr>
+      <tr style="border-bottom:1px solid #E7E5E4;"><td style="padding:10px 0;color:#78716C;">年化收益率</td><td style="padding:10px 0;font-weight:600;">${annualYieldRate}%</td></tr>
+      <tr style="border-bottom:1px solid #E7E5E4;"><td style="padding:10px 0;color:#78716C;">平息口径</td><td style="padding:10px 0;font-weight:600;">${basisLabel}平息 ${flatRatePct.toFixed(3)}%</td></tr>
+      <tr style="border-bottom:1px solid #E7E5E4;"><td style="padding:10px 0;color:#78716C;">等效封顶倍数</td><td style="padding:10px 0;font-weight:600;">${capMultiple.toFixed(2)} 倍</td></tr>
       <tr style="border-bottom:1px solid #E7E5E4;"><td style="padding:10px 0;color:#78716C;">回收上限金额</td><td style="padding:10px 0;font-weight:600;color:#B91C1C;">人民币 ${recoveryCap} 万元</td></tr>
       <tr><td style="padding:10px 0;color:#78716C;">联营资金用途</td><td style="padding:10px 0;">${descTruncated}</td></tr>
     </table>
@@ -604,7 +613,7 @@ export function generateContractHTML(
       <div style="background:#FEF2F2;border-radius:8px;padding:12px;margin:8px 0 12px;border-left:3px solid #B91C1C;">
         ${exitClause}
       </div>
-      <p style="margin-bottom:8px;"><strong>2.4 封顶计算说明：</strong>回收上限金额 = 联营资金金额 × (1 + 年收益率 ÷ 360 × 联营天数)。当联营期限为${termMonths}个月时，等效封顶倍数约为 ${capMultiple.toFixed(2)} 倍。</p>
+      <p style="margin-bottom:8px;"><strong>2.4 封顶计算说明：</strong>回收上限金额 = 联营资金 + 联营资金 × ${basisLabel}平息(${flatRatePct.toFixed(3)}%) × 占用${basisLabel}数(${capPeriods}${basisLabel})。当联营期限为${termMonths}个月时，等效封顶倍数约为 ${capMultiple.toFixed(2)} 倍。</p>
       <p style="margin-bottom:8px;"><strong>2.5 联营方收入定义：</strong>指甲方就本项目扣除所有税项及费用前的全部营业收入（包含主营业务收入及其他业务收入）。</p>
     </div>
   </div>
@@ -620,7 +629,7 @@ export function generateContractHTML(
   <div style="margin-top:24px;">
     <div style="font-size:15px;font-weight:700;color:#B91C1C;margin-bottom:12px;">第四条 提前终止与补偿</div>
     <div style="font-size:13px;color:#57534E;">
-      <p style="margin-bottom:8px;"><strong>4.1 提前终止补偿：</strong>提前终止补偿金 = 当前联营资金 + (当前联营资金 × 年收益率${annualYieldRate}% ÷ 360 × (已分成天数 + 7天))。</p>
+      <p style="margin-bottom:8px;"><strong>4.1 提前终止补偿：</strong>提前终止补偿金 = 当前联营资金 + (当前联营资金 × ${basisLabel}平息${flatRatePct.toFixed(3)}% × (已占用${basisLabel}数 + 1${basisLabel}))。</p>
       <p style="margin-bottom:8px;"><strong>4.2 严重违约：</strong>如甲方出现挪用资金、虚报收入、擅自终止经营等严重违约情形，乙方有权要求退还全部联营资金，并要求支付联营资金 20% 的违约金。</p>
       <p style="margin-bottom:8px;"><strong>4.3 自动终止：</strong>当退出条件满足时（见第二条），本协议自动终止。</p>
     </div>

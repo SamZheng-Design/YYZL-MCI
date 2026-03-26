@@ -53,6 +53,7 @@ app.get('/contracts/:id/terms', async (c) => {
     participantCompany: participant?.company || '',
     totalAmount, totalShareRate, k, duration,
     annualYieldRate, exitMode, estimatedRevenue,
+    settlementCycle: project?.settlement_cycle || 'monthly',
     sharePrice, totalShares, minShares,
     contractAmount, contractShares, contractShareRatio, contractTerm,
     approvalStatus: contract.approval_status || 'draft',
@@ -96,9 +97,10 @@ app.get('/contracts/:id/terms', async (c) => {
           </div>
           <div class="rbf-hero-formula" style="margin-top:6px;">
             <span class="rbf-var rbf-var-gold">封顶</span> =
-            <span class="rbf-var rbf-var-red">融资额</span> &times; (1 +
-            <span style="color:#FDE68A;">年化率</span> &times;
-            <span class="rbf-var rbf-var-green">期限</span> / 12)
+            <span class="rbf-var rbf-var-red">本金</span> +
+            <span class="rbf-var rbf-var-red">本金</span> &times;
+            <span style="color:#FDE68A;">平息</span> &times;
+            <span class="rbf-var rbf-var-green">占用期</span>
           </div>
           <div class="rbf-hero-desc">
             收入分成模式 — 不入股、不借贷，按项目实际收入约定比例分成。到期或封顶自动退出。
@@ -465,10 +467,14 @@ app.get('/contracts/:id/terms', async (c) => {
   function updateCalcs(){
     // 每月预估分成 = 预估月收入 × 个人分成%
     var monthlyShare = TD.estimatedRevenue * (curRatio / 100);
-    // 等效封顶倍数（按年化收益率 × 当前期限）
-    var capMultiple = 1 + (TD.annualYieldRate / 100) * (curTerm / 12);
-    // 回收上限金额
-    var recoveryCap = curAmount * capMultiple;
+    // 封顶计算（基于平息口径）
+    var settleCycle = TD.settlementCycle || 'monthly';
+    var flatRate = settleCycle === 'weekly' ? TD.annualYieldRate/52/100 : settleCycle === 'daily' ? TD.annualYieldRate/365/100 : TD.annualYieldRate/12/100;
+    var capPeriods = curTerm;
+    if(settleCycle === 'weekly') capPeriods = Math.ceil(curTerm * 4.33);
+    if(settleCycle === 'daily') capPeriods = Math.ceil(curTerm * 30.42);
+    var recoveryCap = curAmount + curAmount * flatRate * capPeriods;
+    var capMultiple = curAmount > 0 ? recoveryCap / curAmount : 1;
     // 回本月数
     var paybackMonths = monthlyShare > 0 ? Math.ceil(curAmount / monthlyShare) : 0;
 

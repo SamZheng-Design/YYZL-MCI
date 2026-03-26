@@ -170,23 +170,23 @@ app.get('/create', (c) => {
                 <div style="display:flex;flex-direction:column;gap:8px;">
                   <div class="case-item" style="border-left:4px solid #DC2626;">
                     <div style="font-size:12px;font-weight:600;color:#1C1917;">餐饮连锁</div>
-                    <div style="font-size:11px;color:#78716C;">融资 200-500万 · 分成 10-15% · 期限 24-36月 · 倍数 1.5x</div>
+                    <div style="font-size:11px;color:#78716C;">融资 200-500万 · 分成 10-15% · 期限 24-36月 · 年化 10-15%</div>
                   </div>
                   <div class="case-item" style="border-left:4px solid #3B82F6;">
                     <div style="font-size:12px;font-weight:600;color:#1C1917;">智能制造</div>
-                    <div style="font-size:11px;color:#78716C;">融资 300-800万 · 分成 12-18% · 期限 36-48月 · 倍数 1.5x</div>
+                    <div style="font-size:11px;color:#78716C;">融资 300-800万 · 分成 12-18% · 期限 36-48月 · 年化 8-12%</div>
                   </div>
                   <div class="case-item" style="border-left:4px solid #16A34A;">
                     <div style="font-size:12px;font-weight:600;color:#1C1917;">教育培训</div>
-                    <div style="font-size:11px;color:#78716C;">融资 100-300万 · 分成 8-12% · 期限 18-24月 · 倍数 1.5x</div>
+                    <div style="font-size:11px;color:#78716C;">融资 100-300万 · 分成 8-12% · 期限 18-24月 · 年化 12-18%</div>
                   </div>
                   <div class="case-item" style="border-left:4px solid #8B5CF6;">
                     <div style="font-size:12px;font-weight:600;color:#1C1917;">美容健康</div>
-                    <div style="font-size:11px;color:#78716C;">融资 100-300万 · 分成 10-15% · 期限 18-30月 · 倍数 1.5x</div>
+                    <div style="font-size:11px;color:#78716C;">融资 100-300万 · 分成 10-15% · 期限 18-30月 · 年化 10-15%</div>
                   </div>
                   <div class="case-item" style="border-left:4px solid #F59E0B;">
                     <div style="font-size:12px;font-weight:600;color:#1C1917;">物流供应链</div>
-                    <div style="font-size:11px;color:#78716C;">融资 500-1000万 · 分成 15-20% · 期限 36-48月 · 倍数 1.5x</div>
+                    <div style="font-size:11px;color:#78716C;">融资 500-1000万 · 分成 15-20% · 期限 36-48月 · 年化 8-12%</div>
                   </div>
                 </div>
                 <div style="font-size:11px;color:#A8A29E;margin-top:8px;">ℹ️ 以上为平台典型案例范围，仅供参考</div>
@@ -201,42 +201,121 @@ app.get('/create', (c) => {
               <span>条款设定</span>
             </div>
 
-            {/* Group 1: Funding */}
+            {/* Group 1: 年化收益率（直接输入） + 预估月收入 */}
             <div class="create-terms-group">
-              <div class="create-terms-group-label"><i class="fas fa-coins mr-1.5" style="font-size:11px;color:#D4A853;" />资金规模</div>
+              <div class="create-terms-group-label"><i class="fas fa-percentage mr-1.5" style="font-size:11px;color:#D4A853;" />年化收益率 &amp; 收入</div>
               <div class="grid grid-cols-2 gap-3">
                 <div>
-                  <label class="form-label" style="display:flex;align-items:center;gap:4px;">融资总额 <span class="req">*</span>
-                    <span class="help-icon" data-help-id="totalAmount">?</span>
+                  <label class="form-label" style="display:flex;align-items:center;gap:4px;">年化收益率 <span class="req">*</span>
+                    <span id="yield-help-btn2" class="help-icon" style="cursor:pointer;">?</span>
                   </label>
-                  <div class="help-text">这个项目总共需要多少资金。所有参与人的投资加起来等于这个数。</div>
                   <div class="input-unit-wrap">
-                    <input id="f-amount" type="number" class="form-input" placeholder="如 200" min={1} />
-                    <span class="input-unit">万元</span>
+                    <input id="f-yield" type="number" class="form-input" value="12" min={1} max={50} step={0.5} style="text-align:right;padding-right:32px;font-size:16px;font-weight:600;color:#1C1917;" />
+                    <span class="input-unit" style="right:10px;font-weight:600;">%</span>
                   </div>
                 </div>
                 <div>
-                  <label class="form-label" style="display:flex;align-items:center;gap:4px;">分成比例 <span class="req">*</span>
-                    <span class="help-icon" data-help-id="revenueShareRatio">?</span>
+                  <label class="form-label" style="display:flex;align-items:center;gap:4px;">预估月收入 <span class="req">*</span>
+                    <span class="help-icon" data-help-id="estimatedMonthlyRevenue">?</span>
                   </label>
-                  <div class="help-text">发起人愿意把项目月收入的多少拿出来分给参与人。比例越高，参与人回款越快，但发起人让出的越多。同类项目一般在8%-20%。</div>
-                  <div class="input-unit-wrap" id="input-share-ratio">
-                    <input id="f-rate" type="number" class="form-input" placeholder="如 12" min={0.1} max={100} step={0.1} />
-                    <span class="input-unit">%</span>
+                  <div class="help-text">发起人对项目月度收入的预估。这只是预估，实际回款取决于真实经营情况。</div>
+                  <div class="input-unit-wrap">
+                    <input id="f-revenue" type="number" class="form-input" placeholder="如 30" min={0} step={0.1} />
+                    <span class="input-unit">万元</span>
                   </div>
+                </div>
+              </div>
+
+              {/* 平息口径选择器 */}
+              <div style="margin-top:12px;">
+                <label class="form-label" style="display:flex;align-items:center;gap:4px;">平息口径 <span class="req">*</span>
+                  <span class="help-icon" data-help-id="flatRateBasis">?</span>
+                </label>
+                <div class="help-text">选择计算融资金额时使用的平息口径。不同口径下融资金额不同：月平息最宽松，日平息最保守。</div>
+                <div style="display:flex;gap:8px;margin-top:4px;">
+                  <label class="radio-card" id="basis-monthly" style="flex:1;">
+                    <input type="radio" name="flatRateBasis" value="monthly" checked />
+                    <div class="radio-card-content">
+                      <span style="font-size:16px;font-weight:700;color:#1D4ED8;" id="basis-monthly-val">1%</span>
+                      <span style="font-size:12px;font-weight:600;">月平息</span>
+                      <span style="font-size:10px;color:#78716C;">年化÷12</span>
+                    </div>
+                  </label>
+                  <label class="radio-card" id="basis-weekly" style="flex:1;">
+                    <input type="radio" name="flatRateBasis" value="weekly" />
+                    <div class="radio-card-content">
+                      <span style="font-size:16px;font-weight:700;color:#1D4ED8;" id="basis-weekly-val">0.23%</span>
+                      <span style="font-size:12px;font-weight:600;">周平息</span>
+                      <span style="font-size:10px;color:#78716C;">年化÷52</span>
+                    </div>
+                  </label>
+                  <label class="radio-card" id="basis-daily" style="flex:1;">
+                    <input type="radio" name="flatRateBasis" value="daily" />
+                    <div class="radio-card-content">
+                      <span style="font-size:16px;font-weight:700;color:#1D4ED8;" id="basis-daily-val">0.033%</span>
+                      <span style="font-size:12px;font-weight:600;">日平息</span>
+                      <span style="font-size:10px;color:#78716C;">年化÷365</span>
+                    </div>
+                  </label>
                 </div>
               </div>
             </div>
 
-            {/* Group 2: Terms */}
+            {/* Group 2: 融资金额 ↔ 收入分成比例（联动滑块） + 联营期限 + 最低参与额 */}
             <div class="create-terms-group">
-              <div class="create-terms-group-label"><i class="fas fa-handshake mr-1.5" style="font-size:11px;color:#D4A853;" />合作条件</div>
+              <div class="create-terms-group-label"><i class="fas fa-link mr-1.5" style="font-size:11px;color:#D4A853;" />融资与分成联动</div>
+              
+              {/* 联动公式提示 */}
+              <div style="background:linear-gradient(135deg,#F0F9FF,#EFF6FF);border:1px solid #BFDBFE;border-radius:12px;padding:14px 16px;margin-bottom:16px;">
+                <div style="font-size:12px;font-weight:600;color:#1D4ED8;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
+                  <i class="fas fa-calculator" style="font-size:11px;" />
+                  融资金额自动计算公式
+                </div>
+                <div style="font-size:12px;color:#334155;line-height:1.7;">
+                  融资金额 = 月收入 × 分成比例 × 联营期限 ÷ (1 + 平息)<br/>
+                  <span style="font-size:11px;color:#64748B;">拖动分成比例滑块，融资金额自动联动；也可手动修改融资金额反算分成比例。</span>
+                </div>
+              </div>
+
+              {/* 收入分成比例滑块 */}
+              <div style="margin-bottom:16px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                  <label class="form-label" style="margin-bottom:0;display:flex;align-items:center;gap:4px;">收入分成比例 <span class="req">*</span>
+                    <span class="help-icon" data-help-id="revenueShareRatio">?</span>
+                  </label>
+                  <div class="help-text">发起人愿意把项目月收入的多少拿出来分给参与人。比例越高，参与人回款越快，但发起人让出的越多。同类项目一般在8%-20%。</div>
+                  <div class="input-unit-wrap" id="input-share-ratio" style="width:100px;flex-shrink:0;">
+                    <input id="f-rate" type="number" class="form-input" placeholder="如 12" min={0.1} max={100} step={0.1} style="text-align:right;padding-right:28px;font-size:16px;font-weight:700;color:#2563EB;" />
+                    <span class="input-unit" style="right:8px;font-weight:600;">%</span>
+                  </div>
+                </div>
+                <input id="f-rate-slider" type="range" class="terms-slider terms-slider-blue" min="1" max="30" step="0.5" value="10" style="width:100%;" />
+                <div style="display:flex;justify-content:space-between;font-size:11px;color:#A8A29E;margin-top:2px;">
+                  <span>1%</span>
+                  <span>30%</span>
+                </div>
+              </div>
+
+              {/* 融资总额（联动或手动） */}
+              <div style="margin-bottom:16px;">
+                <label class="form-label" style="display:flex;align-items:center;gap:4px;">融资总额 <span class="req">*</span>
+                  <span class="help-icon" data-help-id="totalAmount">?</span>
+                  <span style="margin-left:auto;font-size:11px;color:#2563EB;font-weight:500;" id="amount-linkage-hint">← 自动计算</span>
+                </label>
+                <div class="help-text">按公式自动计算的融资总额。也可手动修改，系统会反算分成比例。</div>
+                <div class="input-unit-wrap">
+                  <input id="f-amount" type="number" class="form-input" placeholder="自动计算" min={1} style="font-size:16px;font-weight:700;color:#B91C1C;" />
+                  <span class="input-unit">万元</span>
+                </div>
+                <div id="amount-calc-detail" style="font-size:11px;color:#64748B;margin-top:4px;line-height:1.5;" />
+              </div>
+
               <div class="grid grid-cols-2 gap-3">
                 <div>
                   <label class="form-label" style="display:flex;align-items:center;gap:4px;">联营期限 <span class="req">*</span>
                     <span class="help-icon" data-help-id="cooperationTerm">?</span>
                   </label>
-                  <div class="help-text">合作持续多长时间。到期后无论是否收回投资，合同自动结束。</div>
+                  <div class="help-text">合作持续多长时间（资金实际占用时间）。到期后无论是否收回投资，合同自动结束。</div>
                   <div class="input-unit-wrap">
                     <input id="f-duration" type="number" class="form-input" placeholder="如 24" min={1} />
                     <span class="input-unit">个月</span>
@@ -255,20 +334,10 @@ app.get('/create', (c) => {
               </div>
             </div>
 
-            {/* Group 3: Returns */}
+            {/* Group 3: 上报频率 */}
             <div style="padding-top:16px;">
-              <div class="create-terms-group-label"><i class="fas fa-chart-line mr-1.5" style="font-size:11px;color:#D4A853;" />回报预估</div>
+              <div class="create-terms-group-label"><i class="fas fa-chart-line mr-1.5" style="font-size:11px;color:#D4A853;" />上报与结算</div>
               <div class="grid grid-cols-2 gap-3 mb-3">
-                <div>
-                  <label class="form-label" style="display:flex;align-items:center;gap:4px;">预估月收入 <span class="req">*</span>
-                    <span class="help-icon" data-help-id="estimatedMonthlyRevenue">?</span>
-                  </label>
-                  <div class="help-text">发起人对项目月度收入的预估。这只是预估，实际回款取决于真实经营情况。</div>
-                  <div class="input-unit-wrap">
-                    <input id="f-revenue" type="number" class="form-input" placeholder="如 30" min={0} step={0.1} />
-                    <span class="input-unit">万元</span>
-                  </div>
-                </div>
                 <div>
                   <label class="form-label" style="display:flex;align-items:center;gap:4px;">上报频率
                     <span class="help-icon" data-help-id="reportFrequency">?</span>
@@ -290,14 +359,14 @@ app.get('/create', (c) => {
                 <label class="form-label" style="display:flex;align-items:center;gap:4px;">退出方式 <span class="req">*</span>
                   <span class="help-icon" data-help-id="exitMode">?</span>
                 </label>
-                <div class="help-text">决定合同何时终止。"先到为准"最常用：到期或达到封顶倍数，哪个先到就终止。</div>
+                <div class="help-text">决定合同何时终止。"先到为准"最常用：到期或达到封顶，哪个先到就终止。</div>
                 <div style="display:flex;gap:8px;margin-top:4px;">
                   <label class="radio-card" id="exit-both" style="flex:1;">
                     <input type="radio" name="exitMode" value="both" checked />
                     <div class="radio-card-content">
                       <i class="fas fa-check-double" style="color:#B91C1C;font-size:14px;" />
                       <span style="font-size:12px;font-weight:600;">先到为准</span>
-                      <span style="font-size:10px;color:#78716C;">期限或倍数</span>
+                      <span style="font-size:10px;color:#78716C;">期限或封顶</span>
                     </div>
                   </label>
                   <label class="radio-card" id="exit-term" style="flex:1;">
@@ -313,64 +382,29 @@ app.get('/create', (c) => {
                     <div class="radio-card-content">
                       <i class="fas fa-chart-line" style="color:#B45309;font-size:14px;" />
                       <span style="font-size:12px;font-weight:600;">仅封顶</span>
-                      <span style="font-size:10px;color:#78716C;">达倍数结束</span>
+                      <span style="font-size:10px;color:#78716C;">达封顶结束</span>
                     </div>
                   </label>
                 </div>
               </div>
 
-              {/* 年化收益率 — 仅在有封顶条件时显示 */}
-              <div id="yield-rate-group">
-                <label class="form-label" style="display:flex;align-items:center;gap:6px;">年化收益率
-                  <span id="yield-help-btn" style="width:18px;height:18px;border-radius:50%;background:#FEE2E2;color:#B91C1C;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;cursor:pointer;border:1px solid #FECACA;flex-shrink:0;" title="点击查看收益率计算详解">?</span>
-                </label>
-                <div style="display:flex;align-items:center;gap:12px;">
-                  <input id="f-yield-slider" type="range" class="terms-slider terms-slider-red" min="6" max="30" step="0.5" value="12" style="flex:1;" />
-                  <div class="input-unit-wrap" style="width:100px;flex-shrink:0;">
-                    <input id="f-yield" type="number" class="form-input" value="12" min={6} max={30} step={0.5} style="text-align:right;padding-right:32px;font-size:16px;font-weight:600;color:#1C1917;" />
-                    <span class="input-unit" style="right:10px;font-weight:600;">%</span>
-                  </div>
+              {/* 封顶计算展示 — 基于平息口径 */}
+              <div id="cap-calc-panel" style="margin-top:12px;background:linear-gradient(135deg,#FEF2F2,#FFF1F2);border:1px solid #FECACA;border-radius:12px;padding:14px 16px;">
+                <div style="font-size:12px;font-weight:600;color:#B91C1C;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+                  <i class="fas fa-lock" style="font-size:11px;" />
+                  封顶退出计算
                 </div>
-                <div style="display:flex;justify-content:space-between;font-size:11px;color:#A8A29E;margin-top:2px;">
-                  <span>6%</span>
-                  <span id="yield-multiple-hint" style="color:#B91C1C;font-weight:600;" />
-                  <span>30%</span>
-                </div>
-
-                {/* 等效收益率展示面板 */}
-                <div id="yield-equiv-panel" style="margin-top:12px;background:linear-gradient(135deg,#F0F9FF,#EFF6FF);border:1px solid #BFDBFE;border-radius:12px;padding:14px 16px;">
-                  <div style="font-size:12px;font-weight:600;color:#1D4ED8;margin-bottom:10px;display:flex;align-items:center;gap:6px;">
-                    <i class="fas fa-calculator" style="font-size:11px;" />
-                    等效收益率换算
-                  </div>
-                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-                    <div style="background:#fff;border-radius:8px;padding:10px;text-align:center;border:1px solid #DBEAFE;">
-                      <div style="font-size:11px;color:#64748B;">月平息</div>
-                      <div id="yield-monthly" style="font-size:18px;font-weight:700;color:#1D4ED8;margin-top:2px;">1%</div>
-                    </div>
-                    <div style="background:#fff;border-radius:8px;padding:10px;text-align:center;border:1px solid #DBEAFE;">
-                      <div style="font-size:11px;color:#64748B;">周平息</div>
-                      <div id="yield-weekly" style="font-size:18px;font-weight:700;color:#1D4ED8;margin-top:2px;">0.23%</div>
-                    </div>
-                    <div style="background:#fff;border-radius:8px;padding:10px;text-align:center;border:1px solid #DBEAFE;">
-                      <div style="font-size:11px;color:#64748B;">日平息</div>
-                      <div id="yield-daily" style="font-size:18px;font-weight:700;color:#1D4ED8;margin-top:2px;">0.033%</div>
-                    </div>
-                  </div>
-                  <div id="yield-cap-formula" style="margin-top:10px;font-size:12px;color:#64748B;line-height:1.6;padding:8px 10px;background:#EFF6FF;border-radius:8px;">
-                    封顶退出条件：本金 × (年化÷12) × 资金占用月 = 回收上限
-                  </div>
-                </div>
+                <div id="cap-calc-detail" style="font-size:12px;color:#44403C;line-height:1.7;" />
               </div>
 
               {/* 隐藏的回收倍数字段（兼容旧逻辑） */}
               <input id="f-multiple" type="hidden" value="1.5" />
 
-              {/* 风控：亏损闭店条件（选填） */}
+              {/* 风控：项目亏损终止条件（选填） */}
               <div style="margin-top:16px;background:#FAFAF9;border-radius:10px;padding:14px;">
                 <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
                   <i class="fas fa-shield-alt" style="color:#78716C;font-size:12px;" />
-                  <span style="font-size:12px;font-weight:600;color:#57534E;">亏损闭店条件（选填）</span>
+                  <span style="font-size:12px;font-weight:600;color:#57534E;">项目亏损终止条件（选填）</span>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                   <div>
@@ -853,8 +887,8 @@ app.get('/create', (c) => {
     if (!localStorage.getItem('zlc_nudge_create_terms')) {
       var termsNudgeTimer = setTimeout(function(){ showNudge('\\uD83D\\uDCCA', '不确定怎么填？展开上方的「同行案例参考」看看', 'create_terms'); }, 30000);
       function cancelTermsNudge(){ clearTimeout(termsNudgeTimer); }
-      [fAmount, fRate, fDuration, fMinamt, fRevenue, fMultiple].forEach(function(input){
-        input.addEventListener('input', cancelTermsNudge);
+      [fAmount, fRate, fDuration, fMinamt, fRevenue, fYield].forEach(function(input){
+        if(input) input.addEventListener('input', cancelTermsNudge);
       });
       window.addEventListener('beforeunload', cancelTermsNudge);
     }
@@ -875,7 +909,6 @@ app.get('/create', (c) => {
   if(typeof initHelpIcons === 'function') initHelpIcons();
 
   // Step 2 auto-calc
-  var calcFields = [fAmount, fRate, fDuration, fMinamt, fRevenue];
   function updateAutoCalc(){
     var amount = parseFloat(fAmount.value) || 0;
     var rate = parseFloat(fRate.value) || 0;
@@ -884,13 +917,20 @@ app.get('/create', (c) => {
     var duration = parseInt(fDuration.value) || 0;
     var yieldRate = parseFloat(fYield.value) || 12;
     var exitMode = getExitMode();
+    var basis = getSelectedBasis();
+    var flatRate = getFlatRate(yieldRate, basis) / 100;
 
     // 计算份额和锚点
-    var shares = minamt > 0 ? Math.floor(amount / minamt) : 0;
+    var shares = minamt > 0 && amount > 0 ? Math.floor(amount / minamt) : 0;
     var k = rate > 0 ? amount / rate : 0;
-    // 动态封顶倍数（年化率 × 期限）
-    var capMultiple = 1 + (yieldRate / 100) * (duration / 12);
-    var cap = amount * capMultiple;
+    // 封顶计算：本金 × 平息 × 占用期
+    var basisLabel = basis === 'weekly' ? '周' : basis === 'daily' ? '日' : '月';
+    var periods = duration;
+    if(basis === 'weekly') periods = Math.ceil(duration * 4.33);
+    if(basis === 'daily') periods = Math.ceil(duration * 30.42);
+    var capInterest = amount * flatRate * periods;
+    var cap = amount + capInterest;
+    var capMultiple = amount > 0 ? cap / amount : 1;
     // 更新隐藏的 recovery_multiple 字段（兼容旧逻辑）
     if(fMultiple) fMultiple.value = capMultiple.toFixed(4);
     var monthly = revenue * (rate / 100);
@@ -898,40 +938,27 @@ app.get('/create', (c) => {
 
     document.getElementById('calc-shares').textContent = shares > 0 ? shares + ' 份' : '—';
     document.getElementById('calc-k').textContent = k > 0 ? k.toFixed(2) + '万/1%' : '—';
-    document.getElementById('calc-cap-multiple').textContent = capMultiple > 0 ? capMultiple.toFixed(2) + 'x' : '—';
+    document.getElementById('calc-cap-multiple').textContent = capMultiple > 1 ? capMultiple.toFixed(2) + 'x' : '—';
     document.getElementById('calc-cap2').textContent = cap > 0 ? '¥' + cap.toFixed(1) + '万' : '—';
     document.getElementById('calc-monthly2').textContent = monthly > 0 ? '¥' + monthly.toFixed(2) + '万' : '—';
     document.getElementById('calc-payback').textContent = payback > 0 ? payback + ' 个月' : '—';
 
-    // 年化滑块提示
-    var yieldHint = document.getElementById('yield-multiple-hint');
-    if(yieldHint && duration > 0){
-      yieldHint.textContent = '等效 ' + capMultiple.toFixed(2) + 'x';
-    }
-
-    // 等效收益率换算面板
-    var monthlyPct = yieldRate / 12;
-    var weeklyPct = yieldRate / 52;
-    var dailyPct = yieldRate / 365;
-    var yieldMonthlyEl = document.getElementById('yield-monthly');
-    var yieldWeeklyEl = document.getElementById('yield-weekly');
-    var yieldDailyEl = document.getElementById('yield-daily');
-    if(yieldMonthlyEl) yieldMonthlyEl.textContent = monthlyPct.toFixed(2) + '%';
-    if(yieldWeeklyEl) yieldWeeklyEl.textContent = weeklyPct.toFixed(2) + '%';
-    if(yieldDailyEl) yieldDailyEl.textContent = dailyPct.toFixed(3) + '%';
-    var capFormulaEl = document.getElementById('yield-cap-formula');
-    if(capFormulaEl && amount > 0 && duration > 0){
-      var capAmount = amount * (yieldRate/100/12) * duration;
-      capFormulaEl.innerHTML = '<strong>封顶退出公式：</strong>本金 × (' + yieldRate + '%÷12) × ' + duration + '月 = ¥' + capAmount.toFixed(2) + '万<br/>'
-        + '<span style="color:#92400E;">不足一个月按一个月计算</span>';
+    // 封顶计算详情
+    var capDetailEl = document.getElementById('cap-calc-detail');
+    if(capDetailEl && amount > 0 && duration > 0){
+      capDetailEl.innerHTML = '<strong>回收上限</strong> = 本金 + 本金 × ' + basisLabel + '平息 × ' + basisLabel + '数<br/>'
+        + '= ' + amount.toFixed(2) + ' + ' + amount.toFixed(2) + ' × ' + (flatRate*100).toFixed(3) + '% × ' + periods
+        + ' = <strong style="color:#B91C1C;">¥' + cap.toFixed(2) + '万</strong>（等效 ' + capMultiple.toFixed(2) + 'x）<br/>'
+        + '<span style="font-size:11px;color:#78716C;">不足一个' + basisLabel + '按一个' + basisLabel + '计算</span>';
     }
 
     // Example
     var exampleEl = document.getElementById('example-text');
-    if(minamt > 0 && monthly > 0){
+    if(minamt > 0 && monthly > 0 && amount > 0){
       var perShareMonthly = revenue * (rate / 100) * (minamt / amount);
       var perSharePayback = Math.ceil(minamt / perShareMonthly);
-      exampleEl.textContent = '如果参与 ¥' + minamt + '万，预估每月回款 ¥' + perShareMonthly.toFixed(2) + '万，约' + perSharePayback + '个月收回本金';
+      var perShareCap = minamt + minamt * flatRate * periods;
+      exampleEl.textContent = '如果参与 ¥' + minamt + '万，预估每月回款 ¥' + perShareMonthly.toFixed(2) + '万，约' + perSharePayback + '个月收回本金，回收上限 ¥' + perShareCap.toFixed(2) + '万';
     } else {
       exampleEl.textContent = '填写条款后，此处会显示参与举例说明';
     }
@@ -943,12 +970,13 @@ app.get('/create', (c) => {
         var monthlyShareAll = revenue * (rate / 100);
         var perShareM = monthlyShareAll * (minamt / amount);
         var perSharePB = perShareM > 0 ? Math.ceil(minamt / perShareM) : 0;
-        var perShareCap = minamt * multiple;
+        var perShareCapVal = minamt + minamt * flatRate * periods;
         plEl.style.display = 'block';
         plEl.innerHTML = '<div class="plain-lang-title">\\uD83D\\uDCAC 简单来说</div>'
           + '<div class="plain-lang-body">'
-          + '这个项目总共需要 ' + amount + ' 万资金。你承诺把项目每月收入的 ' + rate + '% 分给所有参与人。按预估每月收入 ' + revenue + ' 万计算，每月总共分出约 ' + monthlyShareAll.toFixed(2) + ' 万。'
-          + '<br/><br/>如果有人参与 ' + minamt + ' 万（1份），他每月大约能拿到 ' + perShareM.toFixed(2) + ' 万，大概 ' + perSharePB + ' 个月收回本金，最多能拿回 ' + perShareCap.toFixed(2) + ' 万（投资额的 ' + multiple + ' 倍）。'
+          + '这个项目总共需要 ' + amount.toFixed(2) + ' 万资金，年化收益率 ' + yieldRate + '%（' + basisLabel + '平息 ' + (flatRate*100).toFixed(3) + '%）。'
+          + '<br/>你承诺把项目每月收入的 ' + rate + '% 分给所有参与人。按预估每月收入 ' + revenue + ' 万计算，每月总共分出约 ' + monthlyShareAll.toFixed(2) + ' 万。'
+          + '<br/><br/>如果有人参与 ' + minamt + ' 万（1份），他每月大约能拿到 ' + perShareM.toFixed(2) + ' 万，大概 ' + perSharePB + ' 个月收回本金，回收上限 ' + perShareCapVal.toFixed(2) + ' 万（等效 ' + capMultiple.toFixed(2) + ' 倍）。'
           + '<br/><br/><span class="plain-lang-warning">\\u26A0\\uFE0F 以上基于预估收入，实际回款取决于项目真实经营情况。</span>'
           + '</div>';
       } else {
@@ -956,17 +984,17 @@ app.get('/create', (c) => {
       }
     }
   }
-  calcFields.forEach(function(f){ f.addEventListener('input', updateAutoCalc); });
 
   // Step 2 nav
   document.getElementById('btn-prev-2').addEventListener('click', function(){ goStep(1, 'left'); });
   document.getElementById('btn-next-2').addEventListener('click', function(){
     var errors = [];
-    if(!fAmount.value || parseFloat(fAmount.value)<=0) errors.push('融资总额');
+    if(!fYield.value || parseFloat(fYield.value)<=0) errors.push('年化收益率');
+    if(!fRevenue.value || parseFloat(fRevenue.value)<=0) errors.push('预估月收入');
     if(!fRate.value || parseFloat(fRate.value)<=0) errors.push('分成比例');
+    if(!fAmount.value || parseFloat(fAmount.value)<=0) errors.push('融资总额');
     if(!fDuration.value || parseFloat(fDuration.value)<=0) errors.push('联营期限');
     if(!fMinamt.value || parseFloat(fMinamt.value)<=0) errors.push('最低参与额');
-    if(!fRevenue.value || parseFloat(fRevenue.value)<=0) errors.push('预估月收入');
     if(errors.length > 0){
       showToast('请填写：' + errors.join('、'), 'error');
       return;
@@ -986,9 +1014,14 @@ app.get('/create', (c) => {
     var revenue = parseFloat(fRevenue.value) || 0;
     var yieldRate = parseFloat(fYield.value) || 12;
     var exitMode = getExitMode();
-    var capMultiple = 1 + (yieldRate / 100) * (duration / 12);
+    var basis = getSelectedBasis();
+    var flatRate = getFlatRate(yieldRate, basis) / 100;
+    var periods = duration;
+    if(basis === 'weekly') periods = Math.ceil(duration * 4.33);
+    if(basis === 'daily') periods = Math.ceil(duration * 30.42);
+    var cap = amount + amount * flatRate * periods;
+    var capMultiple = amount > 0 ? cap / amount : 1;
     var shares = minamt > 0 ? Math.floor(amount / minamt) : 0;
-    var cap = amount * capMultiple;
     var monthly = revenue * (rate / 100);
     var payback = monthly > 0 ? Math.ceil(amount / monthly) : 0;
 
@@ -1022,10 +1055,11 @@ app.get('/create', (c) => {
     html += '<div style="border-left:4px solid #B91C1C;border-radius:12px;overflow:hidden;background:#fff;border:1px solid #F5F5F4;border-left:4px solid #B91C1C;">';
     html += '<div style="padding:12px 16px;border-bottom:1px solid #F5F5F4;font-size:15px;font-weight:600;color:#292524;"><i class="fas fa-file-contract" style="color:#B91C1C;margin-right:8px;font-size:13px;"></i>收入分成条款</div>';
     html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0;">';
+    var basisLbl = basis === 'weekly' ? '周' : basis === 'daily' ? '日' : '月';
     var terms = [
-      ['融资总额', '¥'+amount+'万'], ['分成比例', rate+'%'],
+      ['融资总额', '¥'+amount.toFixed(2)+'万'], ['分成比例', rate+'%'],
       ['联营期限', duration+'个月'], ['年化收益率', yieldRate+'%'],
-      ['封顶倍数', capMultiple.toFixed(2)+'x'], ['回收上限', '¥'+cap.toFixed(1)+'万'],
+      ['平息口径', basisLbl+'平息 '+(flatRate*100).toFixed(3)+'%'], ['回收上限', '¥'+cap.toFixed(2)+'万'],
       ['退出方式', exitModeLabel], ['预估月收入', '¥'+revenue+'万'],
     ];
     terms.forEach(function(t,i){
@@ -1086,7 +1120,12 @@ app.get('/create', (c) => {
     var revenue = parseFloat(fRevenue.value) || 0;
     var yieldRate = parseFloat(fYield.value) || 12;
     var exitMode = getExitMode();
-    var capMultiple = 1 + (yieldRate / 100) * (duration / 12);
+    var basis = getSelectedBasis();
+    var flatRate = getFlatRate(yieldRate, basis) / 100;
+    var periods = duration;
+    if(basis === 'weekly') periods = Math.ceil(duration * 4.33);
+    if(basis === 'daily') periods = Math.ceil(duration * 30.42);
+    var capMultiple = amount > 0 ? (amount + amount * flatRate * periods) / amount : 1;
     var shares = minamt > 0 ? Math.floor(amount / minamt) : 0;
     var hlArr = [fHighlight1.value.trim(), fHighlight2.value.trim(), fHighlight3.value.trim()].filter(function(v){return v;});
     return {
@@ -1097,6 +1136,7 @@ app.get('/create', (c) => {
       highlights: hlArr.length > 0 ? hlArr : [],
       targetAmount: amount, revenueShareRate: rate, duration: duration,
       recoveryMultiple: capMultiple, estimatedMonthlyRevenue: revenue,
+      settlementCycle: getSelectedBasis(),
       totalShares: shares, sharePrice: minamt, minShares: 1,
       reportFrequency: fFreq.value,
       // 退出条件

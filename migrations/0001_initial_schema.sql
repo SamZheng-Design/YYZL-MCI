@@ -58,7 +58,9 @@ CREATE TABLE IF NOT EXISTS projects (
   raised_amount REAL NOT NULL DEFAULT 0,        -- 已募金额（万元）
   revenue_share_rate REAL NOT NULL DEFAULT 0,   -- 分成比例 %
   duration INTEGER NOT NULL DEFAULT 0,          -- 联营期限（月）
-  recovery_multiple REAL NOT NULL DEFAULT 1.0,  -- 回收倍数
+  recovery_multiple REAL NOT NULL DEFAULT 1.0,  -- 回收倍数（兼容旧逻辑）
+  annual_yield_rate REAL DEFAULT 12.0,          -- 年化收益率 %
+  settlement_cycle TEXT DEFAULT 'monthly',      -- 平息口径 'monthly'|'weekly'|'daily'
   estimated_monthly_revenue REAL DEFAULT 0,     -- 预估月收入（万元）
 
   -- 份额
