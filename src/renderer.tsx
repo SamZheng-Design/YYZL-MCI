@@ -3375,6 +3375,197 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
 }
 
 /* ══════════════════════════════════════════════════
+   V25 — Home Page Visual Polish
+   ══════════════════════════════════════════════════ */
+
+/* ── Welcome Card ── */
+.home-welcome-card {
+  position: relative;
+  background: linear-gradient(135deg, #fff 0%, #FEF7F7 50%, #FFF7ED 100%);
+  border-radius: 20px;
+  padding: 20px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(185,28,28,0.06);
+  animation: welcomeCardIn 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.home-welcome-card::before {
+  content: ''; position: absolute; top: -30px; right: -30px;
+  width: 120px; height: 120px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(185,28,28,0.06) 0%, transparent 70%);
+  animation: welcomeOrbFloat 8s ease-in-out infinite;
+  pointer-events: none;
+}
+.home-welcome-card::after {
+  content: ''; position: absolute; bottom: -20px; left: -20px;
+  width: 80px; height: 80px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(212,168,83,0.08) 0%, transparent 70%);
+  animation: welcomeOrbFloat 6s ease-in-out infinite reverse;
+  pointer-events: none;
+}
+@keyframes welcomeCardIn {
+  from { opacity: 0; transform: translateY(-12px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes welcomeOrbFloat {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(-8px, 8px); }
+}
+.home-welcome-inner {
+  display: flex; align-items: center; justify-content: space-between;
+  position: relative; z-index: 1;
+}
+.home-welcome-text { flex: 1; }
+.home-welcome-deco {
+  width: 48px; height: 48px; flex-shrink: 0;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(185,28,28,0.08), rgba(212,168,83,0.12));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px;
+  animation: decoFloat 3s ease-in-out infinite;
+}
+@keyframes decoFloat {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-4px) rotate(3deg); }
+}
+
+/* ── Share Code Box ── */
+.home-share-box {
+  background: #fff; border-radius: 12px; padding: 14px 16px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  display: flex; align-items: center; gap: 10px;
+  border: 1px solid transparent;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.home-share-box:focus-within {
+  border-color: rgba(185,28,28,0.2);
+  box-shadow: 0 2px 12px rgba(185,28,28,0.06);
+}
+.home-share-btn {
+  flex-shrink: 0; padding: 6px 14px;
+  background: rgba(185,28,28,0.08); border: none;
+  border-radius: 8px; color: #B91C1C;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+}
+.home-share-btn:hover {
+  background: rgba(185,28,28,0.15);
+}
+.home-share-btn:active {
+  transform: scale(0.95);
+}
+
+/* ── Stat Cards ── */
+.home-stat-card {
+  background: #fff; border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  padding: 16px;
+  position: relative; overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.home-stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+}
+.home-stat-card::after {
+  content: ''; position: absolute; top: 0; right: 0;
+  width: 60px; height: 60px; border-radius: 0 0 0 60px;
+  background: linear-gradient(135deg, rgba(185,28,28,0.03), rgba(212,168,83,0.05));
+  pointer-events: none;
+}
+.home-stat-icon {
+  font-size: 16px; margin-bottom: 4px;
+  display: inline-block;
+  animation: statIconBob 3s ease-in-out infinite;
+}
+.home-stat-icon:nth-child(1) { animation-delay: 0s; }
+.home-stat-icon:nth-child(2) { animation-delay: -0.5s; }
+.home-stat-icon:nth-child(3) { animation-delay: -1s; }
+.home-stat-icon:nth-child(4) { animation-delay: -1.5s; }
+@keyframes statIconBob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+.home-stat-value {
+  font-size: 24px;
+  font-variant-numeric: tabular-nums;
+  transition: color 0.3s;
+}
+
+/* ── Project Cards ── */
+.home-project-card {
+  position: relative; overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.home-project-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+}
+.home-project-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #B91C1C, #D4A853, #B91C1C);
+  background-size: 200% 100%;
+  opacity: 0; transition: opacity 0.3s;
+}
+.home-project-card:hover::before {
+  opacity: 1;
+  animation: projectTopLine 3s linear infinite;
+}
+@keyframes projectTopLine {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+/* ── View All Link ── */
+.home-viewall-link {
+  transition: transform 0.2s, color 0.2s;
+}
+.home-viewall-link:hover {
+  transform: translateX(3px);
+}
+.home-viewall-link:hover .fa-arrow-right {
+  animation: arrowBounce 0.4s ease;
+}
+@keyframes arrowBounce {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(4px); }
+}
+
+/* ── Repayment List ── */
+.home-repayment-list {
+  position: relative;
+}
+.home-repayment-row {
+  transition: background 0.2s;
+}
+.home-repayment-row:hover {
+  background: #FAFAF9;
+}
+.home-rep-date {
+  font-size: 12px; min-width: 62px; color: #A8A29E;
+  font-variant-numeric: tabular-nums;
+}
+.home-rep-amount {
+  font-size: 14px; font-weight: 600; color: #16A34A;
+  font-variant-numeric: tabular-nums;
+  transition: transform 0.2s;
+}
+.home-repayment-row:hover .home-rep-amount {
+  transform: scale(1.05);
+}
+
+/* ── Live Dot ── */
+.home-live-dot {
+  display: inline-block; width: 8px; height: 8px;
+  border-radius: 50%; background: #16A34A;
+  animation: livePulse 2s ease-in-out infinite;
+}
+@keyframes livePulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(22,163,74,0.4); }
+  50% { opacity: 0.7; box-shadow: 0 0 0 6px rgba(22,163,74,0); }
+}
+
+/* ══════════════════════════════════════════════════
    AI Assistant Styles
    ══════════════════════════════════════════════════ */
 ${aiAssistantCSS}

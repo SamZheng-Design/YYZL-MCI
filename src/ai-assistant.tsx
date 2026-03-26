@@ -517,6 +517,7 @@ function _initAIAssistant(){
   // ── Open / Close ──
   function openPanel(){
     isOpen = true;
+    fab.classList.remove('ai-fab-idle');
     fab.classList.add('ai-fab-active');
     overlay.classList.add('show');
     // Refresh dynamic suggestions
@@ -529,6 +530,7 @@ function _initAIAssistant(){
     isOpen = false;
     fab.classList.remove('ai-fab-active');
     overlay.classList.remove('show');
+    setTimeout(function(){ if(!isOpen) fab.classList.add('ai-fab-idle'); }, 400);
   }
 
   // ═══════════════════════════════════════════════════
@@ -684,13 +686,40 @@ function _initAIAssistant(){
     // Format body with line breaks
     var bodyHTML = term.body.replace(/\\n/g, '<br>');
 
-    area.innerHTML = '<div class="ai-term-card">'
-      + '<div class="ai-term-header">'
+    area.innerHTML = '<div class="ai-term-card ai-term-expandable">'
+      + '<div class="ai-term-header ai-term-toggle">'
       + '<span class="ai-term-title">' + term.title + '</span>'
+      + '<div style="display:flex;gap:8px;align-items:center;">'
+      + '<button class="ai-term-collapse-btn" title="收起/展开"><i class="fas fa-chevron-up ai-collapse-icon"></i></button>'
       + '<button class="ai-term-close" onclick="document.getElementById(\'ai-term-area\').innerHTML=\'\'">✕</button>'
       + '</div>'
-      + '<div class="ai-term-body">' + bodyHTML + '</div>'
+      + '</div>'
+      + '<div class="ai-term-body ai-term-collapsible">' + bodyHTML + '</div>'
       + '</div>';
+
+    // Collapse/expand toggle
+    var toggleBtn = area.querySelector('.ai-term-collapse-btn');
+    if(toggleBtn){
+      toggleBtn.addEventListener('click', function(e){
+        e.stopPropagation();
+        var card = area.querySelector('.ai-term-expandable');
+        var body = area.querySelector('.ai-term-collapsible');
+        var icon = area.querySelector('.ai-collapse-icon');
+        if(card && body){
+          var isCollapsed = body.classList.toggle('ai-collapsed');
+          if(icon) icon.style.transform = isCollapsed ? 'rotate(180deg)' : 'rotate(0deg)';
+        }
+      });
+    }
+    // Also allow header click to toggle
+    var headerToggle = area.querySelector('.ai-term-toggle');
+    if(headerToggle){
+      headerToggle.style.cursor = 'pointer';
+      headerToggle.addEventListener('click', function(e){
+        if(e.target.closest('.ai-term-close')) return;
+        if(toggleBtn) toggleBtn.click();
+      });
+    }
 
     // Scroll term into view
     area.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -814,6 +843,9 @@ function _initAIAssistant(){
     setTimeout(function(){ fab.classList.remove('ai-fab-bounce'); }, 3000);
     localStorage.setItem('zlc_ai_fab_seen_' + (u.id || ''), 'true');
   }
+
+  // ── Idle FAB subtle floating ──
+  fab.classList.add('ai-fab-idle');
 }
 `}} />
 )
@@ -1190,5 +1222,88 @@ export const aiAssistantCSS = `
   0% { opacity: 0; transform: translateY(8px); }
   70% { transform: translateY(-2px); }
   100% { opacity: 1; transform: translateY(0); }
+}
+
+/* ══ V25.1 AI Assistant — Collapsible Term Cards ══ */
+.ai-term-collapsible {
+  max-height: 400px;
+  overflow: hidden;
+  transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              padding 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.25s ease;
+}
+.ai-term-collapsible.ai-collapsed {
+  max-height: 0;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  opacity: 0.5;
+}
+.ai-collapse-icon {
+  font-size: 11px; color: #A8A29E;
+  transition: transform 0.3s ease;
+}
+.ai-term-collapse-btn {
+  background: none; border: none; cursor: pointer;
+  padding: 2px 6px; border-radius: 4px;
+  transition: background 0.15s;
+}
+.ai-term-collapse-btn:hover {
+  background: rgba(0,0,0,0.05);
+}
+
+/* ══ V25.1 AI — FAB Idle Float ══ */
+#ai-assistant-fab.ai-fab-idle {
+  animation: aiFabIdle 4s ease-in-out infinite;
+}
+@keyframes aiFabIdle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+#ai-assistant-fab.ai-fab-idle:hover {
+  animation: none;
+}
+
+/* ══ V25.1 AI — Dynamic Suggestion Enter ══ */
+#ai-dynamic-area .ai-shortcut-btn {
+  opacity: 0;
+  animation: aiDynamicBtnIn 0.4s ease-out forwards;
+}
+#ai-dynamic-area .ai-shortcut-btn:nth-child(1) { animation-delay: 0.15s; }
+#ai-dynamic-area .ai-shortcut-btn:nth-child(2) { animation-delay: 0.25s; }
+#ai-dynamic-area .ai-shortcut-btn:nth-child(3) { animation-delay: 0.35s; }
+@keyframes aiDynamicBtnIn {
+  from { opacity: 0; transform: translateX(-12px) scale(0.95); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+/* ══ V25.1 AI — Panel header glow ══ */
+.ai-header-avatar {
+  position: relative;
+  overflow: visible;
+}
+.ai-header-avatar::after {
+  content: ''; position: absolute; inset: -3px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(185,28,28,0.15), rgba(212,168,83,0.15));
+  opacity: 0;
+  transition: opacity 0.3s;
+  z-index: -1;
+}
+#ai-assistant-overlay.show .ai-header-avatar::after {
+  opacity: 1;
+  animation: aiAvatarGlow 3s ease-in-out infinite;
+}
+@keyframes aiAvatarGlow {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.05); }
+}
+
+/* ══ V25.1 AI — Page explain fade-in ══ */
+.ai-explain-text {
+  animation: aiExplainIn 0.4s ease-out 0.1s both;
+}
+@keyframes aiExplainIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 `

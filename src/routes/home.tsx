@@ -35,16 +35,21 @@ app.get('/', async (c) => {
       {/* Content */}
       <main class="px-4 pt-4 pb-4 max-w-lg mx-auto page-enter dk-home-main">
 
-        {/* 1. Welcome — spans full width on desktop */}
-        <section class="mb-5 dk-home-welcome">
-          <h2 id="greeting" class="font-bold text-text-title dk-home-greeting" style="font-size:20px;font-family:'Noto Sans SC',sans-serif;" />
-          <p id="user-subtitle" class="text-text-secondary mt-0.5" style="font-size:14px;" />
+        {/* 1. Welcome — with gradient background and time-based greeting */}
+        <section class="mb-5 dk-home-welcome home-welcome-card">
+          <div class="home-welcome-inner">
+            <div class="home-welcome-text">
+              <h2 id="greeting" class="font-bold text-text-title dk-home-greeting" style="font-size:20px;font-family:'Noto Sans SC',sans-serif;" />
+              <p id="user-subtitle" class="text-text-secondary mt-0.5" style="font-size:14px;" />
+            </div>
+            <div class="home-welcome-deco" id="home-welcome-deco" />
+          </div>
           {/* 1.5 Share Code Input — inline on desktop welcome bar */}
-          <div id="share-code-input" class="dk-home-share-input" style="margin:8px 0 0 0;">
-            <div style="background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 1px 2px rgba(0,0,0,0.04);display:flex;align-items:center;gap:10px;">
+          <div id="share-code-input" class="dk-home-share-input" style="margin:10px 0 0 0;">
+            <div class="home-share-box">
               <i class="fas fa-link" style="font-size:14px;color:#B91C1C;flex-shrink:0;" />
               <input id="home-share-input" type="text" maxlength={6} placeholder="收到分享码？输入6位码查看项目" style="flex:1;background:transparent;border:none;outline:none;font-size:14px;color:#1C1917;font-family:inherit;" />
-              <button id="home-share-btn" style="flex-shrink:0;padding:6px 12px;background:rgba(185,28,28,0.08);border:none;border-radius:8px;color:#B91C1C;font-size:13px;font-weight:600;cursor:pointer;">查看</button>
+              <button id="home-share-btn" class="home-share-btn">查看</button>
             </div>
           </div>
         </section>
@@ -69,26 +74,27 @@ app.get('/', async (c) => {
             </a>
           </section>
 
-          {/* 3. My Stats */}
+          {/* 3. My Stats — with stagger reveal */}
           <section class="grid grid-cols-2 gap-3 mb-6 dk-home-stats">
             {[
-              { id: 'stat-initiated', label: '已发起', suffix: '' },
-              { id: 'stat-invested', label: '已参与', suffix: '' },
-              { id: 'stat-total-inv', label: '总投资(万)', suffix: '' },
-              { id: 'stat-total-rep', label: '总回款(万)', suffix: '' },
-            ].map(s => (
-              <div class="bg-white rounded-xl shadow-card p-4">
-                <div id={s.id} class="font-extrabold text-text-title" style="font-size:24px;">—</div>
+              { id: 'stat-initiated', label: '已发起', icon: '🚀', suffix: '' },
+              { id: 'stat-invested', label: '已参与', icon: '🤝', suffix: '' },
+              { id: 'stat-total-inv', label: '总投资(万)', icon: '💰', suffix: '' },
+              { id: 'stat-total-rep', label: '总回款(万)', icon: '📈', suffix: '' },
+            ].map((s, i) => (
+              <div class={`home-stat-card reveal stagger-${i + 1}`}>
+                <div class="home-stat-icon">{s.icon}</div>
+                <div id={s.id} class="home-stat-value font-extrabold text-text-title">—</div>
                 <div class="text-text-tertiary mt-1" style="font-size:12px;">{s.label}</div>
               </div>
             ))}
           </section>
 
-          {/* 4. Latest Projects */}
-          <section class="mb-6 dk-home-projects">
+          {/* 4. Latest Projects — with card glow */}
+          <section class="mb-6 dk-home-projects reveal stagger-5">
             <div class="flex items-center justify-between mb-3">
               <h3 class="font-bold text-text-title" style="font-size:16px;">我参与的项目</h3>
-              <a href="/projects" class="text-brand font-medium" style="font-size:13px;text-decoration:none;">
+              <a href="/projects" class="text-brand font-medium home-viewall-link" style="font-size:13px;text-decoration:none;">
                 查看全部 <i class="fas fa-arrow-right" style="font-size:11px;" />
               </a>
             </div>
@@ -97,7 +103,7 @@ app.get('/', async (c) => {
                 const owner = allMembers.find(m => m.id === proj.ownerId)
                 const pct = Math.round((proj.raisedAmount / proj.targetAmount) * 100)
                 return (
-                  <a href={`/projects/${proj.id}`} class="bg-white rounded-2xl shadow-card p-4 block dk-clickable-card" style="text-decoration:none;color:inherit;">
+                  <a href={`/projects/${proj.id}`} class="bg-white rounded-2xl shadow-card p-4 block dk-clickable-card home-project-card" style="text-decoration:none;color:inherit;">
                     {/* Row 1: Owner */}
                     <div class="flex items-center gap-2.5 mb-2">
                       <div class="flex items-center justify-center rounded-full bg-brand text-white font-bold" style="width:32px;height:32px;font-size:13px;">
@@ -132,17 +138,20 @@ app.get('/', async (c) => {
 
         {/* Right column content on desktop (sticky sidebar) */}
         <div class="dk-home-right">
-          {/* 5. Recent Repayments */}
-          <section class="mb-4">
-            <h3 class="font-bold text-text-title mb-3" style="font-size:16px;">回款动态</h3>
-            <div class="bg-white rounded-2xl shadow-card overflow-hidden">
+          {/* 5. Recent Repayments — with auto-scroll ticker */}
+          <section class="mb-4 reveal stagger-6">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="font-bold text-text-title" style="font-size:16px;">回款动态</h3>
+              <span class="home-live-dot" />
+            </div>
+            <div class="bg-white rounded-2xl shadow-card overflow-hidden home-repayment-list" id="home-repayment-list">
               {recentRepayments.map((r, i) => (
-                <div class={`flex items-center justify-between px-4 py-3 ${i < recentRepayments.length - 1 ? 'border-b border-surface-divider' : ''}`}>
+                <div class={`home-repayment-row flex items-center justify-between px-4 py-3 ${i < recentRepayments.length - 1 ? 'border-b border-surface-divider' : ''}`}>
                   <div class="flex items-center gap-3">
-                    <span class="text-text-tertiary" style="font-size:12px;min-width:62px;">{r.date.slice(5)}</span>
+                    <span class="home-rep-date">{r.date.slice(5)}</span>
                     <span class="text-text-primary font-medium" style="font-size:13px;">{r.projectName.length > 12 ? r.projectName.slice(0, 12) + '...' : r.projectName}</span>
                   </div>
-                  <span class="font-semibold" style="font-size:14px;color:#16a34a;">+¥{r.amount.toFixed(2)}万</span>
+                  <span class="home-rep-amount">+¥{r.amount.toFixed(2)}万</span>
                 </div>
               ))}
             </div>
@@ -160,13 +169,17 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
   try { u = JSON.parse(localStorage.getItem('zlc_user')); } catch(e){}
   if (!u) return;
 
-  // Greeting
+  // Greeting with time-based decoration
   var h = new Date().getHours();
   var tg = h >= 6 && h < 12 ? '上午好' : h >= 12 && h < 18 ? '下午好' : '晚上好';
+  var timeEmoji = h >= 6 && h < 12 ? '🌅' : h >= 12 && h < 18 ? '☀️' : '🌙';
   var greetEl = document.getElementById('greeting');
   if (greetEl) greetEl.textContent = '\\uD83D\\uDC4B ' + u.name + ' 同学，' + tg;
   var subEl = document.getElementById('user-subtitle');
   if (subEl) subEl.textContent = u.company + ' · ' + u.title + ' · ' + (u.cohort || '');
+  // Welcome decoration
+  var decoEl = document.getElementById('home-welcome-deco');
+  if (decoEl) decoEl.textContent = timeEmoji;
 
   // Fetch stats
   fetch('/api/user-stats/' + u.id).then(function(r){return r.json();}).then(function(d){
@@ -332,6 +345,30 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
       showToast('未找到该分享码对应的项目', 'error');
     }
   }
+
+  // ── Repayment Ticker Auto-Scroll ──
+  (function(){
+    var list = document.getElementById('home-repayment-list');
+    if(!list || list.children.length <= 3) return;
+    var scrollInterval = setInterval(function(){
+      if(list.scrollTop + list.clientHeight >= list.scrollHeight - 2){
+        list.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        list.scrollBy({ top: 48, behavior: 'smooth' });
+      }
+    }, 3000);
+    // Pause on hover
+    list.addEventListener('mouseenter', function(){ clearInterval(scrollInterval); });
+    list.addEventListener('mouseleave', function(){
+      scrollInterval = setInterval(function(){
+        if(list.scrollTop + list.clientHeight >= list.scrollHeight - 2){
+          list.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+          list.scrollBy({ top: 48, behavior: 'smooth' });
+        }
+      }, 3000);
+    });
+  })();
 
   // ── Onboarding (first-time) ──
   showOnboarding();
