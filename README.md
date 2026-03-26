@@ -8,11 +8,13 @@
 - **名称**: 中流通 ZhongLiu Connect
 - **目标**: 私域RBF协作平台，数据透明，分账体外执行，结果在平台展示
 - **模式**: 投资人 → 第三方分账机构 → 融资方，分账结果推送至中流通平台
-- **状态**: MVP 功能完整 (Phase 1~4 + V22 条款通 + V23 P0升级 + V24 AI助理 + V25/V25.1 视觉升级 已完成)
+- **状态**: **已上线** ✅ (Phase 1~5 + V22 条款通 + V23 P0升级 + V24 AI助理 + V25/V25.1 视觉升级 + 生产部署 + 方案C改密)
 
 ## URLs
 
-- **预览**: https://3000-i8ip8indu9123mne7hota-5634da27.sandbox.novita.ai
+- **生产环境**: https://zhongliutong.net (自定义域名)
+- **生产环境(www)**: https://www.zhongliutong.net
+- **Pages域名**: https://zhongliu-connect.pages.dev
 - **登录页**: /login
 - **首页**: /
 - **项目大厅**: /projects
@@ -241,7 +243,11 @@
 | 18022222222 | 陈老师 | teacher | zhongliu2026 |
 
 > 所有 demo 账号密码统一为 `zhongliu2026`  
-> 首次登录会提示修改密码（可跳过）
+> **首次登录流程（方案C）**:  
+> 1. 用手机号 + 默认密码登录  
+> 2. 弹出身份验证弹窗 → 输入手机号后4位  
+> 3. 验证通过后设置新密码（不能与默认密码相同）  
+> 4. 完成后自动进入平台，后续用新密码登录
 
 ## 数据架构
 
@@ -355,12 +361,23 @@ ecosystem.config.cjs         # PM2 配置
 
 ## 待开发功能 (远期路线图)
 
-### Phase 5 — 生产部署 (需用户操作)
-1. 在 Deploy 标签页配置 Cloudflare API Token
-2. 创建生产 D1 数据库 (`npx wrangler d1 create zhongliu-production`)
-3. 运行生产迁移 + seed
-4. 部署到 Cloudflare Pages
-5. (可选) 绑定自定义域名
+### Phase 5 — 生产部署 ✅ (2026-03-26)
+- ✅ Cloudflare D1 生产数据库 `zhongliu-production` (ID: 887cd767-4078-4332-83cc-e1b4f0531673)
+- ✅ 3个迁移文件已执行 + 种子数据已导入 (49用户, 30项目, 46合同, 110回款)
+- ✅ 部署到 Cloudflare Pages (项目名: zhongliu-connect)
+- ✅ D1 绑定到 Pages 项目 (binding: DB)
+- ✅ 自定义域名 zhongliutong.net + www.zhongliutong.net (CNAME → zhongliu-connect.pages.dev)
+- ✅ SSL 证书自动配置
+
+### V26 — 方案C首次登录安全验证 (2026-03-26)
+- **首次登录两步验证**: Step1 手机尾号验证 → Step2 设置新密码
+- **密码强度检测**: 实时显示弱/中/强
+- **密码显示切换**: 眼睛图标显示/隐藏密码
+- **防暴力破解**: 最多5次尾号验证机会
+- **新密码限制**: 不能与默认密码相同
+- **后端双验证**: 前端校验 + API 端也校验手机尾号
+- **批量注册升级**: 每个学员独立密码（不再共享）
+- **密码列表下载**: 注册成功后弹出密码表格 + CSV下载 + 一键复制
 
 ### V25 — 视觉体验升级 (2026-03-26)
 
@@ -430,10 +447,12 @@ ecosystem.config.cjs         # PM2 配置
 
 ## 部署
 
-- **平台**: Cloudflare Pages
-- **数据库**: Cloudflare D1 (zhongliu-production)
-- **状态**: MVP + V22条款通 + V23 P0升级 + V24 AI助理 + V25/V25.1视觉升级 完整, 待部署至生产环境
-- **最后更新**: 2026-03-26 (V25.1 首页视觉打磨 + AI助手增强)
+- **平台**: Cloudflare Pages (zhongliu-connect)
+- **数据库**: Cloudflare D1 (zhongliu-production, ID: 887cd767-4078-4332-83cc-e1b4f0531673)
+- **域名**: zhongliutong.net + www.zhongliutong.net
+- **状态**: ✅ **已上线** — MVP + V22~V26 全部完成
+- **月度成本**: $0 (Cloudflare 免费额度)
+- **最后更新**: 2026-03-26 (V26 方案C首次登录安全验证 + 生产部署)
 
 ## 本地开发
 
