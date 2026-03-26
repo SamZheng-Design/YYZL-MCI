@@ -1404,82 +1404,138 @@ app.get('/admin', async (c) => {
   // ══════════════════════════════════
   // TAB: Projects (项目)
   // ══════════════════════════════════
+  var projectsPager = null;
   function renderProjectsTab(){
-    var html = '<div style="padding:16px;">';
-    var projects = MOCK_PROJECTS.slice();
-    // All projects already in D1 — no localStorage merge needed
-
-    var statusMap = {draft:'草稿',open:'募集中',funded:'已满额',active:'运营中',completed:'已完成'};
-    var badgeStyles = {draft:'background:#F5F5F4;color:#78716C;border:1px solid #E7E5E4;',open:'background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;',active:'background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0;',completed:'background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0;',funded:'background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0;'};
+    var statusMap = {draft:'草稿',open:'募集中',funded:'已满额',active:'运营中',completed:'已完成',pending_review:'待审核',terminated:'已终止'};
+    var badgeStyles = {draft:'background:#F5F5F4;color:#78716C;border:1px solid #E7E5E4;',open:'background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;',active:'background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0;',completed:'background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0;',funded:'background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0;',pending_review:'background:#FFFBEB;color:#92400E;border:1px solid #FDE68A;',terminated:'background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;'};
     var members = getMembers();
 
-    projects.forEach(function(p){
-      var owner = members.find(function(m){return m.id===p.ownerId;}) || {name:'?'};
-      var pct = p.targetAmount>0?Math.round(p.raisedAmount/p.targetAmount*100):0;
-      html += '<a href="/projects/'+p.id+'" style="display:block;text-decoration:none;color:inherit;background:white;border-radius:14px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,0.04);margin-bottom:12px;">';
-      html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">';
-      html += '<span style="font-size:15px;font-weight:600;color:#1C1917;">'+p.name+'</span>';
-      html += '<span style="'+(badgeStyles[p.status]||'')+';padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">'+(statusMap[p.status]||p.status)+'</span>';
-      html += '</div>';
-      html += '<div style="display:flex;gap:12px;font-size:13px;color:#78716C;">';
-      html += '<span>'+owner.name+'</span><span>¥'+p.targetAmount+'万</span><span>'+pct+'%</span>';
-      html += '</div></a>';
-    });
+    var html = '<div style="padding:16px;">';
+    // Search + status filter
+    html += '<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">';
+    html += '<input id="admin-project-search" type="text" placeholder="搜索项目名称" style="flex:1;min-width:150px;background:#F5F5F4;border:none;border-radius:10px;padding:10px 14px;font-size:13px;outline:none;" />';
+    html += '<select id="admin-project-status" style="background:#F5F5F4;border:none;border-radius:10px;padding:10px 14px;font-size:13px;color:#44403C;">';
+    html += '<option value="">全部状态</option>';
+    Object.keys(statusMap).forEach(function(k){ html += '<option value="'+k+'">'+statusMap[k]+'</option>'; });
+    html += '</select>';
+    html += '</div>';
+    html += '<div id="admin-project-list"></div>';
+    html += '<div id="admin-project-pager"></div>';
     html += '</div>';
     panels.projects.innerHTML = html;
+
+    projectsPager = new ZlcPagination({
+      container: '#admin-project-list',
+      pagerContainer: '#admin-project-pager',
+      endpoint: '/api/data/projects',
+      limit: 15,
+      skeleton: (typeof ZLC_SKELETON !== 'undefined') ? ZLC_SKELETON.card(4) : '',
+      renderItem: function(p){
+        var owner = members.find(function(m){return m.id===p.ownerId;}) || {name:'?'};
+        var pct = p.targetAmount>0?Math.round(p.raisedAmount/p.targetAmount*100):0;
+        var h = '<a href="/projects/'+p.id+'" style="display:block;text-decoration:none;color:inherit;background:white;border-radius:14px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,0.04);margin-bottom:12px;">';
+        h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">';
+        h += '<span style="font-size:15px;font-weight:600;color:#1C1917;">'+p.name+'</span>';
+        h += '<span style="'+(badgeStyles[p.status]||badgeStyles.draft)+';padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">'+(statusMap[p.status]||p.status)+'</span>';
+        h += '</div>';
+        h += '<div style="display:flex;gap:12px;font-size:13px;color:#78716C;">';
+        h += '<span>'+owner.name+'</span><span>\\u00a5'+p.targetAmount+'\\u4e07</span><span>'+pct+'%</span>';
+        h += '</div></a>';
+        return h;
+      },
+      renderSummary: function(total){ return '<div style="font-size:12px;color:#A8A29E;text-align:center;padding:8px 0;">\\u5171 '+total+' \\u4e2a\\u9879\\u76ee</div>'; },
+    });
+    projectsPager.load(1);
+
+    // Search with debounce
+    var searchTimer = null;
+    document.getElementById('admin-project-search').addEventListener('input', function(e){
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(function(){ projectsPager.setParams({ search: e.target.value.trim() }); }, 300);
+    });
+    document.getElementById('admin-project-status').addEventListener('change', function(e){
+      projectsPager.setParams({ status: e.target.value });
+    });
   }
 
   // ══════════════════════════════════
   // TAB: Review (项目审核)
   // ══════════════════════════════════
+  var reviewPendingPager = null;
+  var reviewHistoryPager = null;
   function renderReviewTab(){
-    var projects = MOCK_PROJECTS.slice();
-    var members = getMembers();
     var statusMap = {pending_review:'待审核',open:'募集中',active:'运营中',completed:'已完成',draft:'草稿',funded:'已满额',terminated:'已终止'};
-    var pending = projects.filter(function(p){ return p.status === 'pending_review'; });
-    var reviewed = projects.filter(function(p){ return p.status !== 'pending_review' && p.status !== 'draft'; });
+    var members = getMembers();
 
     var html = '<div style="padding:16px;">';
     html += '<h3 style="font-size:18px;font-weight:700;color:#1C1917;margin-bottom:16px;">项目审核</h3>';
 
     // Pending section
     html += '<div style="margin-bottom:24px;">';
-    html += '<div style="font-size:14px;font-weight:600;color:#B91C1C;margin-bottom:12px;">待审核 (' + pending.length + ')</div>';
-    if(pending.length === 0){
-      html += '<div style="text-align:center;padding:20px;color:#A8A29E;font-size:13px;">暂无待审核项目</div>';
-    } else {
-      pending.forEach(function(p){
-        var owner = members.find(function(m){return m.id===p.ownerId;}) || {name:'?'};
-        html += '<div class="review-card" id="review-' + p.id + '" style="background:#fff;border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid #FEE2E2;">';
-        html += '<div style="display:flex;justify-content:space-between;align-items:start;">';
-        html += '<div><div style="font-size:15px;font-weight:600;color:#1C1917;">' + p.name + '</div>';
-        html += '<div style="font-size:12px;color:#78716C;margin-top:4px;">发起人: ' + owner.name + ' · ' + (p.industry||'') + '</div>';
-        html += '<div style="font-size:12px;color:#78716C;">目标: ¥' + p.targetAmount + '万 · ' + p.totalShares + '份 × ¥' + p.sharePrice + '万</div>';
-        if(p.description) html += '<div style="font-size:12px;color:#A8A29E;margin-top:6px;line-height:1.5;">' + p.description.slice(0,100) + (p.description.length>100?'...':'') + '</div>';
-        html += '</div></div>';
-        html += '<div style="display:flex;gap:8px;margin-top:12px;">';
-        html += '<button onclick="reviewProject(\\'' + p.id + '\\',\\'approved\\')" style="flex:1;padding:8px;background:#16A34A;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">通过</button>';
-        html += '<button onclick="reviewProject(\\'' + p.id + '\\',\\'rejected\\')" style="flex:1;padding:8px;background:#fff;color:#DC2626;border:1px solid #FECACA;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">驳回</button>';
-        html += '</div></div>';
-      });
-    }
+    html += '<div style="font-size:14px;font-weight:600;color:#B91C1C;margin-bottom:12px;" id="review-pending-title">待审核</div>';
+    html += '<div id="review-pending-list"></div>';
+    html += '<div id="review-pending-pager"></div>';
     html += '</div>';
 
-    // Recently reviewed
+    // Reviewed section
     html += '<div style="font-size:14px;font-weight:600;color:#44403C;margin-bottom:12px;">已审核项目</div>';
-    var recentReviewed = reviewed.slice(0, 20);
-    recentReviewed.forEach(function(p){
-      var owner = members.find(function(m){return m.id===p.ownerId;}) || {name:'?'};
-      var badge = statusMap[p.status] || p.status;
-      var badgeColor = p.status==='open'?'#DC2626':p.status==='active'?'#16A34A':'#78716C';
-      html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #F5F5F4;">';
-      html += '<div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:500;color:#1C1917;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + p.name + '</div>';
-      html += '<div style="font-size:12px;color:#A8A29E;">' + owner.name + '</div></div>';
-      html += '<span style="font-size:11px;padding:2px 8px;border-radius:6px;background:' + badgeColor + '1a;color:' + badgeColor + ';font-weight:500;">' + badge + '</span>';
-      html += '</div>';
-    });
+    html += '<div id="review-history-list"></div>';
+    html += '<div id="review-history-pager"></div>';
     html += '</div>';
     panels.review.innerHTML = html;
+
+    // Pending projects pager
+    reviewPendingPager = new ZlcPagination({
+      container: '#review-pending-list',
+      pagerContainer: '#review-pending-pager',
+      endpoint: '/api/data/projects',
+      params: { status: 'pending_review' },
+      limit: 10,
+      skeleton: (typeof ZLC_SKELETON !== 'undefined') ? ZLC_SKELETON.card(2) : '',
+      onLoad: function(res){
+        var titleEl = document.getElementById('review-pending-title');
+        if(titleEl) titleEl.innerHTML = '待审核 <span style="background:#F59E0B;color:white;border-radius:10px;padding:1px 8px;font-size:12px;margin-left:4px;">'+(res.total||0)+'</span>';
+      },
+      renderItem: function(p){
+        var owner = members.find(function(m){return m.id===p.ownerId;}) || {name:'?'};
+        var h = '<div class="review-card" id="review-' + p.id + '" style="background:#fff;border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid #FEE2E2;">';
+        h += '<div style="display:flex;justify-content:space-between;align-items:start;">';
+        h += '<div><div style="font-size:15px;font-weight:600;color:#1C1917;">' + p.name + '</div>';
+        h += '<div style="font-size:12px;color:#78716C;margin-top:4px;">\\u53d1\\u8d77\\u4eba: ' + owner.name + ' \\u00B7 ' + (p.industry||'') + '</div>';
+        h += '<div style="font-size:12px;color:#78716C;">\\u76ee\\u6807: \\u00a5' + p.targetAmount + '\\u4e07 \\u00B7 ' + p.totalShares + '\\u4efd \\u00d7 \\u00a5' + p.sharePrice + '\\u4e07</div>';
+        if(p.description) h += '<div style="font-size:12px;color:#A8A29E;margin-top:6px;line-height:1.5;">' + p.description.slice(0,100) + (p.description.length>100?'...':'') + '</div>';
+        h += '</div></div>';
+        h += '<div style="display:flex;gap:8px;margin-top:12px;">';
+        h += '<button onclick="reviewProject(\\'' + p.id + '\\',\\'approved\\')" style="flex:1;padding:8px;background:#16A34A;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">\\u901a\\u8fc7</button>';
+        h += '<button onclick="reviewProject(\\'' + p.id + '\\',\\'rejected\\')" style="flex:1;padding:8px;background:#fff;color:#DC2626;border:1px solid #FECACA;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">\\u9a73\\u56de</button>';
+        h += '</div></div>';
+        return h;
+      },
+      renderEmpty: function(){ return '<div style="text-align:center;padding:20px;color:#A8A29E;font-size:13px;">\\u6682\\u65e0\\u5f85\\u5ba1\\u6838\\u9879\\u76ee</div>'; },
+    });
+    reviewPendingPager.load(1);
+
+    // Reviewed history pager — exclude draft and pending_review
+    reviewHistoryPager = new ZlcPagination({
+      container: '#review-history-list',
+      pagerContainer: '#review-history-pager',
+      endpoint: '/api/data/projects',
+      params: { status: 'open' }, // default: show open (recently approved)
+      limit: 10,
+      skeleton: (typeof ZLC_SKELETON !== 'undefined') ? ZLC_SKELETON.row(4) : '',
+      renderItem: function(p){
+        var owner = members.find(function(m){return m.id===p.ownerId;}) || {name:'?'};
+        var badge = statusMap[p.status] || p.status;
+        var badgeColor = p.status==='open'?'#DC2626':p.status==='active'?'#16A34A':'#78716C';
+        var h = '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #F5F5F4;">';
+        h += '<div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:500;color:#1C1917;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + p.name + '</div>';
+        h += '<div style="font-size:12px;color:#A8A29E;">' + owner.name + '</div></div>';
+        h += '<span style="font-size:11px;padding:2px 8px;border-radius:6px;background:' + badgeColor + '1a;color:' + badgeColor + ';font-weight:500;">' + badge + '</span>';
+        h += '</div>';
+        return h;
+      },
+    });
+    reviewHistoryPager.load(1);
   }
 
   window.reviewProject = function(pid, decision){
@@ -1492,11 +1548,13 @@ app.get('/admin', async (c) => {
       body: JSON.stringify({ decision: decision, note: notePrompt || '', adminId: u.id })
     }).then(function(r){return r.json();}).then(function(res){
       if(res.ok){
-        showToast(decision === 'approved' ? '✅ 项目已通过审核' : '❌ 项目已驳回');
+        showToast(decision === 'approved' ? '\\u2705 \\u9879\\u76ee\\u5df2\\u901a\\u8fc7\\u5ba1\\u6838' : '\\u274c \\u9879\\u76ee\\u5df2\\u9a73\\u56de');
         // Update local data
         var proj = MOCK_PROJECTS.find(function(p){ return p.id === pid; });
         if(proj) proj.status = decision === 'approved' ? 'open' : 'draft';
-        renderReviewTab();
+        // Refresh paginated review lists
+        if(reviewPendingPager) reviewPendingPager.refresh();
+        if(reviewHistoryPager) reviewHistoryPager.refresh();
       } else {
         showToast(res.error || '操作失败', 'error');
       }
@@ -1559,50 +1617,63 @@ app.get('/admin', async (c) => {
   }
 
   // ══════════════════════════════════
-  // TAB: Audit Log (审计日志)
+  // TAB: Audit Log (审计日志) — Paginated
   // ══════════════════════════════════
+  var auditPager = null;
   function renderAuditTab(){
+    var actionMap = {
+      'create_project':'创建项目','review_project':'审核项目','participate_project':'参与投资',
+      'sign_contract':'签署合同','submit_revenue_report':'提交营收报告','batch_register':'批量注册',
+      'create_referral':'发起引荐','settlement_import':'导入分账','generate_invite':'生成邀请码',
+      'login_success':'登录成功','login_failed':'登录失败','login_blocked':'登录阻止',
+      'change_password':'修改密码','admin_reset_password':'重置密码','self_register':'自助注册',
+      'session_cleanup':'清理会话','approve_member':'审批通过','reject_member':'审批拒绝',
+      'toggle_member_status':'切换用户状态',
+    };
+    var iconMap = {create_project:'\\ud83d\\udcc1',review_project:'\\u2705',participate_project:'\\ud83d\\udcb0',sign_contract:'\\u270d\\ufe0f',submit_revenue_report:'\\ud83d\\udcca',batch_register:'\\ud83d\\udc65',create_referral:'\\ud83e\\udd1d',settlement_import:'\\ud83d\\udce5',generate_invite:'\\ud83c\\udfab',login_success:'\\ud83d\\udd13',login_failed:'\\u274c',change_password:'\\ud83d\\udd11',admin_reset_password:'\\ud83d\\udd11',self_register:'\\ud83d\\udc64'};
+
     var html = '<div style="padding:16px;">';
-    html += '<h3 style="font-size:18px;font-weight:700;color:#1C1917;margin-bottom:16px;">审计日志</h3>';
-    html += '<div id="audit-list" style="font-size:13px;color:#A8A29E;text-align:center;padding:24px;">加载中...</div>';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">';
+    html += '<h3 style="font-size:18px;font-weight:700;color:#1C1917;">审计日志</h3>';
+    html += '<select id="audit-action-filter" style="background:#F5F5F4;border:none;border-radius:8px;padding:6px 12px;font-size:13px;color:#44403C;">';
+    html += '<option value="">全部操作</option>';
+    Object.keys(actionMap).forEach(function(k){ html += '<option value="'+k+'">'+actionMap[k]+'</option>'; });
+    html += '</select>';
+    html += '</div>';
+    html += '<div id="audit-list"></div>';
+    html += '<div id="audit-pager"></div>';
     html += '</div>';
     panels.audit.innerHTML = html;
 
-    fetch('/api/data/audit-logs').then(function(r){return r.json();}).then(function(res){
-      var logs = (res.ok ? res.data : res) || [];
-      var listEl = document.getElementById('audit-list');
-      if(logs.length === 0){
-        listEl.innerHTML = '<div style="text-align:center;padding:32px 0;"><div style="font-size:48px;color:#D6D3D1;margin-bottom:12px;">📋</div><p style="font-size:14px;color:#A8A29E;">暂无审计日志</p></div>';
-        return;
-      }
-
-      var actionMap = {
-        'create_project':'创建项目','review_project':'审核项目','participate_project':'参与投资',
-        'sign_contract':'签署合同','submit_revenue_report':'提交营收报告','batch_register':'批量注册',
-        'create_referral':'发起引荐','settlement_import':'导入分账','generate_invite':'生成邀请码',
-      };
-
-      var h = '';
-      logs.forEach(function(log){
+    auditPager = new ZlcPagination({
+      container: '#audit-list',
+      pagerContainer: '#audit-pager',
+      endpoint: '/api/data/audit-logs',
+      limit: 15,
+      skeleton: (typeof ZLC_SKELETON !== 'undefined') ? ZLC_SKELETON.row(6) : '',
+      renderItem: function(log){
         var actionText = actionMap[log.action] || log.action;
-        var iconMap = {create_project:'📁',review_project:'✅',participate_project:'💰',sign_contract:'✍️',submit_revenue_report:'📊',batch_register:'👥',create_referral:'🤝',settlement_import:'📥',generate_invite:'🎟️'};
-        var icon = iconMap[log.action] || '📌';
+        var icon = iconMap[log.action] || '\\ud83d\\udccc';
         var detail = '';
         try { var d = typeof log.detail === 'string' ? JSON.parse(log.detail) : log.detail; detail = JSON.stringify(d).slice(0,120); } catch(e){ detail = log.detail || ''; }
-
-        h += '<div style="padding:12px 0;border-bottom:1px solid #F5F5F4;">';
+        var h = '<div style="padding:12px 0;border-bottom:1px solid #F5F5F4;">';
         h += '<div style="display:flex;align-items:center;gap:8px;">';
         h += '<span style="font-size:16px;">' + icon + '</span>';
         h += '<span style="font-size:14px;font-weight:500;color:#1C1917;">' + actionText + '</span>';
         h += '<span style="font-size:11px;color:#A8A29E;margin-left:auto;">' + (log.createdAt || '') + '</span>';
         h += '</div>';
-        h += '<div style="font-size:12px;color:#78716C;margin-top:4px;">用户: ' + (log.userId || '?') + ' · ' + (log.entityType||'') + ': ' + (log.entityId||'') + '</div>';
+        h += '<div style="font-size:12px;color:#78716C;margin-top:4px;">\\u7528\\u6237: ' + (log.userId || '?') + ' \\u00B7 ' + (log.entityType||'') + ': ' + (log.entityId||'') + '</div>';
         if(detail) h += '<div style="font-size:11px;color:#A8A29E;margin-top:2px;word-break:break-all;max-height:40px;overflow:hidden;">' + detail + '</div>';
         h += '</div>';
-      });
-      listEl.innerHTML = h;
-    }).catch(function(){
-      document.getElementById('audit-list').innerHTML = '<div style="color:#DC2626;text-align:center;padding:16px;">加载失败</div>';
+        return h;
+      },
+      renderEmpty: function(){ return '<div style="text-align:center;padding:32px 0;"><div style="font-size:48px;color:#D6D3D1;margin-bottom:12px;">\\ud83d\\udccb</div><p style="font-size:14px;color:#A8A29E;">\\u6682\\u65e0\\u5ba1\\u8ba1\\u65e5\\u5fd7</p></div>'; },
+    });
+    auditPager.load(1);
+
+    // Action filter
+    document.getElementById('audit-action-filter').addEventListener('change', function(e){
+      auditPager.setParams({ action: e.target.value });
     });
   }
 

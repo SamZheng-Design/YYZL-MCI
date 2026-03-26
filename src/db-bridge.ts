@@ -410,6 +410,290 @@ export async function loadShareLogs(db: D1Database, limit: number = 200): Promis
 }
 
 // ═══════════════════════════════════════════════════════════
+// Paginated Query Functions — Phase 2B
+// ═══════════════════════════════════════════════════════════
+
+export interface PaginatedResult<T> {
+  data: T[]
+  total: number
+  page: number
+  limit: number
+  totalPages: number
+}
+
+/** 分页加载学员 — 支持 class_id / search / status 筛选 */
+export async function loadMembersPaginated(
+  db: D1Database,
+  opts: { page?: number; limit?: number; classId?: string; search?: string; status?: string }
+): Promise<PaginatedResult<Member>> {
+  const page = Math.max(1, opts.page || 1)
+  const limit = Math.min(100, Math.max(1, opts.limit || 20))
+  const offset = (page - 1) * limit
+
+  let where = "(role = 'member' OR role = 'admin')"
+  const binds: any[] = []
+
+  if (opts.classId) { where += ' AND class_id = ?'; binds.push(opts.classId) }
+  if (opts.status) { where += ' AND status = ?'; binds.push(opts.status) }
+  if (opts.search) {
+    where += ' AND (name LIKE ? OR phone LIKE ? OR company LIKE ?)'
+    const s = '%' + opts.search + '%'
+    binds.push(s, s, s)
+  }
+
+  const countQ = db.prepare(`SELECT COUNT(*) as cnt FROM users WHERE ${where}`)
+  const dataQ = db.prepare(
+    `SELECT * FROM users WHERE ${where} ORDER BY CASE status WHEN 'pending' THEN 0 WHEN 'active' THEN 1 ELSE 2 END, cohort, name LIMIT ? OFFSET ?`
+  )
+
+  // Bind params
+  const countStmt = binds.length > 0 ? countQ.bind(...binds) : countQ
+  const dataStmt = (binds.length > 0 ? dataQ.bind(...binds, limit, offset) : dataQ.bind(limit, offset))
+
+  const [countRes, dataRes] = await Promise.all([
+    countStmt.first<{ cnt: number }>(),
+    dataStmt.all<DBUser>(),
+  ])
+
+  const total = countRes?.cnt || 0
+  return {
+    data: dataRes.results.map(dbUserToMember),
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  }
+}
+
+/** 分页加载项目 — 支持 status / search 筛选 */
+export async function loadProjectsPaginated(
+  db: D1Database,
+  opts: { page?: number; limit?: number; status?: string; search?: string; ownerId?: string }
+): Promise<PaginatedResult<Project>> {
+  const page = Math.max(1, opts.page || 1)
+  const limit = Math.min(100, Math.max(1, opts.limit || 20))
+  const offset = (page - 1) * limit
+
+  let where = '1=1'
+  const binds: any[] = []
+
+  if (opts.status) { where += ' AND status = ?'; binds.push(opts.status) }
+  if (opts.ownerId) { where += ' AND owner_id = ?'; binds.push(opts.ownerId) }
+  if (opts.search) {
+    where += ' AND (name LIKE ? OR description LIKE ? OR industry LIKE ?)'
+    const s = '%' + opts.search + '%'
+    binds.push(s, s, s)
+  }
+
+  const countQ = db.prepare(`SELECT COUNT(*) as cnt FROM projects WHERE ${where}`)
+  const dataQ = db.prepare(
+    `SELECT * FROM projects WHERE ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`
+  )
+
+  const countStmt = binds.length > 0 ? countQ.bind(...binds) : countQ
+  const dataStmt = binds.length > 0 ? dataQ.bind(...binds, limit, offset) : dataQ.bind(limit, offset)
+
+  const [countRes, dataRes] = await Promise.all([
+    countStmt.first<{ cnt: number }>(),
+    dataStmt.all<DBProject>(),
+  ])
+
+  const total = countRes?.cnt || 0
+
+  // Batch load investors for these projects
+  if (dataRes.results.length > 0) {
+    const ids = dataRes.results.map(p => p.id)
+    const placeholders = ids.map(() => '?').join(',')
+    const invRes = await db.prepare(
+      `SELECT project_id, investor_id FROM project_investors WHERE project_id IN (${placeholders})`
+    ).bind(...ids).all<{ project_id: string; investor_id: string }>()
+    const investorMap = new Map<string, string[]>()
+    for (const inv of invRes.results) {
+      const list = investorMap.get(inv.project_id)
+      if (list) list.push(inv.investor_id)
+      else investorMap.set(inv.project_id, [inv.investor_id])
+    }
+    return {
+      data: dataRes.results.map(p => dbProjectToProject(p, investorMap.get(p.id) || [])),
+      total, page, limit, totalPages: Math.ceil(total / limit),
+    }
+  }
+
+  return { data: [], total, page, limit, totalPages: Math.ceil(total / limit) }
+}
+
+/** 分页加载合同 — 支持 project_id / participant_id / status 筛选 */
+export async function loadContractsPaginated(
+  db: D1Database,
+  opts: { page?: number; limit?: number; projectId?: string; participantId?: string; initiatorId?: string; status?: string }
+): Promise<PaginatedResult<Contract>> {
+  const page = Math.max(1, opts.page || 1)
+  const limit = Math.min(100, Math.max(1, opts.limit || 20))
+  const offset = (page - 1) * limit
+
+  let where = '1=1'
+  const binds: any[] = []
+
+  if (opts.projectId) { where += ' AND project_id = ?'; binds.push(opts.projectId) }
+  if (opts.participantId) { where += ' AND participant_id = ?'; binds.push(opts.participantId) }
+  if (opts.initiatorId) { where += ' AND initiator_id = ?'; binds.push(opts.initiatorId) }
+  if (opts.status) { where += ' AND status = ?'; binds.push(opts.status) }
+
+  const countQ = db.prepare(`SELECT COUNT(*) as cnt FROM contracts WHERE ${where}`)
+  const dataQ = db.prepare(
+    `SELECT * FROM contracts WHERE ${where} ORDER BY signed_at DESC LIMIT ? OFFSET ?`
+  )
+
+  const countStmt = binds.length > 0 ? countQ.bind(...binds) : countQ
+  const dataStmt = binds.length > 0 ? dataQ.bind(...binds, limit, offset) : dataQ.bind(limit, offset)
+
+  const [countRes, dataRes] = await Promise.all([
+    countStmt.first<{ cnt: number }>(),
+    dataStmt.all<DBContract>(),
+  ])
+
+  const total = countRes?.cnt || 0
+  return {
+    data: dataRes.results.map(dbContractToContract),
+    total, page, limit, totalPages: Math.ceil(total / limit),
+  }
+}
+
+/** 分页加载回款明细 — 支持 contract_id / participant_id / month / project_id 筛选 */
+export async function loadRepaymentRecordsPaginated(
+  db: D1Database,
+  opts: { page?: number; limit?: number; contractId?: string; participantId?: string; month?: string; projectId?: string }
+): Promise<PaginatedResult<RepaymentRecord>> {
+  const page = Math.max(1, opts.page || 1)
+  const limit = Math.min(100, Math.max(1, opts.limit || 20))
+  const offset = (page - 1) * limit
+
+  // For month and project_id filtering, we need to JOIN contracts
+  const needJoin = !!opts.month || !!opts.projectId
+  const from = needJoin
+    ? 'repayment_details rd JOIN contracts c ON rd.contract_id = c.id'
+    : 'repayment_details rd'
+
+  let where = '1=1'
+  const binds: any[] = []
+
+  if (opts.contractId) { where += ' AND rd.contract_id = ?'; binds.push(opts.contractId) }
+  if (opts.participantId) { where += ' AND rd.participant_id = ?'; binds.push(opts.participantId) }
+  if (opts.month) {
+    // month format: '2026-03' → filter by date LIKE '2026-03%'
+    where += ' AND rd.date LIKE ?'
+    binds.push(opts.month + '%')
+  }
+  if (opts.projectId) { where += ' AND c.project_id = ?'; binds.push(opts.projectId) }
+
+  const countQ = db.prepare(`SELECT COUNT(*) as cnt FROM ${from} WHERE ${where}`)
+  const dataQ = db.prepare(
+    `SELECT rd.* FROM ${from} WHERE ${where} ORDER BY rd.date DESC LIMIT ? OFFSET ?`
+  )
+
+  const countStmt = binds.length > 0 ? countQ.bind(...binds) : countQ
+  const dataStmt = binds.length > 0 ? dataQ.bind(...binds, limit, offset) : dataQ.bind(limit, offset)
+
+  const [countRes, dataRes] = await Promise.all([
+    countStmt.first<{ cnt: number }>(),
+    dataStmt.all<DBRepaymentDetail>(),
+  ])
+
+  const total = countRes?.cnt || 0
+  return {
+    data: dataRes.results.map(dbRepaymentToRecord),
+    total, page, limit, totalPages: Math.ceil(total / limit),
+  }
+}
+
+/** 分页加载通知 — 支持 target_id 筛选 */
+export async function loadNotificationsPaginated(
+  db: D1Database,
+  opts: { page?: number; limit?: number; targetId?: string; targetRole?: string; unreadOnly?: boolean }
+): Promise<PaginatedResult<Notification>> {
+  const page = Math.max(1, opts.page || 1)
+  const limit = Math.min(100, Math.max(1, opts.limit || 20))
+  const offset = (page - 1) * limit
+
+  let where = '1=1'
+  const binds: any[] = []
+
+  if (opts.targetId) { where += ' AND (target_id = ? OR target_id = ?)'; binds.push(opts.targetId, 'all') }
+  if (opts.targetRole) { where += ' AND (target_role = ? OR target_role = ?)'; binds.push(opts.targetRole, 'all') }
+  if (opts.unreadOnly) { where += ' AND is_read = 0' }
+
+  const countQ = db.prepare(`SELECT COUNT(*) as cnt FROM notifications WHERE ${where}`)
+  const dataQ = db.prepare(
+    `SELECT * FROM notifications WHERE ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`
+  )
+
+  const countStmt = binds.length > 0 ? countQ.bind(...binds) : countQ
+  const dataStmt = binds.length > 0 ? dataQ.bind(...binds, limit, offset) : dataQ.bind(limit, offset)
+
+  const [countRes, dataRes] = await Promise.all([
+    countStmt.first<{ cnt: number }>(),
+    dataStmt.all<DBNotification>(),
+  ])
+
+  const total = countRes?.cnt || 0
+  return {
+    data: dataRes.results.map(dbNotificationToNotification),
+    total, page, limit, totalPages: Math.ceil(total / limit),
+  }
+}
+
+/** 分页加载审计日志 */
+export async function loadAuditLogsPaginated(
+  db: D1Database,
+  opts: { page?: number; limit?: number; action?: string; userId?: string }
+): Promise<PaginatedResult<any>> {
+  const page = Math.max(1, opts.page || 1)
+  const limit = Math.min(100, Math.max(1, opts.limit || 20))
+  const offset = (page - 1) * limit
+
+  let where = '1=1'
+  const binds: any[] = []
+  if (opts.action) { where += ' AND action = ?'; binds.push(opts.action) }
+  if (opts.userId) { where += ' AND user_id = ?'; binds.push(opts.userId) }
+
+  const countQ = db.prepare(`SELECT COUNT(*) as cnt FROM audit_logs WHERE ${where}`)
+  const dataQ = db.prepare(`SELECT * FROM audit_logs WHERE ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`)
+
+  const countStmt = binds.length > 0 ? countQ.bind(...binds) : countQ
+  const dataStmt = binds.length > 0 ? dataQ.bind(...binds, limit, offset) : dataQ.bind(limit, offset)
+
+  const [countRes, dataRes] = await Promise.all([
+    countStmt.first<{ cnt: number }>(),
+    dataStmt.all<any>(),
+  ])
+
+  const total = countRes?.cnt || 0
+  return {
+    data: (dataRes.results || []).map((l: any) => ({
+      id: l.id, userId: l.user_id, action: l.action, entityType: l.entity_type,
+      entityId: l.entity_id, detail: l.detail, createdAt: l.created_at,
+    })),
+    total, page, limit, totalPages: Math.ceil(total / limit),
+  }
+}
+
+/** 获取回款月份列表（去重） */
+export async function getRepaymentMonths(db: D1Database): Promise<string[]> {
+  const res = await db.prepare(
+    "SELECT DISTINCT substr(date, 1, 7) as month FROM repayment_details ORDER BY month DESC"
+  ).all<{ month: string }>()
+  return res.results.map(r => r.month)
+}
+
+/** 获取有回款的项目列表（用于筛选） */
+export async function getRepaymentProjects(db: D1Database): Promise<{ id: string; name: string }[]> {
+  const res = await db.prepare(
+    "SELECT DISTINCT c.project_id as id, p.name FROM repayment_details rd JOIN contracts c ON rd.contract_id = c.id JOIN projects p ON c.project_id = p.id ORDER BY p.name"
+  ).all<{ id: string; name: string }>()
+  return res.results
+}
+
+// ═══════════════════════════════════════════════════════════
 // 工具函数 — 替代 data.ts 中的纯函数
 // ═══════════════════════════════════════════════════════════
 

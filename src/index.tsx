@@ -23,9 +23,15 @@ import {
   getProjectStats, getUserStats, generateContractHTML,
   getTeacherForMember, getRelationTag, getRelevanceScore,
   calculateRBF, distributeRevenue,
+  // Paginated loaders
+  loadMembersPaginated, loadProjectsPaginated,
+  loadContractsPaginated, loadRepaymentRecordsPaginated,
+  loadNotificationsPaginated, loadAuditLogsPaginated,
+  getRepaymentMonths, getRepaymentProjects,
   type Member, type Teacher, type Project, type Contract,
   type RepaymentRecord, type RevenueReport, type Referral,
   type Notification, type ShareLog, type Repayment,
+  type PaginatedResult,
 } from './db-bridge'
 import {
   requireAuth, requireAdmin, requireTeacher,
@@ -367,6 +373,16 @@ app.get('/api/platform-stats', async (c) => {
 
 app.get('/api/data/members', async (c) => {
   const db = c.env.DB
+  const page = c.req.query('page')
+  if (page) {
+    const result = await loadMembersPaginated(db, {
+      page: parseInt(page), limit: parseInt(c.req.query('limit') || '20'),
+      classId: c.req.query('class_id') || undefined,
+      search: c.req.query('search') || undefined,
+      status: c.req.query('status') || undefined,
+    })
+    return c.json({ ok: true, ...result })
+  }
   return c.json({ ok: true, data: await loadMembers(db) })
 })
 
@@ -377,6 +393,16 @@ app.get('/api/data/teachers', async (c) => {
 
 app.get('/api/data/projects', async (c) => {
   const db = c.env.DB
+  const page = c.req.query('page')
+  if (page) {
+    const result = await loadProjectsPaginated(db, {
+      page: parseInt(page), limit: parseInt(c.req.query('limit') || '20'),
+      status: c.req.query('status') || undefined,
+      search: c.req.query('search') || undefined,
+      ownerId: c.req.query('owner_id') || undefined,
+    })
+    return c.json({ ok: true, ...result })
+  }
   return c.json({ ok: true, data: await loadProjects(db) })
 })
 
@@ -389,6 +415,17 @@ app.get('/api/data/projects/:id', async (c) => {
 
 app.get('/api/data/contracts', async (c) => {
   const db = c.env.DB
+  const page = c.req.query('page')
+  if (page) {
+    const result = await loadContractsPaginated(db, {
+      page: parseInt(page), limit: parseInt(c.req.query('limit') || '20'),
+      projectId: c.req.query('project_id') || undefined,
+      participantId: c.req.query('participant_id') || undefined,
+      initiatorId: c.req.query('initiator_id') || undefined,
+      status: c.req.query('status') || undefined,
+    })
+    return c.json({ ok: true, ...result })
+  }
   return c.json({ ok: true, data: await loadContracts(db) })
 })
 
@@ -404,6 +441,17 @@ app.get('/api/data/revenue-reports', async (c) => {
 
 app.get('/api/data/repayment-records', async (c) => {
   const db = c.env.DB
+  const page = c.req.query('page')
+  if (page) {
+    const result = await loadRepaymentRecordsPaginated(db, {
+      page: parseInt(page), limit: parseInt(c.req.query('limit') || '20'),
+      contractId: c.req.query('contract_id') || undefined,
+      participantId: c.req.query('participant_id') || undefined,
+      month: c.req.query('month') || undefined,
+      projectId: c.req.query('project_id') || undefined,
+    })
+    return c.json({ ok: true, ...result })
+  }
   return c.json({ ok: true, data: await loadRepaymentRecords(db) })
 })
 
@@ -419,6 +467,17 @@ app.get('/api/data/referrals', async (c) => {
 
 app.get('/api/data/notifications', async (c) => {
   const db = c.env.DB
+  const page = c.req.query('page')
+  if (page) {
+    const sessionUser = c.get('user')
+    const result = await loadNotificationsPaginated(db, {
+      page: parseInt(page), limit: parseInt(c.req.query('limit') || '20'),
+      targetId: sessionUser?.id || c.req.query('target_id') || undefined,
+      targetRole: sessionUser?.role || c.req.query('target_role') || undefined,
+      unreadOnly: c.req.query('unread') === '1',
+    })
+    return c.json({ ok: true, ...result })
+  }
   return c.json({ ok: true, data: await loadNotifications(db) })
 })
 
@@ -428,6 +487,17 @@ app.get('/api/data/notifications/unread-count', async (c) => {
   const sessionUser = c.get('user')!
   const count = await getUnreadNotificationCount(db, sessionUser.id, sessionUser.role)
   return c.json({ count })
+})
+
+// Repayment filter metadata APIs (for dropdowns)
+app.get('/api/data/repayment-months', async (c) => {
+  const db = c.env.DB
+  return c.json({ ok: true, data: await getRepaymentMonths(db) })
+})
+
+app.get('/api/data/repayment-projects', async (c) => {
+  const db = c.env.DB
+  return c.json({ ok: true, data: await getRepaymentProjects(db) })
 })
 
 app.get('/api/data/share-logs', async (c) => {
@@ -475,6 +545,15 @@ app.get('/api/data/contracts/:contractId/html', async (c) => {
 // Audit logs API
 app.get('/api/data/audit-logs', async (c) => {
   const db = c.env.DB
+  const page = c.req.query('page')
+  if (page) {
+    const result = await loadAuditLogsPaginated(db, {
+      page: parseInt(page), limit: parseInt(c.req.query('limit') || '20'),
+      action: c.req.query('action') || undefined,
+      userId: c.req.query('user_id') || undefined,
+    })
+    return c.json({ ok: true, ...result })
+  }
   const logs = await db.prepare(
     'SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT 100'
   ).all<any>()

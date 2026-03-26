@@ -36,6 +36,9 @@ export const renderer = jsxRenderer(({ children, title }) => {
         {/* Global Styles — extracted to external CSS for caching + smaller Worker bundle */}
         <link rel="stylesheet" href="/static/app.css" />
 
+        {/* Pagination utility — loaded in head so inline page scripts can use it */}
+        <script src="/static/pagination.js"></script>
+
         {/* SPA Router progress bar styles */}
         <style dangerouslySetInnerHTML={{__html: `
           #zlc-spa-progress{position:fixed;top:0;left:0;width:100%;height:3px;z-index:99999;pointer-events:none;display:none;}
