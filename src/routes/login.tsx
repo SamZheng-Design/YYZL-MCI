@@ -438,7 +438,7 @@ app.get('/login', (c) => {
       +'<span style="font-size:14px;color:#44403C;">管理员已为您注册账号，请验证手机号</span></div></div>'
       +'<div style="margin-bottom:20px;">'
       +'<label style="font-size:13px;color:#44403C;display:block;margin-bottom:6px;">请输入您的完整手机号</label>'
-      +'<input id="cp-phone4" type="tel" maxlength="11" placeholder="请输入11位手机号" autocomplete="off" style="width:100%;box-sizing:border-box;padding:14px 16px;border:1px solid #E7E5E4;border-radius:12px;font-size:18px;letter-spacing:4px;text-align:center;outline:none;font-weight:600;" /></div>'
+      +'<input id="cp-phone4" type="tel" maxlength="13" placeholder="请输入11位手机号" autocomplete="off" style="width:100%;box-sizing:border-box;padding:14px 16px;border:1px solid #E7E5E4;border-radius:12px;font-size:18px;letter-spacing:2px;text-align:center;outline:none;font-weight:600;" /></div>'
       +'<button id="cp-verify" style="width:100%;padding:14px;background:linear-gradient(135deg,#B91C1C,#991B1B);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;">验证身份</button>'
       +'<div id="cp-verify-error" style="text-align:center;font-size:13px;color:#DC2626;margin-top:12px;display:none;"></div>'
       +'</div>'
@@ -468,9 +468,15 @@ app.get('/login', (c) => {
     var verifyAttempts = 0;
 
     // Step 1: 验证完整手机号
+    document.getElementById('cp-phone4').addEventListener('input', function(){
+      // 实时去除非数字字符，限制11位
+      var v = this.value.replace(/\\D/g, '');
+      if(v.length > 11) v = v.slice(0, 11);
+      this.value = v;
+    });
     document.getElementById('cp-verify').addEventListener('click', function(){
-      var phoneInput = document.getElementById('cp-phone4').value.trim();
-      if(!/^1\\d{10}$/.test(phoneInput)){ showToast('请输入正确的11位手机号', 'error'); return; }
+      var phoneInput = document.getElementById('cp-phone4').value.replace(/\\D/g, '').trim();
+      if(!/^1\\d{10}$/.test(phoneInput)){ showToast('请输入正确的11位手机号（当前' + phoneInput.length + '位）', 'error'); return; }
       verifyAttempts++;
       if(verifyAttempts > 5){
         showToast('验证次数过多，请联系管理员', 'error');
