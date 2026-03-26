@@ -2320,7 +2320,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
     margin-left: 0 !important; max-width: none !important;
     height: auto; overflow: visible;
   }
-  body.is-login-page { overflow: auto; height: auto; }
+  body.is-login-page { overflow: auto !important; height: auto !important; }
+  html:has(body.is-login-page) { overflow: auto !important; height: auto !important; }
+  body.is-login-page #zlc-page-wrap { overflow: visible; height: auto; }
 
   /* Login split layout */
   .login-desktop-split {
@@ -3744,7 +3746,13 @@ ${aiAssistantCSS}
   var path = window.location.pathname;
 
   // Mark body for login/guide pages
-  if(path === '/login') { document.body.classList.add('is-login-page'); return; }
+  if(path === '/login') {
+    document.body.classList.add('is-login-page');
+    // Force html element scrollable — CSS :has() may not be supported in all browsers
+    document.documentElement.style.overflow = 'auto';
+    document.documentElement.style.height = 'auto';
+    return;
+  }
   if(path.indexOf('/guide') === 0) { document.body.classList.add('is-guide-page'); return; }
 
   // Show sidebar and topbar

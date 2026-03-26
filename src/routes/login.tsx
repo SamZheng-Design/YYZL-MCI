@@ -97,9 +97,9 @@ app.get('/login', (c) => {
             <div id="phone-login-area" style="max-height:0;overflow:hidden;transition:max-height 300ms ease,opacity 300ms ease;opacity:0;">
               {/* Login form */}
               <form id="login-form" style="padding-top:16px;" onsubmit="return false;" autocomplete="on">
-                <input id="phone-input" type="tel" maxlength={11} placeholder="请输入手机号" autocomplete="tel" style="width:100%;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:12px;color:white;padding:14px 16px;font-size:15px;outline:none;box-sizing:border-box;" />
+                <input id="phone-input" type="tel" maxlength={11} placeholder="请输入手机号" autocomplete="tel" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:12px;color:white;padding:14px 16px;font-size:15px;outline:none;box-sizing:border-box;" />
                 <div style="display:flex;gap:10px;margin-top:12px;">
-                  <input id="code-input" type="password" maxlength={20} placeholder="请输入密码" autocomplete="current-password" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:12px;color:white;padding:14px 16px;font-size:15px;outline:none;box-sizing:border-box;" />
+                  <input id="code-input" type="password" maxlength={20} placeholder="请输入密码" autocomplete="current-password" style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:12px;color:white;padding:14px 16px;font-size:15px;outline:none;box-sizing:border-box;" />
                 </div>
                 <button id="login-btn" type="button" style="width:100%;margin-top:16px;background:linear-gradient(135deg,#D4A853,#B8860B);color:white;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:600;cursor:pointer;">登录</button>
                 <div id="switch-to-register" style="margin-top:12px;text-align:center;font-size:13px;color:rgba(255,255,255,0.5);cursor:pointer;">
@@ -111,13 +111,13 @@ app.get('/login', (c) => {
                 <div style="font-size:14px;color:rgba(255,255,255,0.8);text-align:center;margin-bottom:14px;line-height:1.5;">
                   <i class="fas fa-info-circle" style="margin-right:4px;" />注册后需管理员审核通过才能登录
                 </div>
-                <input id="reg-name" type="text" maxlength={20} placeholder="姓名 *" style="width:100%;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:12px;color:white;padding:14px 16px;font-size:15px;outline:none;box-sizing:border-box;margin-bottom:10px;" />
-                <input id="reg-phone" type="tel" maxlength={11} placeholder="手机号 *" style="width:100%;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:12px;color:white;padding:14px 16px;font-size:15px;outline:none;box-sizing:border-box;margin-bottom:10px;" />
-                <input id="reg-teacher" type="text" maxlength={20} placeholder="班主任名称 *" style="width:100%;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:12px;color:white;padding:14px 16px;font-size:15px;outline:none;box-sizing:border-box;margin-bottom:10px;" />
-                <input id="reg-company" type="text" maxlength={30} placeholder="公司名称（选填）" style="width:100%;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:12px;color:white;padding:14px 16px;font-size:15px;outline:none;box-sizing:border-box;margin-bottom:10px;" />
-                <input id="reg-title" type="text" maxlength={20} placeholder="职务（选填）" style="width:100%;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:12px;color:white;padding:14px 16px;font-size:15px;outline:none;box-sizing:border-box;margin-bottom:10px;" />
-                <input id="reg-password" type="password" maxlength={20} placeholder="设置密码（至少6位）*" style="width:100%;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:12px;color:white;padding:14px 16px;font-size:15px;outline:none;box-sizing:border-box;margin-bottom:10px;" />
-                <input id="reg-password2" type="password" maxlength={20} placeholder="确认密码 *" style="width:100%;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:12px;color:white;padding:14px 16px;font-size:15px;outline:none;box-sizing:border-box;" />
+                <input id="reg-name" type="text" maxlength={20} placeholder="姓名 *" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:12px;color:white;padding:14px 16px;font-size:15px;outline:none;box-sizing:border-box;margin-bottom:10px;" />
+                <input id="reg-phone" type="tel" maxlength={11} placeholder="手机号 *" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:12px;color:white;padding:14px 16px;font-size:15px;outline:none;box-sizing:border-box;margin-bottom:10px;" />
+                <input id="reg-teacher" type="text" maxlength={20} placeholder="班主任名称 *" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:12px;color:white;padding:14px 16px;font-size:15px;outline:none;box-sizing:border-box;margin-bottom:10px;" />
+                <input id="reg-company" type="text" maxlength={30} placeholder="公司名称（选填）" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:12px;color:white;padding:14px 16px;font-size:15px;outline:none;box-sizing:border-box;margin-bottom:10px;" />
+                <input id="reg-title" type="text" maxlength={20} placeholder="职务（选填）" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:12px;color:white;padding:14px 16px;font-size:15px;outline:none;box-sizing:border-box;margin-bottom:10px;" />
+                <input id="reg-password" type="password" maxlength={20} placeholder="设置密码（至少6位）*" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:12px;color:white;padding:14px 16px;font-size:15px;outline:none;box-sizing:border-box;margin-bottom:10px;" />
+                <input id="reg-password2" type="password" maxlength={20} placeholder="确认密码 *" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:12px;color:white;padding:14px 16px;font-size:15px;outline:none;box-sizing:border-box;" />
                 <button id="register-btn" type="button" style="width:100%;margin-top:16px;background:linear-gradient(135deg,#B91C1C,#991B1B);color:white;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:600;cursor:pointer;">提交注册申请</button>
                 <div id="switch-to-login" style="margin-top:12px;text-align:center;font-size:13px;color:rgba(255,255,255,0.5);cursor:pointer;">
                   已有账号？<span style="color:#D4A853;font-weight:500;">返回登录</span>
@@ -139,6 +139,7 @@ app.get('/login', (c) => {
   to   { opacity:1; transform:translateY(0); }
 }
 #phone-login-area input::placeholder { color:rgba(255,255,255,0.4); }
+#cp-modal input::placeholder { color:rgba(255,255,255,0.35); }
 .login-role-card:hover { background:rgba(255,255,255,0.15)!important; }
 .login-role-selected { background:rgba(255,255,255,0.2)!important; border-color:#D4A853!important; }
 
@@ -424,57 +425,57 @@ app.get('/login', (c) => {
   // ── Change Password Modal (方案B：输入完整手机号验证 + 强制改密) ──
   function showChangePasswordModal(member){
     var overlay = document.createElement('div');
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto;';
-    overlay.innerHTML = '<div id="cp-modal" style="background:rgba(255,255,255,0.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:20px;padding:32px 24px;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">'    
-      // ── Step 1: 输入完整手机号验证 ──
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto;';
+    overlay.innerHTML = '<div id="cp-modal" style="background:linear-gradient(160deg,rgba(127,29,29,0.97),rgba(185,28,28,0.97),rgba(153,27,27,0.97));backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,0.15);border-radius:20px;padding:32px 24px;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.5);">'    
+      // ── Step 1: 输入完整手机号验证 (dark theme) ──
       +'<div id="cp-step1">'
       +'<div style="text-align:center;margin-bottom:24px;">'
-      +'<div style="width:56px;height:56px;border-radius:50%;background:#FEF2F2;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;"><span style="font-size:24px;">🔐</span></div>'
-      +'<h3 style="font-size:18px;font-weight:700;color:#1C1917;">首次登录 · 身份验证</h3>'
-      +'<p style="font-size:13px;color:#78716C;margin-top:8px;line-height:1.6;">欢迎 <b style="color:#1C1917;">' + member.name + '</b>！<br/>请输入您的完整手机号以确认身份</p></div>'
+      +'<div style="width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;"><span style="font-size:24px;">🔐</span></div>'
+      +'<h3 style="font-size:18px;font-weight:700;color:#fff;">首次登录 · 身份验证</h3>'
+      +'<p style="font-size:13px;color:rgba(255,255,255,0.65);margin-top:8px;line-height:1.6;">欢迎 <b style="color:#fff;">' + member.name + '</b>！<br/>请输入您的完整手机号以确认身份</p></div>'
       +'<div style="text-align:center;margin-bottom:20px;">'
-      +'<div style="display:inline-flex;align-items:center;gap:8px;background:#F5F5F4;padding:10px 20px;border-radius:12px;">'
-      +'<i class="fas fa-user-check" style="color:#78716C;"></i>'
-      +'<span style="font-size:14px;color:#44403C;">管理员已为您注册账号，请验证手机号</span></div></div>'
+      +'<div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.1);padding:10px 20px;border-radius:12px;">'
+      +'<i class="fas fa-user-check" style="color:rgba(255,255,255,0.5);"></i>'
+      +'<span style="font-size:14px;color:rgba(255,255,255,0.7);">管理员已为您注册账号，请验证手机号</span></div></div>'
       +'<div style="margin-bottom:20px;">'
-      +'<label style="font-size:13px;color:#44403C;display:block;margin-bottom:6px;">请输入您的完整手机号</label>'
-      +'<input id="cp-phone4" type="tel" maxlength="13" placeholder="请输入11位手机号" autocomplete="off" style="width:100%;box-sizing:border-box;padding:14px 16px;border:1px solid #E7E5E4;border-radius:12px;font-size:18px;letter-spacing:2px;text-align:center;outline:none;font-weight:600;" /></div>'
+      +'<label style="font-size:13px;color:rgba(255,255,255,0.7);display:block;margin-bottom:6px;">请输入您的完整手机号</label>'
+      +'<input id="cp-phone4" type="tel" maxlength="13" placeholder="请输入11位手机号" autocomplete="off" style="width:100%;box-sizing:border-box;padding:14px 16px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:12px;font-size:18px;letter-spacing:2px;text-align:center;outline:none;font-weight:600;color:#fff;" /></div>'
       // 演示账号提示（仅 demo 账号显示）
       +(function(){
         var demoIds = ['m-001','m-002','m-003','t-001','t-002','m-admin'];
         if(demoIds.indexOf(member.id) !== -1){
-          return '<div style="margin-bottom:16px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:10px 14px;display:flex;align-items:flex-start;gap:8px;">'
+          return '<div style="margin-bottom:16px;background:rgba(212,168,83,0.15);border:1px solid rgba(212,168,83,0.3);border-radius:10px;padding:10px 14px;display:flex;align-items:flex-start;gap:8px;">'
             +'<span style="font-size:14px;flex-shrink:0;">🎯</span>'
-            +'<div style="font-size:12px;color:#92400E;line-height:1.6;">'
+            +'<div style="font-size:12px;color:rgba(255,255,255,0.8);line-height:1.6;">'
             +'<span style="font-weight:600;">演示账号提示</span><br/>'
-            +'该账号的验证手机号为：<b style="color:#B91C1C;letter-spacing:1px;font-size:13px;">' + member.phone + '</b>'
+            +'该账号的验证手机号为：<b style="color:#D4A853;letter-spacing:1px;font-size:13px;">' + member.phone + '</b>'
             +'</div></div>';
         }
         return '';
       })()
-      +'<button id="cp-verify" style="width:100%;padding:14px;background:linear-gradient(135deg,#B91C1C,#991B1B);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;">验证身份</button>'
-      +'<div id="cp-verify-error" style="text-align:center;font-size:13px;color:#DC2626;margin-top:12px;display:none;"></div>'
+      +'<button id="cp-verify" style="width:100%;padding:14px;background:linear-gradient(135deg,#D4A853,#B8860B);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;">验证身份</button>'
+      +'<div id="cp-verify-error" style="text-align:center;font-size:13px;color:#FCA5A5;margin-top:12px;display:none;"></div>'
       +'</div>'
-      // ── Step 2: 设置新密码 ──
+      // ── Step 2: 设置新密码 (dark theme) ──
       +'<div id="cp-step2" style="display:none;">'
       +'<div style="text-align:center;margin-bottom:24px;">'
-      +'<div style="width:56px;height:56px;border-radius:50%;background:#F0FDF4;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;"><span style="font-size:24px;">✅</span></div>'
-      +'<h3 style="font-size:18px;font-weight:700;color:#1C1917;">身份验证通过</h3>'
-      +'<p style="font-size:13px;color:#78716C;margin-top:8px;">请设置您的专属密码（至少6位）</p></div>'
-      +'<div style="margin-bottom:16px;"><label style="font-size:13px;color:#44403C;display:block;margin-bottom:6px;">设置新密码</label>'
+      +'<div style="width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;"><span style="font-size:24px;">✅</span></div>'
+      +'<h3 style="font-size:18px;font-weight:700;color:#fff;">身份验证通过</h3>'
+      +'<p style="font-size:13px;color:rgba(255,255,255,0.65);margin-top:8px;">请设置您的专属密码（至少6位）</p></div>'
+      +'<div style="margin-bottom:16px;"><label style="font-size:13px;color:rgba(255,255,255,0.7);display:block;margin-bottom:6px;">设置新密码</label>'
       +'<div style="position:relative;">'
-      +'<input id="cp-new" type="password" placeholder="至少6位，建议字母+数字" style="width:100%;box-sizing:border-box;padding:12px 44px 12px 14px;border:1px solid #E7E5E4;border-radius:10px;font-size:14px;outline:none;" />'
-      +'<button id="cp-toggle-pw1" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#A8A29E;font-size:14px;padding:4px;"><i class="fas fa-eye"></i></button></div></div>'
-      +'<div style="margin-bottom:8px;"><label style="font-size:13px;color:#44403C;display:block;margin-bottom:6px;">确认新密码</label>'
+      +'<input id="cp-new" type="password" placeholder="至少6位，建议字母+数字" style="width:100%;box-sizing:border-box;padding:12px 44px 12px 14px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:10px;font-size:14px;outline:none;color:#fff;" />'
+      +'<button id="cp-toggle-pw1" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.5);font-size:14px;padding:4px;"><i class="fas fa-eye"></i></button></div></div>'
+      +'<div style="margin-bottom:8px;"><label style="font-size:13px;color:rgba(255,255,255,0.7);display:block;margin-bottom:6px;">确认新密码</label>'
       +'<div style="position:relative;">'
-      +'<input id="cp-confirm" type="password" placeholder="再次输入新密码" style="width:100%;box-sizing:border-box;padding:12px 44px 12px 14px;border:1px solid #E7E5E4;border-radius:10px;font-size:14px;outline:none;" />'
-      +'<button id="cp-toggle-pw2" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#A8A29E;font-size:14px;padding:4px;"><i class="fas fa-eye"></i></button></div></div>'
+      +'<input id="cp-confirm" type="password" placeholder="再次输入新密码" style="width:100%;box-sizing:border-box;padding:12px 44px 12px 14px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:10px;font-size:14px;outline:none;color:#fff;" />'
+      +'<button id="cp-toggle-pw2" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.5);font-size:14px;padding:4px;"><i class="fas fa-eye"></i></button></div></div>'
       // 密码强度提示
-      +'<div id="cp-strength" style="margin-bottom:20px;padding:8px 12px;border-radius:8px;background:#F5F5F4;font-size:12px;color:#78716C;">密码强度：<span id="cp-strength-text">—</span></div>'
-      +'<button id="cp-submit" style="width:100%;padding:14px;background:linear-gradient(135deg,#B91C1C,#991B1B);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;">确认修改并进入平台</button>'
+      +'<div id="cp-strength" style="margin-bottom:20px;padding:8px 12px;border-radius:8px;background:rgba(255,255,255,0.08);font-size:12px;color:rgba(255,255,255,0.6);">密码强度：<span id="cp-strength-text">—</span></div>'
+      +'<button id="cp-submit" style="width:100%;padding:14px;background:linear-gradient(135deg,#D4A853,#B8860B);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;">确认修改并进入平台</button>'
       +'</div>'
       // ── Footer ──
-      +'<button id="cp-skip" style="width:100%;padding:10px;background:transparent;color:#A8A29E;border:none;font-size:13px;cursor:pointer;margin-top:8px;">暂时跳过</button>'
+      +'<button id="cp-skip" style="width:100%;padding:10px;background:transparent;color:rgba(255,255,255,0.45);border:none;font-size:13px;cursor:pointer;margin-top:8px;">暂时跳过</button>'
       +'</div>';
     document.body.appendChild(overlay);
 
@@ -765,15 +766,20 @@ app.get('/login', (c) => {
     var formArea = document.getElementById('login-form-area');
     var mobileBg = document.getElementById('login-mobile-bg');
     if(brandPanel && formArea){
-      // Create flex container
+      // Create flex container — height:100vh + overflow-y:auto so the whole right panel scrolls
       wrapper.style.display = 'flex';
-      wrapper.style.minHeight = '100vh';
+      wrapper.style.height = '100vh';
+      wrapper.style.overflow = 'hidden';
       // Show brand panel
       brandPanel.style.display = 'flex';
-      // Make form area take right half
+      brandPanel.style.flexShrink = '0';
+      // Make form area take right half — scrollable independently
       formArea.style.width = '50%';
+      formArea.style.height = '100vh';
       formArea.style.position = 'relative';
       formArea.style.background = 'linear-gradient(160deg, #7F1D1D 0%, #B91C1C 50%, #991B1B 100%)';
+      formArea.style.overflowY = 'auto';
+      formArea.style.minHeight = 'unset';  // Remove min-height:100vh so it doesn't force expand
       // Hide the fixed background
       if(mobileBg) mobileBg.style.display = 'none';
     }
