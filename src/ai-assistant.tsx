@@ -696,16 +696,45 @@ function _initAIAssistant(){
     area.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
+  // ── Typewriter Effect ──
+  function typewriterEffect(el, html, speed){
+    speed = speed || 15;
+    // Strip HTML tags for plain text, then re-inject with <br>
+    var plainText = html.replace(/<br>/g, '\\n').replace(/<[^>]*>/g, '');
+    var i = 0;
+    el.textContent = '';
+    el.style.minHeight = '40px';
+    function type(){
+      if(i < plainText.length){
+        if(plainText[i] === '\\\\' && plainText[i+1] === 'n'){
+          el.innerHTML += '<br>';
+          i += 2;
+        } else {
+          el.innerHTML += plainText[i];
+          i++;
+        }
+        setTimeout(type, speed);
+      }
+    }
+    type();
+  }
+
   function handleQuery(query){
     if(!query) return;
 
     var inputEl = document.getElementById('ai-input');
     if(inputEl) inputEl.value = '';
 
+    // Show thinking indicator
+    var area = document.getElementById('ai-answer-area');
+    if(!area) return;
+    area.innerHTML = '<div class="ai-answer-card"><div class="ai-answer-header"><span class="ai-thinking-dots">🔍 思考中<span class="ai-dot-anim">...</span></span></div><div class="ai-answer-body" id="ai-typing-target" style="min-height:40px;"></div></div>';
+
     // Search terms first
     var lowerQuery = query.toLowerCase();
     for(var key in termDB){
       if(lowerQuery.indexOf(key) !== -1 || termDB[key].title.toLowerCase().indexOf(lowerQuery) !== -1){
+        area.innerHTML = ''; // Clear thinking
         showTermCard(key);
         return;
       }
@@ -726,32 +755,33 @@ function _initAIAssistant(){
       if(score > bestScore) { bestScore = score; bestMatch = faq; }
     });
 
-    var area = document.getElementById('ai-answer-area');
-    if(!area) return;
-
-    if(bestMatch && bestScore >= 1.5){
-      var answerHTML = bestMatch.answer.replace(/\\n/g, '<br>');
-      area.innerHTML = '<div class="ai-answer-card">'
-        + '<div class="ai-answer-header">📎 回答</div>'
-        + '<div class="ai-answer-body">' + answerHTML + '</div>'
-        + '</div>';
-    } else {
-      // No match — show related terms
-      area.innerHTML = '<div class="ai-answer-card">'
-        + '<div class="ai-answer-header">🤔 没有找到精确匹配</div>'
-        + '<div class="ai-answer-body">试试以下关键词：<br><br>'
-        + '<span class="ai-term-link" data-term="rbf" style="cursor:pointer;color:#B91C1C;font-weight:500;">RBF</span> · '
-        + '<span class="ai-term-link" data-term="share_ratio" style="cursor:pointer;color:#B91C1C;font-weight:500;">分成比例</span> · '
-        + '<span class="ai-term-link" data-term="cap" style="cursor:pointer;color:#B91C1C;font-weight:500;">封顶倍数</span> · '
-        + '<span class="ai-term-link" data-term="irr" style="cursor:pointer;color:#B91C1C;font-weight:500;">IRR</span> · '
-        + '<span class="ai-term-link" data-term="recovery" style="cursor:pointer;color:#B91C1C;font-weight:500;">回收率</span> · '
-        + '<span class="ai-term-link" data-term="duration" style="cursor:pointer;color:#B91C1C;font-weight:500;">期限</span> · '
-        + '<span class="ai-term-link" data-term="exit" style="cursor:pointer;color:#B91C1C;font-weight:500;">退出条件</span> · '
-        + '<span class="ai-term-link" data-term="referral" style="cursor:pointer;color:#B91C1C;font-weight:500;">老师引荐</span>'
-        + '<br><br>或者换一个关键词重新搜索。</div>'
-        + '</div>';
-    }
-    area.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    // Simulate a brief "thinking" delay for natural feel
+    setTimeout(function(){
+      if(bestMatch && bestScore >= 1.5){
+        var answerText = bestMatch.answer;
+        area.innerHTML = '<div class="ai-answer-card ai-answer-appear">'
+          + '<div class="ai-answer-header">📎 回答</div>'
+          + '<div class="ai-answer-body" id="ai-typing-target"></div>'
+          + '</div>';
+        var target = document.getElementById('ai-typing-target');
+        if(target) typewriterEffect(target, answerText, 18);
+      } else {
+        area.innerHTML = '<div class="ai-answer-card ai-answer-appear">'
+          + '<div class="ai-answer-header">🤔 没有找到精确匹配</div>'
+          + '<div class="ai-answer-body">试试以下关键词：<br><br>'
+          + '<span class="ai-term-link" data-term="rbf" style="cursor:pointer;color:#B91C1C;font-weight:500;">RBF</span> · '
+          + '<span class="ai-term-link" data-term="share_ratio" style="cursor:pointer;color:#B91C1C;font-weight:500;">分成比例</span> · '
+          + '<span class="ai-term-link" data-term="cap" style="cursor:pointer;color:#B91C1C;font-weight:500;">封顶倍数</span> · '
+          + '<span class="ai-term-link" data-term="irr" style="cursor:pointer;color:#B91C1C;font-weight:500;">IRR</span> · '
+          + '<span class="ai-term-link" data-term="recovery" style="cursor:pointer;color:#B91C1C;font-weight:500;">回收率</span> · '
+          + '<span class="ai-term-link" data-term="duration" style="cursor:pointer;color:#B91C1C;font-weight:500;">期限</span> · '
+          + '<span class="ai-term-link" data-term="exit" style="cursor:pointer;color:#B91C1C;font-weight:500;">退出条件</span> · '
+          + '<span class="ai-term-link" data-term="referral" style="cursor:pointer;color:#B91C1C;font-weight:500;">老师引荐</span>'
+          + '<br><br>或者换一个关键词重新搜索。</div>'
+          + '</div>';
+      }
+      area.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 400);
   }
 
   function refreshDynamicSuggestions(){
@@ -1068,5 +1098,97 @@ export const aiAssistantCSS = `
 #ai-send-btn:active { transform: scale(0.95); }
 .ai-input-hint {
   font-size: 11px; color: #A8A29E; margin-top: 6px; text-align: center;
+}
+
+/* ══ V25 AI Assistant Enhancements ══ */
+
+/* Thinking dots animation */
+.ai-dot-anim {
+  display: inline-block;
+  animation: dotPulse 1.2s ease-in-out infinite;
+}
+@keyframes dotPulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+/* Answer card appear */
+.ai-answer-appear {
+  animation: aiAnswerIn 0.3s ease-out;
+}
+@keyframes aiAnswerIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Shortcut button stagger */
+.ai-shortcuts-list .ai-shortcut-btn {
+  opacity: 0; animation: aiShortcutIn 0.3s ease-out forwards;
+}
+.ai-shortcuts-list .ai-shortcut-btn:nth-child(1) { animation-delay: 0.05s; }
+.ai-shortcuts-list .ai-shortcut-btn:nth-child(2) { animation-delay: 0.1s; }
+.ai-shortcuts-list .ai-shortcut-btn:nth-child(3) { animation-delay: 0.15s; }
+.ai-shortcuts-list .ai-shortcut-btn:nth-child(4) { animation-delay: 0.2s; }
+@keyframes aiShortcutIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* Input box breathing glow */
+.ai-input-wrap:focus-within {
+  box-shadow: 0 0 0 3px rgba(185,28,28,0.08), 0 0 16px rgba(185,28,28,0.06);
+  animation: aiInputGlow 2s ease-in-out infinite;
+}
+@keyframes aiInputGlow {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(185,28,28,0.08), 0 0 16px rgba(185,28,28,0.06); }
+  50% { box-shadow: 0 0 0 4px rgba(185,28,28,0.12), 0 0 20px rgba(185,28,28,0.08); }
+}
+
+/* Send button micro-rotation on hover */
+#ai-send-btn:hover i {
+  transform: rotate(-25deg);
+  transition: transform 0.2s ease;
+}
+
+/* FAB floating animation upgrade */
+#ai-assistant-fab {
+  box-shadow: 0 4px 16px rgba(185,28,28,0.35), 0 0 0 0 rgba(185,28,28,0);
+  transition: transform 200ms ease, box-shadow 200ms ease, background 200ms ease;
+}
+#ai-assistant-fab::before {
+  content: ''; position: absolute; inset: -4px;
+  border-radius: 50%; border: 2px solid rgba(185,28,28,0.2);
+  opacity: 0; transition: opacity 0.3s;
+}
+#ai-assistant-fab:hover::before {
+  opacity: 1; animation: fabRingPulse 1.5s ease-in-out infinite;
+}
+@keyframes fabRingPulse {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.15); opacity: 0; }
+}
+
+/* Panel slide-up enhancement */
+#ai-panel {
+  transition: transform 350ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Term card open animation enhanced */
+.ai-term-card {
+  animation: aiTermCardIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes aiTermCardIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Tips card subtle bounce */
+.ai-tips-card {
+  animation: aiTipsBounce 0.4s ease-out;
+}
+@keyframes aiTipsBounce {
+  0% { opacity: 0; transform: translateY(8px); }
+  70% { transform: translateY(-2px); }
+  100% { opacity: 1; transform: translateY(0); }
 }
 `

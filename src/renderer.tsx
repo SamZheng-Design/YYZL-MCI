@@ -3175,6 +3175,206 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
 }
 
 /* ══════════════════════════════════════════════════
+   V25 — Global Micro-Interaction Enhancements
+   ══════════════════════════════════════════════════ */
+
+/* ── Button Ripple Effect ── */
+.btn-gold, .btn-primary, .btn-secondary, .admin-invite-btn,
+.ceremony-btn-primary, .ref-btn-connected {
+  position: relative; overflow: hidden;
+}
+.ripple-circle {
+  position: absolute; border-radius: 50%;
+  background: rgba(255,255,255,0.3);
+  transform: scale(0);
+  animation: rippleExpand 0.5s ease-out forwards;
+  pointer-events: none;
+}
+@keyframes rippleExpand {
+  to { transform: scale(4); opacity: 0; }
+}
+
+/* ── Enhanced Number Count-Up ── */
+.num-countup {
+  display: inline-block;
+  transition: transform 0.15s;
+}
+.num-countup.counting {
+  animation: numBounce 0.6s ease-out;
+}
+@keyframes numBounce {
+  0% { transform: scale(0.8); opacity: 0.5; }
+  50% { transform: scale(1.08); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* ── Card Hover Border Glow ── */
+.card-glow-hover {
+  position: relative;
+}
+.card-glow-hover::after {
+  content: ''; position: absolute; inset: -1px; border-radius: inherit;
+  background: linear-gradient(135deg, transparent 40%, rgba(185,28,28,0.15) 50%, transparent 60%);
+  background-size: 300% 300%; background-position: 0% 0%;
+  opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 0;
+}
+.card-glow-hover:hover::after {
+  opacity: 1;
+  animation: borderGlowSweep 2s ease-in-out infinite;
+}
+@keyframes borderGlowSweep {
+  0% { background-position: 0% 0%; }
+  50% { background-position: 100% 100%; }
+  100% { background-position: 0% 0%; }
+}
+
+/* ── Smooth Page Transition ── */
+.page-enter {
+  animation: pageEnterV2 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+@keyframes pageEnterV2 {
+  from { opacity: 0; transform: translateY(16px) scale(0.995); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Skeleton Shimmer Loading ── */
+.skeleton-shimmer {
+  background: linear-gradient(90deg, #F5F5F4 25%, #E7E5E4 50%, #F5F5F4 75%);
+  background-size: 200% 100%;
+  animation: shimmerSlide 1.5s ease-in-out infinite;
+  border-radius: 8px;
+}
+@keyframes shimmerSlide {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Toast Slide-in Enhancement ── */
+.toast.show {
+  transform: translateX(-50%) translateY(0);
+  animation: toastBounceIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes toastBounceIn {
+  0% { transform: translateX(-50%) translateY(-100%); }
+  60% { transform: translateX(-50%) translateY(6px); }
+  100% { transform: translateX(-50%) translateY(0); }
+}
+
+/* ── KPI Number Highlight Flash ── */
+.kpi-val, .admin-kpi-val, .invest-overview-total {
+  position: relative;
+}
+.kpi-flash {
+  position: absolute; inset: -4px -8px; border-radius: 8px;
+  background: rgba(255,255,255,0.15);
+  animation: kpiFlash 0.6s ease-out forwards;
+  pointer-events: none;
+}
+@keyframes kpiFlash {
+  0% { opacity: 1; transform: scaleX(0.8); }
+  100% { opacity: 0; transform: scaleX(1.1); }
+}
+
+/* ── Progress Bar Glow ── */
+.progress-fill {
+  position: relative;
+}
+.progress-fill::after {
+  content: ''; position: absolute; right: 0; top: -1px; bottom: -1px;
+  width: 20px; border-radius: inherit;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4));
+  animation: progressGlow 2s ease-in-out infinite;
+}
+@keyframes progressGlow {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.8; }
+}
+
+/* ── Badge Pulse for status ── */
+.badge-open {
+  animation: badgePulse 3s ease-in-out infinite;
+}
+@keyframes badgePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(220,38,38,0); }
+  50% { box-shadow: 0 0 0 3px rgba(220,38,38,0.08); }
+}
+
+/* ── Stat Card Hover Lift ── */
+.dk-home-stats > div,
+.admin-kpi-card {
+  transition: transform 0.25s ease, box-shadow 0.25s ease !important;
+}
+.dk-home-stats > div:hover,
+.admin-kpi-card:hover {
+  transform: translateY(-3px) !important;
+}
+
+/* ── Quick Card Gradient Shift ── */
+.quick-card-brand {
+  background-size: 200% 200% !important;
+  background-image: linear-gradient(135deg, #DC2626, #991B1B, #B91C1C, #DC2626) !important;
+  animation: gradientShift 6s ease infinite;
+}
+.quick-card-gold {
+  background-size: 200% 200% !important;
+  background-image: linear-gradient(135deg, #D4A853, #B8860B, #D4A853, #B8860B) !important;
+  animation: gradientShift 6s ease infinite;
+  animation-delay: -3s;
+}
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* ── Tab Bar Active Indicator ── */
+.tab-active .tab-item-icon {
+  animation: tabIconPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes tabIconPop {
+  0% { transform: scale(0.85); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+/* ── Notification Bell Shake ── */
+.bell-shake {
+  animation: bellShake 0.5s ease-in-out;
+}
+@keyframes bellShake {
+  0%, 100% { transform: rotate(0); }
+  20% { transform: rotate(15deg); }
+  40% { transform: rotate(-10deg); }
+  60% { transform: rotate(8deg); }
+  80% { transform: rotate(-5deg); }
+}
+
+/* ── Success Check Burst ── */
+.success-burst {
+  position: relative;
+}
+.success-burst::after {
+  content: ''; position: absolute; inset: -20px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(22,163,74,0.15) 0%, transparent 70%);
+  animation: successBurst 0.8s ease-out;
+  pointer-events: none;
+}
+@keyframes successBurst {
+  0% { transform: scale(0); opacity: 1; }
+  100% { transform: scale(2); opacity: 0; }
+}
+
+/* ── Hover reveal for "查看详情" arrows ── */
+.dk-project-list > a .fa-chevron-right,
+.dk-home-project-grid > a .fa-chevron-right {
+  transition: transform 0.2s ease;
+}
+.dk-project-list > a:hover .fa-chevron-right,
+.dk-home-project-grid > a:hover .fa-chevron-right {
+  transform: translateX(3px);
+}
+
+/* ══════════════════════════════════════════════════
    AI Assistant Styles
    ══════════════════════════════════════════════════ */
 ${aiAssistantCSS}

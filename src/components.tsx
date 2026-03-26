@@ -581,15 +581,58 @@ function closeNudge(id) {
   }
 }
 
+// ══════════════════════════════════════════════════
+// V25 — Global Micro-Interaction Engine
+// ══════════════════════════════════════════════════
+
+// ── Ripple Effect (delegated) ──
+function _initRipple(){
+  document.addEventListener('click', function(e){
+    var btn = e.target.closest('.btn-gold, .btn-primary, .btn-secondary, .admin-invite-btn, .ceremony-btn-primary, .ref-btn-connected, .quick-card');
+    if(!btn) return;
+    var rect = btn.getBoundingClientRect();
+    var x = e.clientX - rect.left;
+    var y = e.clientY - rect.top;
+    var size = Math.max(rect.width, rect.height) * 2;
+    var ripple = document.createElement('span');
+    ripple.className = 'ripple-circle';
+    ripple.style.cssText = 'width:'+size+'px;height:'+size+'px;left:'+(x-size/2)+'px;top:'+(y-size/2)+'px;';
+    btn.appendChild(ripple);
+    setTimeout(function(){ ripple.remove(); }, 600);
+  });
+}
+
+// ── Enhanced Number Animation with flash ──
+var _origAnimateNumber = animateNumber;
+animateNumber = function(el, target, duration, decimals) {
+  _origAnimateNumber(el, target, duration, decimals);
+  el.classList.add('num-countup', 'counting');
+  setTimeout(function(){ el.classList.remove('counting'); }, 700);
+};
+
+// ── Notification Bell Shake on unread ──
+function _initBellShake(){
+  var bell = document.querySelector('.nav-bell-btn i, #dt-bell i');
+  if(bell){
+    var dot = bell.parentElement.querySelector('.nav-bell-dot, .dt-bell-dot');
+    if(dot && dot.style.display !== 'none'){
+      bell.closest('button').classList.add('bell-shake');
+    }
+  }
+}
+
 // Init on page load — defer non-critical work
 document.addEventListener('DOMContentLoaded', function(){
   initReveal();
   initProgressBars();
   initHelpIcons();
+  _initRipple();
   // Defer help button init to not block first paint
   setTimeout(initHelpButton, 100);
   // Init navbar user dropdown
   setTimeout(initNavUserDropdown, 50);
+  // Bell shake
+  setTimeout(_initBellShake, 500);
 });
 
 // ── Navbar User Dropdown ──

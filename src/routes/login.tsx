@@ -42,6 +42,14 @@ app.get('/login', (c) => {
         </div>
       </div>
 
+      {/* Floating glow orbs */}
+      <div class="login-glow-orb"></div>
+      <div class="login-glow-orb"></div>
+      <div class="login-glow-orb"></div>
+
+      {/* Particle canvas */}
+      <canvas id="login-particles-canvas"></canvas>
+
       {/* Full-screen gradient background (mobile/tablet) */}
       <div id="login-mobile-bg" style="position:fixed;inset:0;background:linear-gradient(135deg,#7F1D1D 0%,#B91C1C 50%,#991B1B 100%);" />
 
@@ -133,6 +141,134 @@ app.get('/login', (c) => {
 #phone-login-area input::placeholder { color:rgba(255,255,255,0.4); }
 .login-role-card:hover { background:rgba(255,255,255,0.15)!important; }
 .login-role-selected { background:rgba(255,255,255,0.2)!important; border-color:#D4A853!important; }
+
+/* ════════════════════════════════════════════
+   V25 — Login Visual Enhancement
+   ════════════════════════════════════════════ */
+
+/* ── Floating Particles Canvas ── */
+#login-particles-canvas {
+  position:fixed; inset:0; z-index:1; pointer-events:none;
+}
+
+/* ── Radial Glow Orbs ── */
+.login-glow-orb {
+  position:fixed; border-radius:50%; pointer-events:none; z-index:2;
+  filter: blur(60px); opacity:0.15;
+  animation: orbFloat 12s ease-in-out infinite;
+}
+.login-glow-orb:nth-child(1) {
+  width:300px; height:300px; top:-80px; left:-60px;
+  background:radial-gradient(circle, #DC2626 0%, transparent 70%);
+  animation-delay:0s;
+}
+.login-glow-orb:nth-child(2) {
+  width:250px; height:250px; bottom:-60px; right:-40px;
+  background:radial-gradient(circle, #D4A853 0%, transparent 70%);
+  animation-delay:-4s; animation-duration:15s;
+}
+.login-glow-orb:nth-child(3) {
+  width:200px; height:200px; top:40%; left:60%;
+  background:radial-gradient(circle, #991B1B 0%, transparent 70%);
+  animation-delay:-8s; animation-duration:18s;
+}
+@keyframes orbFloat {
+  0%, 100% { transform: translate(0,0) scale(1); }
+  33% { transform: translate(20px,-30px) scale(1.1); }
+  66% { transform: translate(-15px,20px) scale(0.95); }
+}
+
+/* ── Role Card 3D Lift ── */
+.login-role-card {
+  transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+  transform-style: preserve-3d;
+  perspective: 600px;
+  position: relative;
+  overflow: hidden;
+}
+.login-role-card::before {
+  content:''; position:absolute; inset:-2px; border-radius:18px;
+  background:linear-gradient(135deg, transparent 40%, rgba(212,168,83,0.3) 50%, transparent 60%);
+  background-size:200% 200%;
+  opacity:0; transition:opacity 0.3s;
+  pointer-events:none; z-index:0;
+}
+.login-role-selected::before {
+  opacity:1;
+  animation: cardShimmer 3s ease-in-out infinite;
+}
+@keyframes cardShimmer {
+  0% { background-position: -100% -100%; }
+  50% { background-position: 200% 200%; }
+  100% { background-position: -100% -100%; }
+}
+.login-role-card:active {
+  transform: scale(0.96) !important;
+}
+.login-role-selected {
+  transform: translateY(-3px) !important;
+  box-shadow: 0 8px 24px rgba(212,168,83,0.2), 0 0 0 1px rgba(212,168,83,0.3) !important;
+}
+
+/* ── Demo Account Row Slide-in ── */
+.demo-account-row {
+  opacity:0; transform:translateX(-12px);
+  animation: demoRowIn 0.4s ease-out forwards;
+}
+.demo-account-row:nth-child(1) { animation-delay: 0.05s; }
+.demo-account-row:nth-child(2) { animation-delay: 0.12s; }
+.demo-account-row:nth-child(3) { animation-delay: 0.19s; }
+@keyframes demoRowIn {
+  from { opacity:0; transform:translateX(-12px); }
+  to { opacity:1; transform:translateX(0); }
+}
+
+/* ── Input Focus Glow ── */
+#phone-login-area input:focus {
+  border-color: rgba(212,168,83,0.6) !important;
+  box-shadow: 0 0 0 3px rgba(212,168,83,0.12), 0 0 16px rgba(212,168,83,0.1) !important;
+  transition: all 0.25s ease !important;
+}
+
+/* ── Login Button Pulse Hint ── */
+#login-btn:not(:disabled):not(:active) {
+  animation: loginBtnPulse 3s ease-in-out infinite;
+}
+@keyframes loginBtnPulse {
+  0%, 100% { box-shadow: 0 4px 16px rgba(212,168,83,0.3); }
+  50% { box-shadow: 0 4px 24px rgba(212,168,83,0.5), 0 0 0 4px rgba(212,168,83,0.08); }
+}
+#login-btn:active {
+  transform: scale(0.98);
+  animation: none !important;
+}
+
+/* ── Demo Login Button Hover Glow ── */
+.demo-login-btn:hover {
+  box-shadow: 0 0 12px rgba(212,168,83,0.25) !important;
+  background: rgba(212,168,83,0.15) !important;
+}
+
+/* ── Emoji micro-bounce on role select ── */
+.login-role-selected > div:first-child {
+  animation: emojiPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+@keyframes emojiPop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.25) rotate(-8deg); }
+  70% { transform: scale(0.95) rotate(3deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+
+/* ── Subtle grid texture on glass card ── */
+#login-card::before {
+  content:''; position:absolute; inset:0; border-radius:24px;
+  background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.03) 1px, transparent 0);
+  background-size: 20px 20px;
+  pointer-events:none; z-index:0;
+}
+#login-card { position:relative; }
+#login-card > * { position:relative; z-index:1; }
 `}} />
 
       <script dangerouslySetInnerHTML={{ __html: `
@@ -436,6 +572,64 @@ app.get('/login', (c) => {
       });
     });
   }
+
+  // ── Login Particles Animation ──
+  (function(){
+    var canvas = document.getElementById('login-particles-canvas');
+    if(!canvas) return;
+    var ctx = canvas.getContext('2d');
+    var particles = [];
+    var W, H;
+    function resize(){
+      W = canvas.width = window.innerWidth;
+      H = canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+    
+    // Create particles
+    for(var i=0; i<40; i++){
+      particles.push({
+        x: Math.random()*W, y: Math.random()*H,
+        vx: (Math.random()-0.5)*0.3, vy: (Math.random()-0.5)*0.3,
+        r: Math.random()*2 + 0.5,
+        o: Math.random()*0.4 + 0.1,
+        color: Math.random() > 0.7 ? '212,168,83' : '255,255,255'
+      });
+    }
+    
+    function draw(){
+      ctx.clearRect(0,0,W,H);
+      particles.forEach(function(p){
+        p.x += p.vx; p.y += p.vy;
+        if(p.x < 0) p.x = W;
+        if(p.x > W) p.x = 0;
+        if(p.y < 0) p.y = H;
+        if(p.y > H) p.y = 0;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+        ctx.fillStyle = 'rgba(' + p.color + ',' + p.o + ')';
+        ctx.fill();
+      });
+      // Draw connections
+      for(var a=0; a<particles.length; a++){
+        for(var b=a+1; b<particles.length; b++){
+          var dx=particles[a].x-particles[b].x, dy=particles[a].y-particles[b].y;
+          var dist=Math.sqrt(dx*dx+dy*dy);
+          if(dist<120){
+            ctx.beginPath();
+            ctx.moveTo(particles[a].x, particles[a].y);
+            ctx.lineTo(particles[b].x, particles[b].y);
+            ctx.strokeStyle='rgba(255,255,255,' + (0.06*(1-dist/120)) + ')';
+            ctx.lineWidth=0.5;
+            ctx.stroke();
+          }
+        }
+      }
+      requestAnimationFrame(draw);
+    }
+    draw();
+  })();
 
   // ── Desktop split layout ──
   if(window.innerWidth >= 1025){
