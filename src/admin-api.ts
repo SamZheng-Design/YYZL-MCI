@@ -332,7 +332,7 @@ adminApi.post('/projects/:id/participate', async (c) => {
     // 获取项目
     const project = await db.prepare('SELECT * FROM projects WHERE id = ?').bind(projectId).first<any>()
     if (!project) return c.json({ ok: false, error: '项目不存在' }, 404)
-    if (project.status !== 'open') return c.json({ ok: false, error: '项目当前不接受投资' }, 400)
+    if (project.status !== 'open' && project.status !== 'active') return c.json({ ok: false, error: '项目当前不接受投资' }, 400)
     if (shares < project.min_shares) return c.json({ ok: false, error: `最低参与${project.min_shares}份` }, 400)
 
     // 防止投自己的项目
@@ -371,7 +371,8 @@ adminApi.post('/projects/:id/participate', async (c) => {
     const amount = shares * project.share_price
     const newRaised = project.raised_amount + amount
     const newRaisedShares = currentRaisedShares + shares
-    const newStatus = newRaisedShares >= project.total_shares ? 'funded' : 'open'
+    // Keep current status if active; only change to 'funded' when all shares sold
+    const newStatus = newRaisedShares >= project.total_shares ? 'funded' : project.status
 
     const updateResult = await db.prepare(`
       UPDATE projects

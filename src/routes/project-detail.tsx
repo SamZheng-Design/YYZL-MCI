@@ -392,7 +392,7 @@ app.get('/projects/:id', async (c) => {
         </div>
 
         {/* RIGHT COLUMN: Action area (sticky on desktop) */}
-        {proj.status === 'open' && remainShares > 0 && (
+        {(proj.status === 'open' || proj.status === 'active') && remainShares > 0 && (
           <div id="participate-calculator" class="dk-detail-action-card" style="background:linear-gradient(160deg,#FFFBEB 0%,#FFF7ED 50%,#FEF2F2 100%);border-radius:20px;border:1.5px solid #FDE68A;padding:0;overflow:hidden;box-shadow:0 4px 24px rgba(212,168,83,0.15);margin-bottom:16px;">
             {/* Header banner */}
             <div style="background:linear-gradient(135deg,#B8860B 0%,#D4A853 100%);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;">
@@ -474,7 +474,7 @@ app.get('/projects/:id', async (c) => {
         )}
 
         {/* Fixed bottom bar for mobile — "我要参与" button when calculator is out of view */}
-        {proj.status === 'open' && remainShares > 0 && (
+        {(proj.status === 'open' || proj.status === 'active') && remainShares > 0 && (
           <div id="mobile-participate-bar" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:900;background:rgba(255,255,255,0.97);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid #F5F5F4;padding:12px 16px;box-shadow:0 -4px 20px rgba(0,0,0,0.08);">
             <div style="max-width:480px;margin:0 auto;display:flex;align-items:center;gap:12px;">
               <div style="flex:1;">
@@ -1176,7 +1176,7 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
   })();
 
   // ── Nudge C: Detail page 30s without action ──
-  if (PROJ.status === 'open' && !localStorage.getItem('zlc_nudge_detail_action')) {
+  if ((PROJ.status === 'open' || PROJ.status === 'active') && !localStorage.getItem('zlc_nudge_detail_action')) {
     var detailNudgeTimer = setTimeout(function(){ showNudge('\\uD83E\\uDD1D', '感兴趣的话可以直接参与，也可以请老师先引荐认识一下', 'detail_action'); }, 30000);
     function cancelDetailNudge(){ clearTimeout(detailNudgeTimer); }
     if(partBtn) partBtn.addEventListener('click', cancelDetailNudge);

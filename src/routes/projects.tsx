@@ -209,7 +209,7 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
           +'<div style="height:100%;border-radius:99px;background:linear-gradient(90deg,#D4A853,#B8860B);width:'+pct+'%;"></div>'
         +'</div>'
         +'<div style="display:flex;justify-content:space-between;align-items:center;">'
-          +'<span style="font-size:12px;color:#78716C;">已募 '+pct+'% (¥'+p.raisedAmount+'/'+p.targetAmount+'万)'+(p.status==="open"?' · 剩余'+remain+'份':'')+'</span>'
+          +'<span style="font-size:12px;color:#78716C;">已募 '+pct+'% (¥'+p.raisedAmount+'/'+p.targetAmount+'万)'+((p.status==="open"||p.status==="active") && remain > 0 ?' · 剩余'+remain+'份':'')+'</span>'
           +'<span style="font-size:13px;font-weight:600;color:#B91C1C;">查看详情 →</span>'
         +'</div>'
         +completedLine
