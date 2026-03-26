@@ -18,8 +18,9 @@ ALTER TABLE projects ADD COLUMN business_address TEXT;
 
 -- ══════════════════════════════════════════════════════════════
 -- 2. projects 表 — 退出条件（替代纯静态 recovery_multiple）
+-- NOTE: annual_yield_rate and settlement_cycle already in 0001_initial_schema.sql
 -- ══════════════════════════════════════════════════════════════
-ALTER TABLE projects ADD COLUMN annual_yield_rate REAL DEFAULT 12.0;
+-- ALTER TABLE projects ADD COLUMN annual_yield_rate REAL DEFAULT 12.0;  -- already in 0001
 ALTER TABLE projects ADD COLUMN exit_mode TEXT DEFAULT 'both';
 
 -- ══════════════════════════════════════════════════════════════

@@ -168,9 +168,10 @@ function dbProjectToProject(p: DBProject, investors: string[]): Project {
     actualControllerId: p.actual_controller_id || undefined,
     businessAddress: p.business_address || undefined,
     // 退出条件
-    annualYieldRate: p.annual_yield_rate || 12.0,
+    annualYieldRate: p.annual_yield_rate ?? 12.0,
     exitMode: p.exit_mode || 'both',
     settlementCycle: p.settlement_cycle || 'monthly',
+    expectMultiple: p.expect_multiple || undefined,
     // 风控
     lossThresholdMonths: p.loss_threshold_months || undefined,
     lossThresholdAmount: p.loss_threshold_amount || undefined,

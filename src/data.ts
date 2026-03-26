@@ -383,7 +383,9 @@ export interface Project {
   revenueShareRate: number    // 分成比例 %
   duration: number            // 联营期限 (月)
   recoveryMultiple: number    // 回收倍数（兼容旧逻辑，新项目通过年化+平息计算）
-  annualYieldRate?: number    // 年化收益率 %
+  annualYieldRate?: number    // 年化收益率 %（封顶/先到为准模式）
+  expectMultiple?: number     // 预期收益倍数（仅期限模式）
+  exitMode?: 'both' | 'cap_only' | 'term_only'  // 退出方式
   settlementCycle?: 'monthly' | 'weekly' | 'daily'  // 平息口径
   estimatedMonthlyRevenue: number // 预估月收入 (万)
   totalShares: number         // 总份数
@@ -411,6 +413,7 @@ export const mockProjects: Project[] = [
     description: '明远餐饮集团旗下「明远·粤味」品牌，深耕广式茶点和粤菜快餐赛道。本次联营项目针对深圳和广州的5家新开门店，选址均在日均客流量5万+的核心商圈。单店投资约40万，根据现有门店数据，平均3个月实现盈亏平衡，6个月回本。集团提供统一供应链、品牌运营和人员培训支持。',
     targetAmount: 500, raisedAmount: 380, revenueShareRate: 8.5, duration: 36,
     recoveryMultiple: 1.4, estimatedMonthlyRevenue: 180,
+    annualYieldRate: 12, exitMode: 'both', settlementCycle: 'monthly',
     totalShares: 50, raisedShares: 38, sharePrice: 10, minShares: 1,
     status: 'open', createdAt: '2026-03-10',
     investors: ['m-002', 'm-004', 'm-005'],
@@ -454,6 +457,7 @@ export const mockProjects: Project[] = [
     description: '「小峰学堂」素质教育品牌的华南区域扩张计划。现有23家校区运营成熟，平均满班率88%，续费率85%。本次融资用于新开5家校区，选址在深圳、东莞、佛山的优质社区商业体。单校区投入约60万，根据历史数据8个月可达盈亏平衡。',
     targetAmount: 1200, raisedAmount: 900, revenueShareRate: 6.5, duration: 60,
     recoveryMultiple: 1.3, estimatedMonthlyRevenue: 480,
+    annualYieldRate: 0, exitMode: 'term_only', expectMultiple: 1.3,
     totalShares: 60, raisedShares: 45, sharePrice: 20, minShares: 1,
     status: 'open', createdAt: '2026-03-05',
     investors: ['m-001', 'm-002', 'm-005'],
@@ -527,6 +531,7 @@ export const mockProjects: Project[] = [
     description: '智慧停车运营平台扩张项目。已在50+城市管理15万个车位，年交易额3.2亿。本次融资用于新签约20个城市的停车场资源，部署智能硬件和支付系统。平台抽佣模式，边际成本递减，规模效应显著。',
     targetAmount: 500, raisedAmount: 30, revenueShareRate: 8, duration: 36,
     recoveryMultiple: 1.6, estimatedMonthlyRevenue: 40,
+    annualYieldRate: 15, exitMode: 'cap_only', settlementCycle: 'monthly',
     totalShares: 25, raisedShares: 2, sharePrice: 20, minShares: 1,
     status: 'open', createdAt: '2025-09-01',
     investors: ['m-021'],
@@ -1835,8 +1840,9 @@ export function generateContractHTML(
       <tr style="border-bottom:1px solid #E7E5E4;"><td style="padding:10px 0;color:#78716C;">乙方占比份额</td><td style="padding:10px 0;font-weight:600;">${sharePercentage}%</td></tr>
       <tr style="border-bottom:1px solid #E7E5E4;"><td style="padding:10px 0;color:#78716C;">收入分成比例</td><td style="padding:10px 0;font-weight:600;">${revenueShareRate}%</td></tr>
       <tr style="border-bottom:1px solid #E7E5E4;"><td style="padding:10px 0;color:#78716C;">联营期限</td><td style="padding:10px 0;font-weight:600;">${termMonths} 个月</td></tr>
-      <tr style="border-bottom:1px solid #E7E5E4;"><td style="padding:10px 0;color:#78716C;">回收上限倍数</td><td style="padding:10px 0;font-weight:600;">${returnMultiple} 倍</td></tr>
-      <tr style="border-bottom:1px solid #E7E5E4;"><td style="padding:10px 0;color:#78716C;">回收上限金额</td><td style="padding:10px 0;font-weight:600;color:#B91C1C;">人民币 ${recoveryCap} 万元整</td></tr>
+      <tr style="border-bottom:1px solid #E7E5E4;"><td style="padding:10px 0;color:#78716C;">退出方式</td><td style="padding:10px 0;font-weight:600;">${project.exitMode === 'term_only' ? '仅期限到期' : project.exitMode === 'cap_only' ? '仅封顶' : '先到为准'}</td></tr>
+      <tr style="border-bottom:1px solid #E7E5E4;"><td style="padding:10px 0;color:#78716C;">${project.exitMode === 'term_only' ? '预期收益倍数' : '封顶倍数'}</td><td style="padding:10px 0;font-weight:600;">${returnMultiple.toFixed(2)} x</td></tr>
+      <tr style="border-bottom:1px solid #E7E5E4;"><td style="padding:10px 0;color:#78716C;">回收上限金额</td><td style="padding:10px 0;font-weight:600;color:#B91C1C;">人民币 ${recoveryCap.toFixed(2)} 万元整</td></tr>
       <tr><td style="padding:10px 0;color:#78716C;">联营资金用途</td><td style="padding:10px 0;">${descTruncated}</td></tr>
     </table>
   </div>
@@ -1874,7 +1880,7 @@ export function generateContractHTML(
       <p style="margin-bottom:8px;"><strong>5.1 违约责任：</strong>任何一方违反本协议约定的，违约方应承担损失赔偿责任。</p>
       <p style="margin-bottom:8px;"><strong>5.2 严重违约：</strong>如甲方出现挪用资金、虚报收入、擅自终止经营等严重违约情形，乙方有权要求退还全部联营资金，并要求支付联营资金 20% 的违约金。</p>
       <p style="margin-bottom:8px;"><strong>5.3 提前终止：</strong>任何一方需提前终止本协议的，应提前 7 个自然日书面通知另一方，并按约定支付相应补偿金。</p>
-      <p style="margin-bottom:8px;"><strong>5.4 自动终止：</strong>当乙方累计回款达到回收上限金额，或联营期限届满（以先到者为准），本协议自动终止。</p>
+      <p style="margin-bottom:8px;"><strong>5.4 自动终止：</strong>${project.exitMode === 'term_only' ? '联营期限届满时' : project.exitMode === 'cap_only' ? '当乙方累计回款达到回收上限金额时' : '当乙方累计回款达到回收上限金额，或联营期限届满（以先到者为准）时'}，本协议自动终止。</p>
     </div>
   </div>
   <div style="margin-top:24px;">

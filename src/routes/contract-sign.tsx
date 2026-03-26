@@ -48,6 +48,11 @@ app.get('/contracts/:id/sign', async (c) => {
       revenueShareRate: targetProject.revenueShareRate,
       recoveryMultiple: targetProject.recoveryMultiple,
       duration: targetProject.duration,
+      exitMode: targetProject.exitMode || 'both',
+      annualYieldRate: targetProject.annualYieldRate ?? 12,
+      expectMultiple: targetProject.expectMultiple ?? null,
+      settlementCycle: targetProject.settlementCycle || 'monthly',
+      estimatedMonthlyRevenue: targetProject.estimatedMonthlyRevenue || 0,
     } : null,
   } : null
 
@@ -273,7 +278,23 @@ app.get('/contracts/:id/sign', async (c) => {
     var monthlyShare = estRevenue * ratio / 100;
     var myMonthly = monthlyShare * (amount / totalAmount);
     var myMonths = myMonthly > 0 ? Math.ceil(amount / myMonthly) : 0;
-    var myCap = contract.recoveryCap || (amount * (proj.recoveryMultiple || 1));
+    var myCap = contract.recoveryCap;
+    if(!myCap){
+      var _em = proj.exitMode || 'both';
+      if(_em === 'term_only'){
+        myCap = amount * (proj.expectMultiple || proj.recoveryMultiple || 1.3);
+      } else {
+        var _yr = (_em === 'term_only') ? 0 : (proj.annualYieldRate != null ? proj.annualYieldRate : 12);
+        var _basis = proj.settlementCycle || 'monthly';
+        var _flat = _yr / (_basis==='weekly'?52:_basis==='daily'?365:12) / 100;
+        var _monthlyS = (proj.estimatedMonthlyRevenue||0) * (proj.revenueShareRate||0) / 100;
+        var _myMonthly = _monthlyS * (amount / (proj.targetAmount||1));
+        var _payback = _myMonthly > 0 ? Math.ceil(amount / _myMonthly) : 24;
+        var _dur = _em === 'cap_only' ? _payback : (proj.duration || 36);
+        var _periods = _basis==='weekly'?Math.ceil(_dur*4.33):_basis==='daily'?Math.ceil(_dur*30.42):_dur;
+        myCap = amount + amount * _flat * _periods;
+      }
+    }
 
     plEl.style.display = 'block';
     plEl.innerHTML = '<div class="plain-lang-title">\\uD83D\\uDCAC 简单来说</div>'
@@ -406,7 +427,25 @@ app.get('/contracts/:id/sign', async (c) => {
             var proj = contract.project || contract;
             var sharePercentage = (investmentAmount / (proj.targetAmount||1) * 100).toFixed(1);
             var monthlyShare = (investmentAmount * (proj.revenueShareRate||0) / 100).toFixed(2);
-            var recoveryCap = contract.recoveryCap ? contract.recoveryCap.toFixed(1) : (investmentAmount * (proj.recoveryMultiple||1)).toFixed(1);
+            var recoveryCap;
+            if(contract.recoveryCap){
+              recoveryCap = contract.recoveryCap.toFixed(1);
+            } else {
+              var _cEm = proj.exitMode || 'both';
+              if(_cEm === 'term_only'){
+                recoveryCap = (investmentAmount * (proj.expectMultiple || proj.recoveryMultiple || 1.3)).toFixed(1);
+              } else {
+                var _cYr = (proj.annualYieldRate != null ? proj.annualYieldRate : 12);
+                var _cBasis = proj.settlementCycle || 'monthly';
+                var _cFlat = _cYr / (_cBasis==='weekly'?52:_cBasis==='daily'?365:12) / 100;
+                var _cMs = (proj.estimatedMonthlyRevenue||0) * (proj.revenueShareRate||0) / 100;
+                var _cMyM = _cMs * (investmentAmount / (proj.targetAmount||1));
+                var _cPb = _cMyM > 0 ? Math.ceil(investmentAmount / _cMyM) : 24;
+                var _cDur = _cEm === 'cap_only' ? _cPb : (proj.duration || 36);
+                var _cPer = _cBasis==='weekly'?Math.ceil(_cDur*4.33):_cBasis==='daily'?Math.ceil(_cDur*30.42):_cDur;
+                recoveryCap = (investmentAmount + investmentAmount * _cFlat * _cPer).toFixed(1);
+              }
+            }
 
             var summaryEl = document.getElementById('ceremony-summary');
             if(summaryEl){

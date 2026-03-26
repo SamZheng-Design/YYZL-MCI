@@ -194,165 +194,14 @@ app.get('/create', (c) => {
             </div>
           </div>
 
-          {/* Terms Card — with internal grouping */}
+          {/* Terms Card — restructured: exit mode first */}
           <div class="detail-card">
             <div class="detail-card-header">
               <i class="fas fa-file-contract detail-card-header-icon" style="background:linear-gradient(135deg,#FEE2E2,#FECDD3);color:#B91C1C;" />
               <span>条款设定</span>
             </div>
 
-            {/* Group 1: 年化收益率（直接输入） + 预估月收入 */}
-            <div class="create-terms-group">
-              <div class="create-terms-group-label"><i class="fas fa-percentage mr-1.5" style="font-size:11px;color:#D4A853;" />年化收益率 &amp; 收入</div>
-              <div class="grid grid-cols-2 gap-3">
-                <div>
-                  <label class="form-label" style="display:flex;align-items:center;gap:4px;">年化收益率 <span class="req">*</span>
-                    <span id="yield-help-btn2" class="help-icon" style="cursor:pointer;">?</span>
-                  </label>
-                  <div class="input-unit-wrap">
-                    <input id="f-yield" type="number" class="form-input" value="12" min={1} max={50} step={0.5} style="text-align:right;padding-right:32px;font-size:16px;font-weight:600;color:#1C1917;" />
-                    <span class="input-unit" style="right:10px;font-weight:600;">%</span>
-                  </div>
-                </div>
-                <div>
-                  <label class="form-label" style="display:flex;align-items:center;gap:4px;">预估月收入 <span class="req">*</span>
-                    <span class="help-icon" data-help-id="estimatedMonthlyRevenue">?</span>
-                  </label>
-                  <div class="help-text">发起人对项目月度收入的预估。这只是预估，实际回款取决于真实经营情况。</div>
-                  <div class="input-unit-wrap">
-                    <input id="f-revenue" type="number" class="form-input" placeholder="如 30" min={0} step={0.1} />
-                    <span class="input-unit">万元</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* 平息口径选择器 */}
-              <div style="margin-top:12px;">
-                <label class="form-label" style="display:flex;align-items:center;gap:4px;">平息口径 <span class="req">*</span>
-                  <span class="help-icon" data-help-id="flatRateBasis">?</span>
-                </label>
-                <div class="help-text">选择计算融资金额时使用的平息口径。不同口径下融资金额不同：月平息最宽松，日平息最保守。</div>
-                <div style="display:flex;gap:8px;margin-top:4px;">
-                  <label class="radio-card" id="basis-monthly" style="flex:1;">
-                    <input type="radio" name="flatRateBasis" value="monthly" checked />
-                    <div class="radio-card-content">
-                      <span style="font-size:16px;font-weight:700;color:#1D4ED8;" id="basis-monthly-val">1%</span>
-                      <span style="font-size:12px;font-weight:600;">月平息</span>
-                      <span style="font-size:10px;color:#78716C;">年化÷12</span>
-                    </div>
-                  </label>
-                  <label class="radio-card" id="basis-weekly" style="flex:1;">
-                    <input type="radio" name="flatRateBasis" value="weekly" />
-                    <div class="radio-card-content">
-                      <span style="font-size:16px;font-weight:700;color:#1D4ED8;" id="basis-weekly-val">0.23%</span>
-                      <span style="font-size:12px;font-weight:600;">周平息</span>
-                      <span style="font-size:10px;color:#78716C;">年化÷52</span>
-                    </div>
-                  </label>
-                  <label class="radio-card" id="basis-daily" style="flex:1;">
-                    <input type="radio" name="flatRateBasis" value="daily" />
-                    <div class="radio-card-content">
-                      <span style="font-size:16px;font-weight:700;color:#1D4ED8;" id="basis-daily-val">0.033%</span>
-                      <span style="font-size:12px;font-weight:600;">日平息</span>
-                      <span style="font-size:10px;color:#78716C;">年化÷365</span>
-                    </div>
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            {/* Group 2: 融资金额 ↔ 收入分成比例（联动滑块） + 联营期限 + 最低参与额 */}
-            <div class="create-terms-group">
-              <div class="create-terms-group-label"><i class="fas fa-link mr-1.5" style="font-size:11px;color:#D4A853;" />融资与分成联动</div>
-              
-              {/* 联动公式提示 */}
-              <div style="background:linear-gradient(135deg,#F0F9FF,#EFF6FF);border:1px solid #BFDBFE;border-radius:12px;padding:14px 16px;margin-bottom:16px;">
-                <div style="font-size:12px;font-weight:600;color:#1D4ED8;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
-                  <i class="fas fa-calculator" style="font-size:11px;" />
-                  融资金额自动计算公式
-                </div>
-                <div style="font-size:12px;color:#334155;line-height:1.7;">
-                  融资金额 = 月收入 × 分成比例 × 联营期限 ÷ (1 + 平息)<br/>
-                  <span style="font-size:11px;color:#64748B;">拖动分成比例滑块，融资金额自动联动；也可手动修改融资金额反算分成比例。</span>
-                </div>
-              </div>
-
-              {/* 收入分成比例滑块 */}
-              <div style="margin-bottom:16px;">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                  <label class="form-label" style="margin-bottom:0;display:flex;align-items:center;gap:4px;">收入分成比例 <span class="req">*</span>
-                    <span class="help-icon" data-help-id="revenueShareRatio">?</span>
-                  </label>
-                  <div class="help-text">发起人愿意把项目月收入的多少拿出来分给参与人。比例越高，参与人回款越快，但发起人让出的越多。同类项目一般在8%-20%。</div>
-                  <div class="input-unit-wrap" id="input-share-ratio" style="width:100px;flex-shrink:0;">
-                    <input id="f-rate" type="number" class="form-input" placeholder="如 12" min={0.1} max={100} step={0.1} style="text-align:right;padding-right:28px;font-size:16px;font-weight:700;color:#2563EB;" />
-                    <span class="input-unit" style="right:8px;font-weight:600;">%</span>
-                  </div>
-                </div>
-                <input id="f-rate-slider" type="range" class="terms-slider terms-slider-blue" min="1" max="30" step="0.5" value="10" style="width:100%;" />
-                <div style="display:flex;justify-content:space-between;font-size:11px;color:#A8A29E;margin-top:2px;">
-                  <span>1%</span>
-                  <span>30%</span>
-                </div>
-              </div>
-
-              {/* 融资总额（联动或手动） */}
-              <div style="margin-bottom:16px;">
-                <label class="form-label" style="display:flex;align-items:center;gap:4px;">融资总额 <span class="req">*</span>
-                  <span class="help-icon" data-help-id="totalAmount">?</span>
-                  <span style="margin-left:auto;font-size:11px;color:#2563EB;font-weight:500;" id="amount-linkage-hint">← 自动计算</span>
-                </label>
-                <div class="help-text">按公式自动计算的融资总额。也可手动修改，系统会反算分成比例。</div>
-                <div class="input-unit-wrap">
-                  <input id="f-amount" type="number" class="form-input" placeholder="自动计算" min={1} style="font-size:16px;font-weight:700;color:#B91C1C;" />
-                  <span class="input-unit">万元</span>
-                </div>
-                <div id="amount-calc-detail" style="font-size:11px;color:#64748B;margin-top:4px;line-height:1.5;" />
-              </div>
-
-              <div class="grid grid-cols-2 gap-3">
-                <div>
-                  <label class="form-label" style="display:flex;align-items:center;gap:4px;">联营期限 <span class="req">*</span>
-                    <span class="help-icon" data-help-id="cooperationTerm">?</span>
-                  </label>
-                  <div class="help-text">合作持续多长时间（资金实际占用时间）。到期后无论是否收回投资，合同自动结束。</div>
-                  <div class="input-unit-wrap">
-                    <input id="f-duration" type="number" class="form-input" placeholder="如 24" min={1} />
-                    <span class="input-unit">个月</span>
-                  </div>
-                </div>
-                <div>
-                  <label class="form-label" style="display:flex;align-items:center;gap:4px;">最低参与额 <span class="req">*</span>
-                    <span class="help-icon" data-help-id="minParticipation">?</span>
-                  </label>
-                  <div class="help-text">每个参与人最少要投多少钱。这个金额除以融资总额就是一份的比例。</div>
-                  <div class="input-unit-wrap">
-                    <input id="f-minamt" type="number" class="form-input" placeholder="如 10" min={1} />
-                    <span class="input-unit">万/份</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Group 3: 上报频率 */}
-            <div style="padding-top:16px;">
-              <div class="create-terms-group-label"><i class="fas fa-chart-line mr-1.5" style="font-size:11px;color:#D4A853;" />上报与结算</div>
-              <div class="grid grid-cols-2 gap-3 mb-3">
-                <div>
-                  <label class="form-label" style="display:flex;align-items:center;gap:4px;">上报频率
-                    <span class="help-icon" data-help-id="reportFrequency">?</span>
-                  </label>
-                  <div class="help-text">你多久向参与人汇报一次项目收入。月报适合大部分项目，日报适合零售等每日有流水的项目。</div>
-                  <select id="f-freq" class="form-select">
-                    <option value="每自然月">每自然月</option>
-                    <option value="每自然周">每自然周</option>
-                    <option value="每自然日">每自然日</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* Group 4: Exit Conditions — 退出方式 */}
+            {/* ━━ Group 1: 退出方式（前置，决定后续字段显隐）━━ */}
             <div class="create-terms-group">
               <div class="create-terms-group-label"><i class="fas fa-door-open mr-1.5" style="font-size:11px;color:#D4A853;" />退出条件</div>
               <div class="mb-3">
@@ -369,14 +218,6 @@ app.get('/create', (c) => {
                       <span style="font-size:10px;color:#78716C;">期限或封顶</span>
                     </div>
                   </label>
-                  <label class="radio-card" id="exit-term" style="flex:1;">
-                    <input type="radio" name="exitMode" value="term_only" />
-                    <div class="radio-card-content">
-                      <i class="fas fa-calendar-alt" style="color:#2563EB;font-size:14px;" />
-                      <span style="font-size:12px;font-weight:600;">仅期限</span>
-                      <span style="font-size:10px;color:#78716C;">到期结束</span>
-                    </div>
-                  </label>
                   <label class="radio-card" id="exit-cap" style="flex:1;">
                     <input type="radio" name="exitMode" value="cap_only" />
                     <div class="radio-card-content">
@@ -385,48 +226,233 @@ app.get('/create', (c) => {
                       <span style="font-size:10px;color:#78716C;">达封顶结束</span>
                     </div>
                   </label>
-                </div>
-              </div>
-
-              {/* 封顶计算展示 — 基于平息口径 */}
-              <div id="cap-calc-panel" style="margin-top:12px;background:linear-gradient(135deg,#FEF2F2,#FFF1F2);border:1px solid #FECACA;border-radius:12px;padding:14px 16px;">
-                <div style="font-size:12px;font-weight:600;color:#B91C1C;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
-                  <i class="fas fa-lock" style="font-size:11px;" />
-                  封顶退出计算
-                </div>
-                <div id="cap-calc-detail" style="font-size:12px;color:#44403C;line-height:1.7;" />
-              </div>
-
-              {/* 隐藏的回收倍数字段（兼容旧逻辑） */}
-              <input id="f-multiple" type="hidden" value="1.5" />
-
-              {/* 风控：项目亏损终止条件（选填） */}
-              <div style="margin-top:16px;background:#FAFAF9;border-radius:10px;padding:14px;">
-                <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
-                  <i class="fas fa-shield-alt" style="color:#78716C;font-size:12px;" />
-                  <span style="font-size:12px;font-weight:600;color:#57534E;">项目亏损终止条件（选填）</span>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                  <div>
-                    <label class="form-label" style="font-size:11px;">连续低收入月数</label>
-                    <select id="f-loss-months" class="form-select" style="font-size:13px;">
-                      <option value="">不设置</option>
-                      <option value="3">连续3个月</option>
-                      <option value="6">连续6个月</option>
-                      <option value="9">连续9个月</option>
-                      <option value="12">连续12个月</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label class="form-label" style="font-size:11px;">收入门槛（万元/月）</label>
-                    <div class="input-unit-wrap">
-                      <input id="f-loss-amount" type="number" class="form-input" placeholder="如 5" min={0} step={0.1} style="font-size:13px;" />
-                      <span class="input-unit" style="font-size:11px;">万</span>
+                  <label class="radio-card" id="exit-term" style="flex:1;">
+                    <input type="radio" name="exitMode" value="term_only" />
+                    <div class="radio-card-content">
+                      <i class="fas fa-calendar-alt" style="color:#2563EB;font-size:14px;" />
+                      <span style="font-size:12px;font-weight:600;">仅期限</span>
+                      <span style="font-size:10px;color:#78716C;">到期结束</span>
                     </div>
+                  </label>
+                </div>
+              </div>
+              {/* 退出方式说明条 */}
+              <div id="exit-mode-desc" style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:10px 14px;margin-top:4px;">
+                <div style="display:flex;align-items:flex-start;gap:8px;">
+                  <i class="fas fa-info-circle" style="color:#D97706;font-size:13px;margin-top:2px;flex-shrink:0;" />
+                  <span style="font-size:12px;color:#92400E;line-height:1.5;" id="exit-mode-desc-text">
+                    先到为准：需要同时设定「封顶退出条件」和「最长分成期限」，满足任一条件合同即终止。
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* ━━ Group 2: 基础参数 — 预估月收入 + 年化/倍数 ━━ */}
+            <div class="create-terms-group">
+              <div class="create-terms-group-label"><i class="fas fa-coins mr-1.5" style="font-size:11px;color:#D4A853;" />基础参数</div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="form-label" style="display:flex;align-items:center;gap:4px;">预估月收入 <span class="req">*</span>
+                    <span class="help-icon" data-help-id="estimatedMonthlyRevenue">?</span>
+                  </label>
+                  <div class="help-text">发起人对项目月度收入的预估。这只是预估，实际回款取决于真实经营情况。</div>
+                  <div class="input-unit-wrap">
+                    <input id="f-revenue" type="number" class="form-input" placeholder="如 30" min={0} step={0.1} />
+                    <span class="input-unit">万元</span>
+                  </div>
+                </div>
+                {/* 年化收益率 — 仅封顶/先到为准可见 */}
+                <div id="yield-group">
+                  <label class="form-label" style="display:flex;align-items:center;gap:4px;">年化收益率 <span class="req">*</span>
+                    <span id="yield-help-btn2" class="help-icon" style="cursor:pointer;">?</span>
+                  </label>
+                  <div class="input-unit-wrap">
+                    <input id="f-yield" type="number" class="form-input" value="12" min={1} max={50} step={0.5} style="text-align:right;padding-right:32px;font-size:16px;font-weight:600;color:#1C1917;" />
+                    <span class="input-unit" style="right:10px;font-weight:600;">%</span>
+                  </div>
+                  <div style="font-size:11px;color:#78716C;margin-top:4px;">对融资者来说就是资金使用成本</div>
+                </div>
+                {/* 预期收益倍数 — 仅期限模式可见 */}
+                <div id="multiple-group" style="display:none;">
+                  <label class="form-label" style="display:flex;align-items:center;gap:4px;">预期收益倍数 <span class="req">*</span>
+                    <span id="multiple-help-btn" class="help-icon" style="cursor:pointer;">?</span>
+                  </label>
+                  <div class="input-unit-wrap">
+                    <input id="f-expect-multiple" type="number" class="form-input" value="1.3" min={1.01} max={5} step={0.01} style="text-align:right;padding-right:32px;font-size:16px;font-weight:600;color:#1C1917;" />
+                    <span class="input-unit" style="right:10px;font-weight:600;">x</span>
+                  </div>
+                  <div style="font-size:11px;color:#78716C;margin-top:4px;">参与人最多能拿回本金的多少倍，如 1.3x = 赚30%</div>
+                </div>
+              </div>
+            </div>
+
+            {/* ━━ Group 3: 退出参数（动态显隐）━━ */}
+            {/* 3A: 封顶退出平息口径 — both / cap_only 可见 */}
+            <div class="create-terms-group" id="cap-exit-group">
+              <div class="create-terms-group-label"><i class="fas fa-lock mr-1.5" style="font-size:11px;color:#D4A853;" />封顶退出条件</div>
+              <label class="form-label" style="display:flex;align-items:center;gap:4px;">平息口径 <span class="req">*</span>
+                <span class="help-icon" data-help-id="flatRateBasis">?</span>
+              </label>
+              <div class="help-text">选择封顶退出的计算口径。月平息最宽松（封顶金额较高），日平息最保守（封顶金额较低）。</div>
+              <div style="display:flex;gap:8px;margin-top:4px;">
+                <label class="radio-card" id="basis-monthly" style="flex:1;">
+                  <input type="radio" name="flatRateBasis" value="monthly" checked />
+                  <div class="radio-card-content">
+                    <span style="font-size:16px;font-weight:700;color:#1D4ED8;" id="basis-monthly-val">1%</span>
+                    <span style="font-size:12px;font-weight:600;">月平息</span>
+                    <span style="font-size:10px;color:#78716C;">年化÷12</span>
+                  </div>
+                </label>
+                <label class="radio-card" id="basis-weekly" style="flex:1;">
+                  <input type="radio" name="flatRateBasis" value="weekly" />
+                  <div class="radio-card-content">
+                    <span style="font-size:16px;font-weight:700;color:#1D4ED8;" id="basis-weekly-val">0.23%</span>
+                    <span style="font-size:12px;font-weight:600;">周平息</span>
+                    <span style="font-size:10px;color:#78716C;">年化÷52</span>
+                  </div>
+                </label>
+                <label class="radio-card" id="basis-daily" style="flex:1;">
+                  <input type="radio" name="flatRateBasis" value="daily" />
+                  <div class="radio-card-content">
+                    <span style="font-size:16px;font-weight:700;color:#1D4ED8;" id="basis-daily-val">0.033%</span>
+                    <span style="font-size:12px;font-weight:600;">日平息</span>
+                    <span style="font-size:10px;color:#78716C;">年化÷365</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            {/* 3B: 最长分成期限 — both / term_only 可见 */}
+            <div class="create-terms-group" id="term-exit-group">
+              <div class="create-terms-group-label"><i class="fas fa-calendar-alt mr-1.5" style="font-size:11px;color:#D4A853;" />最长分成期限</div>
+              <div>
+                <label class="form-label" style="display:flex;align-items:center;gap:4px;" id="duration-label">最长分成期限 <span class="req">*</span>
+                  <span class="help-icon" data-help-id="cooperationTerm">?</span>
+                </label>
+                <div class="help-text">合作的最长时间。到期后无论是否收回投资，合同自动终止。</div>
+                <div class="input-unit-wrap">
+                  <input id="f-duration" type="number" class="form-input" placeholder="如 24" min={1} />
+                  <span class="input-unit">个月</span>
+                </div>
+              </div>
+            </div>
+
+            {/* ━━ Group 4: 联动滑块 — 收入分成比例 ↔ 融资金额 ━━ */}
+            <div class="create-terms-group" id="linkage-group">
+              <div class="create-terms-group-label"><i class="fas fa-link mr-1.5" style="font-size:11px;color:#D4A853;" />融资与分成联动</div>
+
+              {/* 联动公式提示 — 动态内容 */}
+              <div id="formula-hint" style="background:linear-gradient(135deg,#F0F9FF,#EFF6FF);border:1px solid #BFDBFE;border-radius:12px;padding:14px 16px;margin-bottom:16px;">
+                <div style="font-size:12px;font-weight:600;color:#1D4ED8;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
+                  <i class="fas fa-calculator" style="font-size:11px;" />
+                  融资金额自动计算公式
+                </div>
+                <div id="formula-hint-text" style="font-size:12px;color:#334155;line-height:1.7;" />
+              </div>
+
+              {/* 收入分成比例滑块 */}
+              <div style="margin-bottom:16px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                  <label class="form-label" style="margin-bottom:0;display:flex;align-items:center;gap:4px;">收入分成比例 <span class="req">*</span>
+                    <span class="help-icon" data-help-id="revenueShareRatio">?</span>
+                  </label>
+                  <div class="help-text">发起人愿意把项目月收入的多少拿出来分给参与人。比例越高，参与人回款越快，但发起人让出的越多。同类项目一般在8%-20%。</div>
+                  <div class="input-unit-wrap" id="input-share-ratio" style="width:100px;flex-shrink:0;">
+                    <input id="f-rate" type="number" class="form-input" placeholder="如 12" min={0.1} max={100} step={0.1} style="text-align:right;padding-right:28px;font-size:16px;font-weight:700;color:#2563EB;" />
+                    <span class="input-unit" style="right:8px;font-weight:600;">%</span>
+                  </div>
+                </div>
+                <input id="f-rate-slider" type="range" class="terms-slider terms-slider-blue" min="0" max="100" step="0.5" value="10" style="width:100%;" />
+                <div style="display:flex;justify-content:space-between;font-size:11px;color:#A8A29E;margin-top:2px;">
+                  <span>0%</span>
+                  <span>100%</span>
+                </div>
+              </div>
+
+              {/* 融资总额滑块 */}
+              <div style="margin-bottom:16px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                  <label class="form-label" style="margin-bottom:0;display:flex;align-items:center;gap:4px;">融资总额 <span class="req">*</span>
+                    <span class="help-icon" data-help-id="totalAmount">?</span>
+                  </label>
+                  <div class="help-text">按公式自动计算的融资总额。拖动滑块或手动输入均可，另一项会自动联动。</div>
+                  <div class="input-unit-wrap" style="width:120px;flex-shrink:0;">
+                    <input id="f-amount" type="number" class="form-input" placeholder="自动计算" min={0} style="text-align:right;padding-right:32px;font-size:16px;font-weight:700;color:#B91C1C;" />
+                    <span class="input-unit" style="right:8px;font-weight:600;">万</span>
+                  </div>
+                </div>
+                <input id="f-amount-slider" type="range" class="terms-slider terms-slider-red" min="0" max="5000" step="1" value="0" style="width:100%;" />
+                <div style="display:flex;justify-content:space-between;font-size:11px;color:#A8A29E;margin-top:2px;">
+                  <span>0万</span>
+                  <span id="amount-slider-max-label">5000万</span>
+                </div>
+                <div id="amount-calc-detail" style="font-size:11px;color:#64748B;margin-top:4px;line-height:1.5;" />
+              </div>
+            </div>
+
+            {/* ━━ Group 5: 补充信息 — 最低参与额 + 上报频率 ━━ */}
+            <div class="create-terms-group">
+              <div class="create-terms-group-label"><i class="fas fa-cog mr-1.5" style="font-size:11px;color:#D4A853;" />补充信息</div>
+              <div class="grid grid-cols-2 gap-3 mb-3">
+                <div>
+                  <label class="form-label" style="display:flex;align-items:center;gap:4px;">最低参与额 <span class="req">*</span>
+                    <span class="help-icon" data-help-id="minParticipation">?</span>
+                  </label>
+                  <div class="help-text">每个参与人最少要投多少钱。这个金额除以融资总额就是一份的比例。</div>
+                  <div class="input-unit-wrap">
+                    <input id="f-minamt" type="number" class="form-input" placeholder="如 10" min={1} />
+                    <span class="input-unit">万/份</span>
+                  </div>
+                </div>
+                <div>
+                  <label class="form-label" style="display:flex;align-items:center;gap:4px;">上报频率
+                    <span class="help-icon" data-help-id="reportFrequency">?</span>
+                  </label>
+                  <div class="help-text">你多久向参与人汇报一次项目收入。月报适合大部分项目。</div>
+                  <select id="f-freq" class="form-select">
+                    <option value="每自然月">每自然月</option>
+                    <option value="每自然周">每自然周</option>
+                    <option value="每自然日">每自然日</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* ━━ Group 6: 风控（选填）━━ */}
+            <div class="create-terms-group">
+              <div class="create-terms-group-label"><i class="fas fa-shield-alt mr-1.5" style="font-size:11px;color:#D4A853;" />项目亏损终止条件（选填）</div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="form-label" style="font-size:11px;">连续低收入月数</label>
+                  <select id="f-loss-months" class="form-select" style="font-size:13px;">
+                    <option value="">不设置</option>
+                    <option value="3">连续3个月</option>
+                    <option value="6">连续6个月</option>
+                    <option value="9">连续9个月</option>
+                    <option value="12">连续12个月</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="form-label" style="font-size:11px;">收入门槛（万元/月）</label>
+                  <div class="input-unit-wrap">
+                    <input id="f-loss-amount" type="number" class="form-input" placeholder="如 5" min={0} step={0.1} style="font-size:13px;" />
+                    <span class="input-unit" style="font-size:11px;">万</span>
                   </div>
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* 隐藏的回收倍数字段（兼容旧逻辑） */}
+          <input id="f-multiple" type="hidden" value="1.5" />
+
+          {/* 封顶计算展示卡片 */}
+          <div class="detail-card" id="cap-calc-panel" style="background:linear-gradient(135deg,#FEF2F2,#FFF1F2);border:1px solid #FECACA;">
+            <div style="font-size:13px;font-weight:600;color:#B91C1C;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+              <i class="fas fa-lock" style="font-size:12px;" />
+              封顶退出计算
+            </div>
+            <div id="cap-calc-detail" style="font-size:12px;color:#44403C;line-height:1.7;" />
           </div>
 
           {/* Auto-calc card */}
@@ -445,7 +471,7 @@ app.get('/create', (c) => {
                 <div class="auto-calc-item-value" id="calc-k" style="font-size:14px;">—</div>
               </div>
               <div>
-                <div class="auto-calc-item-label">等效封顶倍数</div>
+                <div class="auto-calc-item-label" id="calc-cap-label">等效封顶倍数</div>
                 <div class="auto-calc-item-value" id="calc-cap-multiple">—</div>
               </div>
               <div>
@@ -655,6 +681,31 @@ app.get('/create', (c) => {
   try { u = JSON.parse(localStorage.getItem('zlc_user')); } catch(e){}
   if (!u) return;
 
+  // ════════════════════════════════════════════
+  // Utility functions (previously missing — bug fix)
+  // ════════════════════════════════════════════
+  function getSelectedBasis(){
+    var radios = document.querySelectorAll('input[name="flatRateBasis"]');
+    for(var i=0;i<radios.length;i++){ if(radios[i].checked) return radios[i].value; }
+    return 'monthly';
+  }
+  function getFlatRate(yieldRate, basis){
+    if(basis === 'weekly') return yieldRate / 52;
+    if(basis === 'daily') return yieldRate / 365;
+    return yieldRate / 12; // monthly default
+  }
+  function getBasisLabel(basis){ return basis === 'weekly' ? '周' : basis === 'daily' ? '日' : '月'; }
+  function getPeriods(durationMonths, basis){
+    if(basis === 'weekly') return Math.ceil(durationMonths * 4.33);
+    if(basis === 'daily') return Math.ceil(durationMonths * 30.42);
+    return durationMonths;
+  }
+  function getExitMode(){
+    var radios = document.querySelectorAll('input[name="exitMode"]');
+    for(var i=0;i<radios.length;i++){ if(radios[i].checked) return radios[i].value; }
+    return 'both';
+  }
+
   // Step navigation — 4 steps
   var currentStep = 1;
   var TOTAL_STEPS = 4;
@@ -692,7 +743,9 @@ app.get('/create', (c) => {
     window.scrollTo({top: 0, behavior: 'smooth'});
   }
 
-  // Form fields
+  // ════════════════════════════════════════════
+  // Form field references
+  // ════════════════════════════════════════════
   var fName = document.getElementById('f-name');
   var fIndustry = document.getElementById('f-industry');
   var fDesc = document.getElementById('f-desc');
@@ -703,15 +756,16 @@ app.get('/create', (c) => {
   var fHighlight2 = document.getElementById('f-highlight-2');
   var fHighlight3 = document.getElementById('f-highlight-3');
   var fAmount = document.getElementById('f-amount');
+  var fAmountSlider = document.getElementById('f-amount-slider');
   var fRate = document.getElementById('f-rate');
+  var fRateSlider = document.getElementById('f-rate-slider');
   var fDuration = document.getElementById('f-duration');
   var fMinamt = document.getElementById('f-minamt');
   var fRevenue = document.getElementById('f-revenue');
   var fMultiple = document.getElementById('f-multiple');
   var fFreq = document.getElementById('f-freq');
-  // 退出条件
-  var fYieldSlider = document.getElementById('f-yield-slider');
   var fYield = document.getElementById('f-yield');
+  var fExpectMultiple = document.getElementById('f-expect-multiple');
   var fLossMonths = document.getElementById('f-loss-months');
   var fLossAmount = document.getElementById('f-loss-amount');
   // Step 3 fields
@@ -731,58 +785,129 @@ app.get('/create', (c) => {
   var fBankBranch = document.getElementById('f-bank-branch');
   var fTaxpayer = document.getElementById('f-taxpayer');
 
-  // ── 年化收益率 ? 帮助弹窗 ──
-  var yieldHelpBtn = document.getElementById('yield-help-btn');
-  if(yieldHelpBtn){
-    yieldHelpBtn.addEventListener('click', function(){
+  // Dynamic group references
+  var capExitGroup = document.getElementById('cap-exit-group');
+  var termExitGroup = document.getElementById('term-exit-group');
+  var yieldGroup = document.getElementById('yield-group');
+  var multipleGroup = document.getElementById('multiple-group');
+  var capCalcPanel = document.getElementById('cap-calc-panel');
+  var exitModeDescText = document.getElementById('exit-mode-desc-text');
+  var formulaHintText = document.getElementById('formula-hint-text');
+
+  // ════════════════════════════════════════════
+  // Exit mode → UI visibility control
+  // ════════════════════════════════════════════
+  function updateExitModeUI(){
+    var em = getExitMode();
+    var showCap = (em === 'both' || em === 'cap_only');
+    var showTerm = (em === 'both' || em === 'term_only');
+    var showYield = showCap;
+    var showMultiple = (em === 'term_only');
+
+    capExitGroup.style.display = showCap ? 'block' : 'none';
+    termExitGroup.style.display = showTerm ? 'block' : 'none';
+    yieldGroup.style.display = showYield ? 'block' : 'none';
+    multipleGroup.style.display = showMultiple ? 'block' : 'none';
+    capCalcPanel.style.display = showCap ? 'block' : 'none';
+
+    // Update desc text
+    if(em === 'both'){
+      exitModeDescText.textContent = '先到为准：需要同时设定「封顶退出条件」和「最长分成期限」，满足任一条件合同即终止。';
+    } else if(em === 'cap_only'){
+      exitModeDescText.textContent = '仅封顶：达到回收上限后合同自动终止，无固定期限约束。';
+    } else {
+      exitModeDescText.textContent = '仅期限：到最长分成期限后合同终止，无论是否收回本金。需设定预期收益倍数。';
+    }
+
+    // Update formula hint
+    updateFormulaHint(em);
+
+    // Update auto-calc label
+    var calcCapLabel = document.getElementById('calc-cap-label');
+    if(calcCapLabel) calcCapLabel.textContent = showMultiple ? '预期收益倍数' : '等效封顶倍数';
+  }
+
+  function updateFormulaHint(em){
+    if(!formulaHintText) return;
+    if(em === 'term_only'){
+      formulaHintText.innerHTML = '融资金额 = 月收入 × 分成比例 × 最长分成期限 ÷ 预期收益倍数<br/>'
+        + '<span style="font-size:11px;color:#64748B;">拖动分成比例或融资金额滑块，另一项自动联动。</span>';
+    } else if(em === 'cap_only'){
+      formulaHintText.innerHTML = '融资金额 = 月收入 × 分成比例 × 预估占用月数 ÷ (1 + 平息 × 期数)<br/>'
+        + '<span style="font-size:11px;color:#64748B;">预估占用月数 = 融资金额 ÷ (月收入 × 分成比例)。拖动滑块自动联动。</span>';
+    } else {
+      formulaHintText.innerHTML = '融资金额 = 月收入 × 分成比例 × 最长分成期限 ÷ (1 + 平息 × 期数)<br/>'
+        + '<span style="font-size:11px;color:#64748B;">拖动分成比例或融资金额滑块，另一项自动联动。</span>';
+    }
+  }
+
+  // Bind exit mode change
+  var exitRadios = document.querySelectorAll('input[name="exitMode"]');
+  exitRadios.forEach(function(r){
+    r.addEventListener('change', function(){
+      updateExitModeUI();
+      recalcLinkage('rate'); // re-trigger linkage
+      updateAutoCalc();
+    });
+  });
+  // Init visibility
+  updateExitModeUI();
+
+  // ════════════════════════════════════════════
+  // Flat rate basis → update display values
+  // ════════════════════════════════════════════
+  function updateBasisDisplay(){
+    var yr = parseFloat(fYield.value) || 12;
+    var mEl = document.getElementById('basis-monthly-val');
+    var wEl = document.getElementById('basis-weekly-val');
+    var dEl = document.getElementById('basis-daily-val');
+    if(mEl) mEl.textContent = (yr/12).toFixed(2) + '%';
+    if(wEl) wEl.textContent = (yr/52).toFixed(2) + '%';
+    if(dEl) dEl.textContent = (yr/365).toFixed(3) + '%';
+  }
+  updateBasisDisplay();
+  if(fYield) fYield.addEventListener('input', function(){ updateBasisDisplay(); recalcLinkage('rate'); updateAutoCalc(); });
+  if(fExpectMultiple) fExpectMultiple.addEventListener('input', function(){ recalcLinkage('rate'); updateAutoCalc(); });
+  document.querySelectorAll('input[name="flatRateBasis"]').forEach(function(r){
+    r.addEventListener('change', function(){ recalcLinkage('rate'); updateAutoCalc(); });
+  });
+
+  // ════════════════════════════════════════════
+  // 年化收益率 ? 帮助弹窗
+  // ════════════════════════════════════════════
+  var yieldHelpBtn2 = document.getElementById('yield-help-btn2');
+  if(yieldHelpBtn2){
+    yieldHelpBtn2.addEventListener('click', function(e){
+      e.preventDefault(); e.stopPropagation();
       var overlay = document.createElement('div');
       overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
       overlay.innerHTML = '<div style="background:#fff;border-radius:20px;max-width:440px;width:100%;max-height:85vh;overflow-y:auto;padding:0;box-shadow:0 20px 60px rgba(0,0,0,0.3);">'
         +'<div style="background:linear-gradient(135deg,#1E40AF,#3B82F6);padding:20px 24px;border-radius:20px 20px 0 0;color:#fff;">'
         +'<div style="display:flex;align-items:center;justify-content:space-between;">'
-        +'<div style="font-size:18px;font-weight:700;">📐 收益率计算详解</div>'
-        +'<button id="yield-help-close" style="background:rgba(255,255,255,0.2);border:none;border-radius:50%;width:32px;height:32px;color:#fff;font-size:16px;cursor:pointer;">×</button>'
+        +'<div style="font-size:18px;font-weight:700;">📐 年化收益率 = 资金成本</div>'
+        +'<button id="yield-help-close" style="background:rgba(255,255,255,0.2);border:none;border-radius:50%;width:32px;height:32px;color:#fff;font-size:16px;cursor:pointer;">\\u00D7</button>'
         +'</div>'
-        +'<div style="font-size:13px;opacity:0.85;margin-top:6px;">理解年化收益率与月/周/日平息的换算关系</div>'
+        +'<div style="font-size:13px;opacity:0.85;margin-top:6px;">对融资者来说，年化收益率就是你使用这笔资金的成本</div>'
         +'</div>'
         +'<div style="padding:20px 24px;">'
-        // 公式
+        +'<div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:12px;padding:14px;margin-bottom:16px;">'
+        +'<div style="font-size:14px;font-weight:700;color:#92400E;margin-bottom:8px;">💰 对融资者的意义</div>'
+        +'<div style="font-size:13px;color:#44403C;line-height:1.8;">'
+        +'年化收益率就是你「借钱的利率」。例如年化 <b>12%</b>，意味着每使用 <b>100万</b> 一年，你的资金成本约为 <b>12万</b>。<br/>这个数字越高，参与人越愿意投资，但你的成本越高。'
+        +'</div></div>'
         +'<div style="background:#F0F9FF;border:1px solid #BFDBFE;border-radius:12px;padding:14px;margin-bottom:16px;">'
         +'<div style="font-size:14px;font-weight:700;color:#1E40AF;margin-bottom:10px;">📊 换算公式</div>'
         +'<div style="font-size:13px;color:#334155;line-height:1.8;">'
-        +'<div style="padding:6px 0;border-bottom:1px dashed #BFDBFE;"><b>月平息</b> = 年化收益率 ÷ 12</div>'
-        +'<div style="padding:6px 0;border-bottom:1px dashed #BFDBFE;"><b>周平息</b> = 年化收益率 ÷ 52</div>'
-        +'<div style="padding:6px 0;"><b>日平息</b> = 年化收益率 ÷ 365</div>'
+        +'<div style="padding:6px 0;border-bottom:1px dashed #BFDBFE;"><b>月平息</b> = 年化 ÷ 12</div>'
+        +'<div style="padding:6px 0;border-bottom:1px dashed #BFDBFE;"><b>周平息</b> = 年化 ÷ 52</div>'
+        +'<div style="padding:6px 0;"><b>日平息</b> = 年化 ÷ 365</div>'
         +'</div></div>'
-        // 封顶退出
-        +'<div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;padding:14px;margin-bottom:16px;">'
-        +'<div style="font-size:14px;font-weight:700;color:#B91C1C;margin-bottom:10px;">🔒 封顶退出条件</div>'
-        +'<div style="font-size:13px;color:#44403C;line-height:1.8;">'
-        +'回收上限 = 本金 × (年化收益率 ÷ 12) × 资金占用月数<br/>'
-        +'<span style="color:#DC2626;font-weight:600;">注：不足一个月按一个月计算</span>'
-        +'</div></div>'
-        // 案例
-        +'<div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:12px;padding:14px;margin-bottom:16px;">'
+        +'<div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:12px;padding:14px;">'
         +'<div style="font-size:14px;font-weight:700;color:#166534;margin-bottom:10px;">💡 计算案例</div>'
         +'<div style="font-size:13px;color:#334155;line-height:1.9;">'
-        +'假设年化收益率 <b>12%</b>，投入本金 <b>10万</b>：<br/>'
-        +'<div style="margin:8px 0;padding:10px 12px;background:#DCFCE7;border-radius:8px;">'
-        +'• 月平息 = 12% ÷ 12 = <b>1%</b>/月<br/>'
-        +'• 周平息 = 12% ÷ 52 ≈ <b>0.23%</b>/周<br/>'
-        +'• 日平息 = 12% ÷ 365 ≈ <b>0.033%</b>/日</div>'
-        +'<div style="margin-top:10px;font-weight:600;color:#166534;">📌 封顶退出计算：</div>'
-        +'若资金占用 <b>6个月</b>：<br/>'
-        +'回收上限 = 10万 × 1% × 6 = <b>¥0.6万（6000元）</b><br/><br/>'
-        +'若资金占用 <b>6个月零5天</b>（不足1月按1月算 → 按7月计）：<br/>'
-        +'回收上限 = 10万 × 1% × 7 = <b>¥0.7万（7000元）</b>'
-        +'</div></div>'
-        // 日平息案例
-        +'<div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:12px;padding:14px;">'
-        +'<div style="font-size:14px;font-weight:700;color:#92400E;margin-bottom:10px;">📅 按日计算案例</div>'
-        +'<div style="font-size:13px;color:#334155;line-height:1.9;">'
-        +'年化 <b>12%</b>，投入 <b>10万</b>，占用 <b>180天</b>：<br/>'
-        +'日平息 = 12% ÷ 365 ≈ 0.0329%<br/>'
-        +'收益 = 10万 × 0.0329% × 180 ≈ <b>¥5,918元</b>'
+        +'年化 <b>12%</b>，融资 <b>100万</b>，占用 <b>24个月</b>：<br/>'
+        +'月平息 = 1%，封顶回收 = 100 + 100 × 1% × 24 = <b>¥124万</b><br/>'
+        +'等效倍数 = 1.24x，你的资金成本 = <b>24万</b>'
         +'</div></div>'
         +'</div></div>';
       document.body.appendChild(overlay);
@@ -790,48 +915,202 @@ app.get('/create', (c) => {
         overlay.style.opacity='0'; overlay.style.transition='opacity 0.2s';
         setTimeout(function(){ overlay.remove(); }, 200);
       });
-      overlay.addEventListener('click', function(e){ if(e.target===overlay){ overlay.style.opacity='0'; overlay.style.transition='opacity 0.2s'; setTimeout(function(){overlay.remove();},200); }});
+      overlay.addEventListener('click', function(ev){ if(ev.target===overlay){ overlay.style.opacity='0'; overlay.style.transition='opacity 0.2s'; setTimeout(function(){overlay.remove();},200); }});
     });
   }
 
-  // 退出方式联动
-  function getExitMode(){
-    var radios = document.querySelectorAll('input[name="exitMode"]');
-    for(var i=0;i<radios.length;i++){ if(radios[i].checked) return radios[i].value; }
-    return 'both';
+  // 预期收益倍数 ? 帮助
+  var multipleHelpBtn = document.getElementById('multiple-help-btn');
+  if(multipleHelpBtn){
+    multipleHelpBtn.addEventListener('click', function(e){
+      e.preventDefault(); e.stopPropagation();
+      var overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+      overlay.innerHTML = '<div style="background:#fff;border-radius:20px;max-width:400px;width:100%;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">'
+        +'<div style="font-size:16px;font-weight:700;color:#1C1917;margin-bottom:12px;">📐 预期收益倍数</div>'
+        +'<div style="font-size:13px;color:#44403C;line-height:1.8;margin-bottom:16px;">'
+        +'参与人在整个合作期内最多能拿回本金的多少倍。<br/><br/>'
+        +'例如倍数 <b>1.3x</b>，投入 <b>10万</b>，最多拿回 <b>13万</b>（赚 30%）。<br/>'
+        +'倍数 <b>1.0x</b> = 只还本金不赚钱<br/>'
+        +'倍数 <b>1.5x</b> = 赚 50%<br/><br/>'
+        +'<span style="color:#B91C1C;font-weight:600;">公式：融资金额 = 月收入 × 分成比例 × 期限 ÷ 倍数</span>'
+        +'</div>'
+        +'<button id="mult-help-close" style="width:100%;padding:12px;background:#1C1917;color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;">知道了</button>'
+        +'</div>';
+      document.body.appendChild(overlay);
+      document.getElementById('mult-help-close').addEventListener('click', function(){ overlay.remove(); });
+      overlay.addEventListener('click', function(ev){ if(ev.target===overlay) overlay.remove(); });
+    });
   }
-  // 年化收益率滑块联动
-  if(fYieldSlider && fYield){
-    fYieldSlider.addEventListener('input', function(){
-      fYield.value = fYieldSlider.value;
-      updateAutoCalc();
-    });
-    fYield.addEventListener('change', function(){
-      var v = Math.max(6, Math.min(30, parseFloat(fYield.value) || 12));
-      fYield.value = v;
-      fYieldSlider.value = v;
-      updateAutoCalc();
-    });
-  }
-  // 退出方式切换
-  var exitRadios = document.querySelectorAll('input[name="exitMode"]');
-  exitRadios.forEach(function(r){
-    r.addEventListener('change', function(){
-      var em = getExitMode();
-      var yieldGroup = document.getElementById('yield-rate-group');
-      if(yieldGroup) yieldGroup.style.display = (em === 'term_only') ? 'none' : 'block';
-      updateAutoCalc();
-    });
-  });
 
-  // Char count
+  // ════════════════════════════════════════════
+  // CORE: Dual slider linkage — rate ↔ amount
+  // ════════════════════════════════════════════
+  var _linkageLock = false; // prevent infinite loops
+
+  // Calculate amount from rate (primary direction)
+  function calcAmountFromRate(rate){
+    var revenue = parseFloat(fRevenue.value) || 0;
+    var em = getExitMode();
+    if(revenue <= 0 || rate <= 0) return 0;
+
+    if(em === 'term_only'){
+      // 融资金额 = 月收入 × 分成比例 × 期限 ÷ 预期收益倍数
+      var duration = parseInt(fDuration.value) || 0;
+      var mult = parseFloat(fExpectMultiple.value) || 1.3;
+      if(duration <= 0 || mult <= 0) return 0;
+      return revenue * (rate / 100) * duration / mult;
+    } else if(em === 'cap_only'){
+      // No fixed duration — iterative solve:
+      // amount = revenue × rate% × T / (1 + flatRate × periods(T))
+      // where T = amount / (revenue × rate%) → substitute:
+      // Let monthlyShare = revenue × rate%
+      // amount = monthlyShare × T / (1 + flatRate × periods(T))
+      // T = amount / monthlyShare
+      // → amount = monthlyShare × (amount/monthlyShare) / (1 + flatRate × periods(T))
+      // → amount = amount / (1 + flatRate × periods(T))
+      // This is circular. Use iterative approach:
+      // Start with T_guess = 24 months, compute amount, then recalc T
+      var yieldRate = parseFloat(fYield.value) || 12;
+      var basis = getSelectedBasis();
+      var flatRate = getFlatRate(yieldRate, basis) / 100;
+      var monthlyShare = revenue * (rate / 100);
+      // Iterate: guess T → calc amount → recalc T
+      var T = 24; // initial guess
+      for(var iter = 0; iter < 10; iter++){
+        var periods = getPeriods(T, basis);
+        var divisor = 1 + flatRate * periods;
+        var newAmount = monthlyShare * T / divisor;
+        var newT = monthlyShare > 0 ? newAmount / monthlyShare : 0;
+        if(Math.abs(newT - T) < 0.01) break;
+        T = newT;
+      }
+      var finalPeriods = getPeriods(T, basis);
+      return monthlyShare * T / (1 + flatRate * finalPeriods);
+    } else {
+      // both: 融资金额 = 月收入 × 分成比例 × 期限 ÷ (1 + 平息 × 期数)
+      var duration = parseInt(fDuration.value) || 0;
+      var yieldRate = parseFloat(fYield.value) || 12;
+      var basis = getSelectedBasis();
+      var flatRate = getFlatRate(yieldRate, basis) / 100;
+      if(duration <= 0) return 0;
+      var periods = getPeriods(duration, basis);
+      return revenue * (rate / 100) * duration / (1 + flatRate * periods);
+    }
+  }
+
+  // Calculate rate from amount (reverse direction)
+  function calcRateFromAmount(amount){
+    var revenue = parseFloat(fRevenue.value) || 0;
+    var em = getExitMode();
+    if(revenue <= 0 || amount <= 0) return 0;
+
+    if(em === 'term_only'){
+      var duration = parseInt(fDuration.value) || 0;
+      var mult = parseFloat(fExpectMultiple.value) || 1.3;
+      if(duration <= 0 || mult <= 0) return 0;
+      // rate = amount × mult / (revenue × duration) × 100
+      return (amount * mult / (revenue * duration)) * 100;
+    } else if(em === 'cap_only'){
+      // Iterative: rate% = amount × (1 + flatRate × periods(T)) / (revenue × T)
+      // where T = amount / (revenue × rate%)
+      var yieldRate = parseFloat(fYield.value) || 12;
+      var basis = getSelectedBasis();
+      var flatRate = getFlatRate(yieldRate, basis) / 100;
+      var rateGuess = 10;
+      for(var iter = 0; iter < 10; iter++){
+        var monthlyShare = revenue * (rateGuess / 100);
+        var T = monthlyShare > 0 ? amount / monthlyShare : 24;
+        var periods = getPeriods(T, basis);
+        var newRate = (amount * (1 + flatRate * periods) / (revenue * T)) * 100;
+        if(Math.abs(newRate - rateGuess) < 0.01) break;
+        rateGuess = newRate;
+      }
+      return Math.min(100, Math.max(0, rateGuess));
+    } else {
+      var duration = parseInt(fDuration.value) || 0;
+      var yieldRate = parseFloat(fYield.value) || 12;
+      var basis = getSelectedBasis();
+      var flatRate = getFlatRate(yieldRate, basis) / 100;
+      if(duration <= 0) return 0;
+      var periods = getPeriods(duration, basis);
+      // rate = amount × (1 + flatRate × periods) / (revenue × duration) × 100
+      return (amount * (1 + flatRate * periods) / (revenue * duration)) * 100;
+    }
+  }
+
+  function recalcLinkage(source){
+    if(_linkageLock) return;
+    _linkageLock = true;
+    try {
+      if(source === 'rate'){
+        var rate = parseFloat(fRate.value) || 0;
+        var newAmount = calcAmountFromRate(rate);
+        if(newAmount > 0){
+          fAmount.value = Math.round(newAmount * 100) / 100;
+          if(fAmountSlider){
+            var maxSlider = Math.max(newAmount * 2, 1000);
+            fAmountSlider.max = Math.ceil(maxSlider);
+            fAmountSlider.value = Math.round(newAmount);
+            var maxLabel = document.getElementById('amount-slider-max-label');
+            if(maxLabel) maxLabel.textContent = Math.ceil(maxSlider) + '万';
+          }
+        }
+      } else if(source === 'amount'){
+        var amount = parseFloat(fAmount.value) || 0;
+        var newRate = calcRateFromAmount(amount);
+        if(newRate > 0 && newRate <= 100){
+          fRate.value = Math.round(newRate * 10) / 10;
+          if(fRateSlider) fRateSlider.value = Math.round(newRate * 10) / 10;
+        }
+      }
+    } finally {
+      _linkageLock = false;
+    }
+  }
+
+  // Bind sliders and inputs
+  if(fRateSlider){
+    fRateSlider.addEventListener('input', function(){
+      fRate.value = fRateSlider.value;
+      recalcLinkage('rate');
+      updateAutoCalc();
+    });
+  }
+  if(fRate){
+    fRate.addEventListener('input', function(){
+      if(fRateSlider) fRateSlider.value = fRate.value;
+      recalcLinkage('rate');
+      updateAutoCalc();
+    });
+  }
+  if(fAmountSlider){
+    fAmountSlider.addEventListener('input', function(){
+      fAmount.value = fAmountSlider.value;
+      recalcLinkage('amount');
+      updateAutoCalc();
+    });
+  }
+  if(fAmount){
+    fAmount.addEventListener('input', function(){
+      if(fAmountSlider) fAmountSlider.value = fAmount.value;
+      recalcLinkage('amount');
+      updateAutoCalc();
+    });
+  }
+  // When revenue or duration changes, re-calc from rate
+  if(fRevenue) fRevenue.addEventListener('input', function(){ recalcLinkage('rate'); updateAutoCalc(); });
+  if(fDuration) fDuration.addEventListener('input', function(){ recalcLinkage('rate'); updateAutoCalc(); });
+
+  // ════════════════════════════════════════════
+  // Char count, file upload, step 1 validation
+  // ════════════════════════════════════════════
   var descCount = document.getElementById('desc-count');
   fDesc.addEventListener('input', function(){
     var len = fDesc.value.length;
     descCount.textContent = len + '/200';
     descCount.className = len > 200 ? 'char-count char-count-over' : 'char-count';
   });
-  // Highlight text char count
   var htCount = document.getElementById('highlight-text-count');
   fHighlightText.addEventListener('input', function(){
     var len = fHighlightText.value.length;
@@ -839,7 +1118,6 @@ app.get('/create', (c) => {
     htCount.style.color = len > 50 ? '#DC2626' : '#A8A29E';
   });
 
-  // File upload
   var uploadZone = document.getElementById('upload-zone');
   var fileNameDiv = document.getElementById('file-name');
   var fileNameText = document.getElementById('file-name-text');
@@ -853,37 +1131,15 @@ app.get('/create', (c) => {
     }
   });
 
-  // Step 1 validation
   document.getElementById('btn-next-1').addEventListener('click', function(){
     var errors = [];
     if(!fName.value.trim()) errors.push('项目名称');
     if(!fIndustry.value) errors.push('所属行业');
     if(!fDesc.value.trim()) errors.push('项目简介');
     if(fDesc.value.length > 200) errors.push('项目简介超过200字');
-    if(errors.length > 0){
-      showToast('请填写：' + errors.join('、'), 'error');
-      return;
-    }
+    if(errors.length > 0){ showToast('请填写：' + errors.join('、'), 'error'); return; }
     goStep(2, 'right');
-    // Inline hint for share ratio (replaces Coach Mark overlay)
-    setTimeout(function(){
-      var hintKey = 'zlc_create_ratio_hint';
-      if(localStorage.getItem(hintKey)) return;
-      var target = document.getElementById('input-share-ratio');
-      if(!target) return;
-      var hint = document.createElement('div');
-      hint.id = 'create-ratio-hint';
-      hint.style.cssText = 'background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:10px 14px;margin-top:8px;display:flex;align-items:flex-start;gap:8px;animation:coachFadeIn 0.4s ease forwards;';
-      hint.innerHTML = '<span style="flex-shrink:0;">💡</span><div style="flex:1;font-size:12px;color:#92400E;line-height:1.5;">这是你愿意分给参与人的月收入比例。填高了回款快但让利多，填低了可能不够吸引人。一般在8%-20%。<button id="create-ratio-hint-dismiss" style="color:#B45309;font-weight:600;background:none;border:none;cursor:pointer;margin-left:4px;padding:0;font-size:12px;">知道了</button></div>';
-      target.parentNode.insertBefore(hint, target.nextSibling);
-      document.getElementById('create-ratio-hint-dismiss').addEventListener('click', function(){
-        localStorage.setItem(hintKey, '1');
-        hint.style.opacity = '0';
-        hint.style.transition = 'opacity 0.3s';
-        setTimeout(function(){ hint.remove(); }, 300);
-      });
-    }, 600);
-    // ── Nudge B: Terms step 30s without number input ──
+    // Nudge
     if (!localStorage.getItem('zlc_nudge_create_terms')) {
       var termsNudgeTimer = setTimeout(function(){ showNudge('\\uD83D\\uDCCA', '不确定怎么填？展开上方的「同行案例参考」看看', 'create_terms'); }, 30000);
       function cancelTermsNudge(){ clearTimeout(termsNudgeTimer); }
@@ -905,76 +1161,122 @@ app.get('/create', (c) => {
     });
   }
 
-  // Re-init help icons for step 2 (created dynamically)
   if(typeof initHelpIcons === 'function') initHelpIcons();
 
-  // Step 2 auto-calc
+  // ════════════════════════════════════════════
+  // Auto-calc panel update
+  // ════════════════════════════════════════════
   function updateAutoCalc(){
     var amount = parseFloat(fAmount.value) || 0;
     var rate = parseFloat(fRate.value) || 0;
     var minamt = parseFloat(fMinamt.value) || 0;
     var revenue = parseFloat(fRevenue.value) || 0;
     var duration = parseInt(fDuration.value) || 0;
-    var yieldRate = parseFloat(fYield.value) || 12;
-    var exitMode = getExitMode();
-    var basis = getSelectedBasis();
-    var flatRate = getFlatRate(yieldRate, basis) / 100;
+    var em = getExitMode();
 
-    // 计算份额和锚点
     var shares = minamt > 0 && amount > 0 ? Math.floor(amount / minamt) : 0;
     var k = rate > 0 ? amount / rate : 0;
-    // 封顶计算：本金 × 平息 × 占用期
-    var basisLabel = basis === 'weekly' ? '周' : basis === 'daily' ? '日' : '月';
-    var periods = duration;
-    if(basis === 'weekly') periods = Math.ceil(duration * 4.33);
-    if(basis === 'daily') periods = Math.ceil(duration * 30.42);
-    var capInterest = amount * flatRate * periods;
-    var cap = amount + capInterest;
-    var capMultiple = amount > 0 ? cap / amount : 1;
-    // 更新隐藏的 recovery_multiple 字段（兼容旧逻辑）
-    if(fMultiple) fMultiple.value = capMultiple.toFixed(4);
     var monthly = revenue * (rate / 100);
     var payback = monthly > 0 ? Math.ceil(amount / monthly) : 0;
+
+    // Cap calculation depends on mode
+    var cap = 0, capMultiple = 1;
+    var basisLabel = '月', flatRatePct = 0, periods = 0;
+
+    if(em === 'term_only'){
+      var mult = parseFloat(fExpectMultiple.value) || 1.3;
+      capMultiple = mult;
+      cap = amount * mult;
+    } else {
+      var yieldRate = parseFloat(fYield.value) || 12;
+      var basis = getSelectedBasis();
+      flatRatePct = getFlatRate(yieldRate, basis);
+      var flatRate = flatRatePct / 100;
+      basisLabel = getBasisLabel(basis);
+
+      if(em === 'cap_only'){
+        // Use estimated payback as duration
+        var estDuration = payback > 0 ? payback : 24;
+        periods = getPeriods(estDuration, basis);
+      } else {
+        periods = getPeriods(duration, basis);
+      }
+      cap = amount + amount * flatRate * periods;
+      capMultiple = amount > 0 ? cap / amount : 1;
+    }
+
+    // Update hidden recovery multiple
+    if(fMultiple) fMultiple.value = capMultiple.toFixed(4);
 
     document.getElementById('calc-shares').textContent = shares > 0 ? shares + ' 份' : '—';
     document.getElementById('calc-k').textContent = k > 0 ? k.toFixed(2) + '万/1%' : '—';
     document.getElementById('calc-cap-multiple').textContent = capMultiple > 1 ? capMultiple.toFixed(2) + 'x' : '—';
-    document.getElementById('calc-cap2').textContent = cap > 0 ? '¥' + cap.toFixed(1) + '万' : '—';
-    document.getElementById('calc-monthly2').textContent = monthly > 0 ? '¥' + monthly.toFixed(2) + '万' : '—';
+    document.getElementById('calc-cap2').textContent = cap > 0 ? '\\u00A5' + cap.toFixed(1) + '万' : '—';
+    document.getElementById('calc-monthly2').textContent = monthly > 0 ? '\\u00A5' + monthly.toFixed(2) + '万' : '—';
     document.getElementById('calc-payback').textContent = payback > 0 ? payback + ' 个月' : '—';
 
-    // 封顶计算详情
+    // Cap calc detail panel (only for cap modes)
     var capDetailEl = document.getElementById('cap-calc-detail');
-    if(capDetailEl && amount > 0 && duration > 0){
-      capDetailEl.innerHTML = '<strong>回收上限</strong> = 本金 + 本金 × ' + basisLabel + '平息 × ' + basisLabel + '数<br/>'
-        + '= ' + amount.toFixed(2) + ' + ' + amount.toFixed(2) + ' × ' + (flatRate*100).toFixed(3) + '% × ' + periods
-        + ' = <strong style="color:#B91C1C;">¥' + cap.toFixed(2) + '万</strong>（等效 ' + capMultiple.toFixed(2) + 'x）<br/>'
-        + '<span style="font-size:11px;color:#78716C;">不足一个' + basisLabel + '按一个' + basisLabel + '计算</span>';
+    if(capDetailEl){
+      if(em === 'term_only'){
+        var mult = parseFloat(fExpectMultiple.value) || 1.3;
+        if(amount > 0){
+          capDetailEl.innerHTML = '<strong>回收上限</strong> = 融资金额 × 预期收益倍数<br/>'
+            + '= ' + amount.toFixed(2) + ' × ' + mult.toFixed(2) + ' = <strong style="color:#B91C1C;">\\u00A5' + cap.toFixed(2) + '万</strong>';
+        } else { capDetailEl.innerHTML = ''; }
+      } else if(amount > 0 && periods > 0){
+        capDetailEl.innerHTML = '<strong>回收上限</strong> = 本金 + 本金 × ' + basisLabel + '平息 × ' + basisLabel + '数<br/>'
+          + '= ' + amount.toFixed(2) + ' + ' + amount.toFixed(2) + ' × ' + flatRatePct.toFixed(3) + '% × ' + periods
+          + ' = <strong style="color:#B91C1C;">\\u00A5' + cap.toFixed(2) + '万</strong>（等效 ' + capMultiple.toFixed(2) + 'x）<br/>'
+          + '<span style="font-size:11px;color:#78716C;">不足一个' + basisLabel + '按一个' + basisLabel + '计算</span>';
+      } else { capDetailEl.innerHTML = ''; }
     }
+
+    // Calc detail under amount
+    var calcDetailEl = document.getElementById('amount-calc-detail');
+    if(calcDetailEl && amount > 0 && rate > 0 && revenue > 0){
+      if(em === 'term_only'){
+        var mult = parseFloat(fExpectMultiple.value) || 1.3;
+        calcDetailEl.innerHTML = '= ' + revenue + ' × ' + rate + '% × ' + duration + ' ÷ ' + mult.toFixed(2) + ' = ' + amount.toFixed(2) + '万';
+      } else if(em === 'cap_only'){
+        var yieldRate = parseFloat(fYield.value) || 12;
+        var estT = payback > 0 ? payback : 24;
+        calcDetailEl.innerHTML = '= ' + revenue + ' × ' + rate + '% × ~' + estT + '月 ÷ (1 + ' + flatRatePct.toFixed(3) + '% × ' + periods + ') = ' + amount.toFixed(2) + '万';
+      } else {
+        calcDetailEl.innerHTML = '= ' + revenue + ' × ' + rate + '% × ' + duration + ' ÷ (1 + ' + flatRatePct.toFixed(3) + '% × ' + periods + ') = ' + amount.toFixed(2) + '万';
+      }
+    } else if(calcDetailEl){ calcDetailEl.innerHTML = ''; }
 
     // Example
     var exampleEl = document.getElementById('example-text');
     if(minamt > 0 && monthly > 0 && amount > 0){
       var perShareMonthly = revenue * (rate / 100) * (minamt / amount);
       var perSharePayback = Math.ceil(minamt / perShareMonthly);
-      var perShareCap = minamt + minamt * flatRate * periods;
-      exampleEl.textContent = '如果参与 ¥' + minamt + '万，预估每月回款 ¥' + perShareMonthly.toFixed(2) + '万，约' + perSharePayback + '个月收回本金，回收上限 ¥' + perShareCap.toFixed(2) + '万';
+      var perShareCap = minamt * capMultiple;
+      exampleEl.textContent = '如果参与 \\u00A5' + minamt + '万，预估每月回款 \\u00A5' + perShareMonthly.toFixed(2) + '万，约' + perSharePayback + '个月收回本金，回收上限 \\u00A5' + perShareCap.toFixed(2) + '万';
     } else {
       exampleEl.textContent = '填写条款后，此处会显示参与举例说明';
     }
 
-    // Plain language block for create page
+    // Plain language block
     var plEl = document.getElementById('create-plain-lang');
     if(plEl){
       if(amount > 0 && rate > 0 && revenue > 0 && minamt > 0){
         var monthlyShareAll = revenue * (rate / 100);
         var perShareM = monthlyShareAll * (minamt / amount);
         var perSharePB = perShareM > 0 ? Math.ceil(minamt / perShareM) : 0;
-        var perShareCapVal = minamt + minamt * flatRate * periods;
+        var perShareCapVal = minamt * capMultiple;
+        var costDesc = '';
+        if(em === 'term_only'){
+          costDesc = '预期收益倍数 ' + (parseFloat(fExpectMultiple.value)||1.3).toFixed(2) + 'x';
+        } else {
+          var yr = parseFloat(fYield.value) || 12;
+          costDesc = '年化收益率 ' + yr + '%（' + basisLabel + '平息 ' + flatRatePct.toFixed(3) + '%）';
+        }
         plEl.style.display = 'block';
         plEl.innerHTML = '<div class="plain-lang-title">\\uD83D\\uDCAC 简单来说</div>'
           + '<div class="plain-lang-body">'
-          + '这个项目总共需要 ' + amount.toFixed(2) + ' 万资金，年化收益率 ' + yieldRate + '%（' + basisLabel + '平息 ' + (flatRate*100).toFixed(3) + '%）。'
+          + '这个项目总共需要 ' + amount.toFixed(2) + ' 万资金，' + costDesc + '。'
           + '<br/>你承诺把项目每月收入的 ' + rate + '% 分给所有参与人。按预估每月收入 ' + revenue + ' 万计算，每月总共分出约 ' + monthlyShareAll.toFixed(2) + ' 万。'
           + '<br/><br/>如果有人参与 ' + minamt + ' 万（1份），他每月大约能拿到 ' + perShareM.toFixed(2) + ' 万，大概 ' + perSharePB + ' 个月收回本金，回收上限 ' + perShareCapVal.toFixed(2) + ' 万（等效 ' + capMultiple.toFixed(2) + ' 倍）。'
           + '<br/><br/><span class="plain-lang-warning">\\u26A0\\uFE0F 以上基于预估收入，实际回款取决于项目真实经营情况。</span>'
@@ -985,50 +1287,64 @@ app.get('/create', (c) => {
     }
   }
 
-  // Step 2 nav
+  // Bind minamt change
+  if(fMinamt) fMinamt.addEventListener('input', function(){ updateAutoCalc(); });
+
+  // ════════════════════════════════════════════
+  // Step 2 nav + validation
+  // ════════════════════════════════════════════
   document.getElementById('btn-prev-2').addEventListener('click', function(){ goStep(1, 'left'); });
   document.getElementById('btn-next-2').addEventListener('click', function(){
+    var em = getExitMode();
     var errors = [];
-    if(!fYield.value || parseFloat(fYield.value)<=0) errors.push('年化收益率');
     if(!fRevenue.value || parseFloat(fRevenue.value)<=0) errors.push('预估月收入');
+    if(em !== 'term_only' && (!fYield.value || parseFloat(fYield.value)<=0)) errors.push('年化收益率');
+    if(em === 'term_only' && (!fExpectMultiple.value || parseFloat(fExpectMultiple.value)<=1)) errors.push('预期收益倍数');
+    if((em === 'both' || em === 'term_only') && (!fDuration.value || parseInt(fDuration.value)<=0)) errors.push('最长分成期限');
     if(!fRate.value || parseFloat(fRate.value)<=0) errors.push('分成比例');
     if(!fAmount.value || parseFloat(fAmount.value)<=0) errors.push('融资总额');
-    if(!fDuration.value || parseFloat(fDuration.value)<=0) errors.push('联营期限');
     if(!fMinamt.value || parseFloat(fMinamt.value)<=0) errors.push('最低参与额');
     if(errors.length > 0){
       showToast('请填写：' + errors.join('、'), 'error');
       return;
     }
-    // 自动带入企业信息（如果用户有公司信息）
     if(fCompanyFull && !fCompanyFull.value && u.company) fCompanyFull.value = u.company;
     if(fBankNameAcct && !fBankNameAcct.value && u.company) fBankNameAcct.value = u.company;
     goStep(3, 'right');
   });
 
+  // ════════════════════════════════════════════
   // Step 4 preview builder
+  // ════════════════════════════════════════════
   function buildPreview(){
     var amount = parseFloat(fAmount.value) || 0;
     var rate = parseFloat(fRate.value) || 0;
     var duration = parseInt(fDuration.value) || 0;
     var minamt = parseFloat(fMinamt.value) || 0;
     var revenue = parseFloat(fRevenue.value) || 0;
-    var yieldRate = parseFloat(fYield.value) || 12;
-    var exitMode = getExitMode();
-    var basis = getSelectedBasis();
-    var flatRate = getFlatRate(yieldRate, basis) / 100;
-    var periods = duration;
-    if(basis === 'weekly') periods = Math.ceil(duration * 4.33);
-    if(basis === 'daily') periods = Math.ceil(duration * 30.42);
-    var cap = amount + amount * flatRate * periods;
-    var capMultiple = amount > 0 ? cap / amount : 1;
-    var shares = minamt > 0 ? Math.floor(amount / minamt) : 0;
+    var em = getExitMode();
     var monthly = revenue * (rate / 100);
     var payback = monthly > 0 ? Math.ceil(amount / monthly) : 0;
+    var shares = minamt > 0 ? Math.floor(amount / minamt) : 0;
 
-    var exitModeLabel = exitMode === 'both' ? '先到为准（期限/倍数）' : exitMode === 'term_only' ? '仅期限到期' : '仅封顶倍数';
+    // Determine cap/multiple for preview
+    var cap = 0, capMultiple = 1, yieldRate = parseFloat(fYield.value) || 12;
+    var basis = getSelectedBasis();
+    var flatRate = getFlatRate(yieldRate, basis) / 100;
+    var basisLbl = getBasisLabel(basis);
+    var periods = getPeriods(duration, basis);
+    if(em === 'term_only'){
+      capMultiple = parseFloat(fExpectMultiple.value) || 1.3;
+      cap = amount * capMultiple;
+    } else {
+      if(em === 'cap_only') periods = getPeriods(payback > 0 ? payback : 24, basis);
+      cap = amount + amount * flatRate * periods;
+      capMultiple = amount > 0 ? cap / amount : 1;
+    }
+
+    var exitModeLabel = em === 'both' ? '先到为准' : em === 'term_only' ? '仅期限到期' : '仅封顶';
 
     var html = '';
-    // Header
     html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">';
     html += '<span style="background:#FEE2E2;color:#B91C1C;padding:2px 10px;border-radius:6px;font-size:12px;font-weight:600;">' + (fIndustry.value||'') + '</span>';
     html += '<span class="badge badge-open">募集中</span>';
@@ -1037,13 +1353,11 @@ app.get('/create', (c) => {
     if(fHighlightText.value.trim()){
       html += '<div style="font-size:14px;color:#B91C1C;font-style:italic;margin-bottom:12px;line-height:1.5;">' + fHighlightText.value.trim() + '</div>';
     }
-    // Owner
     html += '<div style="display:flex;align-items:center;gap:10px;padding:12px;background:#FAFAF9;border-radius:12px;margin-bottom:12px;">';
     html += '<div style="width:40px;height:40px;border-radius:50%;background:#B91C1C;color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;">' + (u.name||'?').charAt(0) + '</div>';
     html += '<div><div style="font-size:14px;font-weight:600;color:#1C1917;">' + u.name + '</div>';
     html += '<div style="font-size:12px;color:#78716C;">' + (fCompanyFull.value || u.company || '') + '</div></div></div>';
     html += '<p style="font-size:14px;line-height:1.7;color:#292524;margin-bottom:16px;">' + fDesc.value + '</p>';
-    // Highlights
     var hlArr = [fHighlight1.value.trim(), fHighlight2.value.trim(), fHighlight3.value.trim()].filter(function(v){return v;});
     if(hlArr.length > 0){
       html += '<div style="margin-bottom:16px;padding:16px 20px;background:#fff;border-radius:14px;border-left:3px solid #D4A853;">';
@@ -1051,17 +1365,19 @@ app.get('/create', (c) => {
       hlArr.forEach(function(h){ html += '<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;"><span style="width:6px;height:6px;background:#D4A853;border-radius:50%;flex-shrink:0;margin-top:6px;"></span><span style="font-size:14px;color:#44403C;line-height:1.6;">' + h + '</span></div>'; });
       html += '</div></div>';
     }
-    // Terms grid
     html += '<div style="border-left:4px solid #B91C1C;border-radius:12px;overflow:hidden;background:#fff;border:1px solid #F5F5F4;border-left:4px solid #B91C1C;">';
     html += '<div style="padding:12px 16px;border-bottom:1px solid #F5F5F4;font-size:15px;font-weight:600;color:#292524;"><i class="fas fa-file-contract" style="color:#B91C1C;margin-right:8px;font-size:13px;"></i>收入分成条款</div>';
     html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0;">';
-    var basisLbl = basis === 'weekly' ? '周' : basis === 'daily' ? '日' : '月';
     var terms = [
-      ['融资总额', '¥'+amount.toFixed(2)+'万'], ['分成比例', rate+'%'],
-      ['联营期限', duration+'个月'], ['年化收益率', yieldRate+'%'],
-      ['平息口径', basisLbl+'平息 '+(flatRate*100).toFixed(3)+'%'], ['回收上限', '¥'+cap.toFixed(2)+'万'],
-      ['退出方式', exitModeLabel], ['预估月收入', '¥'+revenue+'万'],
+      ['融资总额', '\\u00A5'+amount.toFixed(2)+'万'], ['分成比例', rate+'%'],
+      ['退出方式', exitModeLabel],
     ];
+    if(em !== 'term_only') terms.push(['年化收益率', yieldRate+'%']);
+    if(em !== 'term_only') terms.push(['平息口径', basisLbl+'平息 '+(flatRate*100).toFixed(3)+'%']);
+    if(em === 'term_only') terms.push(['预期收益倍数', capMultiple.toFixed(2)+'x']);
+    if(em !== 'cap_only') terms.push(['最长分成期限', duration+'个月']);
+    terms.push(['回收上限', '\\u00A5'+cap.toFixed(2)+'万']);
+    terms.push(['预估月收入', '\\u00A5'+revenue+'万']);
     terms.forEach(function(t,i){
       html += '<div style="padding:12px 16px;border-bottom:1px solid #F5F5F4;' + (i%2===0?'border-right:1px solid #F5F5F4;':'') + '">';
       html += '<div style="font-size:11px;color:#78716C;margin-bottom:2px;">' + t[0] + '</div>';
@@ -1069,18 +1385,15 @@ app.get('/create', (c) => {
     });
     html += '</div>';
     html += '<div style="background:#FEF2F2;padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:12px;">';
-    html += '<div><div style="font-size:11px;color:#78716C;">预估月回款</div><div style="font-size:17px;font-weight:700;color:#B91C1C;">¥' + monthly.toFixed(2) + '万</div></div>';
+    html += '<div><div style="font-size:11px;color:#78716C;">预估月回款</div><div style="font-size:17px;font-weight:700;color:#B91C1C;">\\u00A5' + monthly.toFixed(2) + '万</div></div>';
     html += '<div><div style="font-size:11px;color:#78716C;">预估回收期</div><div style="font-size:17px;font-weight:700;color:#B91C1C;">约' + payback + '月</div></div>';
     html += '</div></div>';
-    html += '<div style="margin-top:12px;font-size:12px;color:#78716C;">总份额 ' + shares + ' 份 · 每份 ¥' + minamt + '万 · 上报频率：' + fFreq.value + '</div>';
-    // Enterprise info preview
+    html += '<div style="margin-top:12px;font-size:12px;color:#78716C;">总份额 ' + shares + ' 份 · 每份 \\u00A5' + minamt + '万 · 上报频率：' + fFreq.value + '</div>';
     if(fCompanyFull.value){
       html += '<div style="margin-top:16px;padding:14px;background:#F0F9FF;border-radius:12px;border-left:3px solid #2563EB;">';
       html += '<div style="font-size:13px;font-weight:600;color:#1E40AF;margin-bottom:8px;"><i class="fas fa-building" style="margin-right:4px;"></i>企业主体</div>';
       html += '<div style="font-size:12px;color:#57534E;line-height:1.8;">';
-      html += fCompanyFull.value + '<br/>';
-      html += '法定代表人：' + (fLegalRep.value || '—') + '<br/>';
-      html += '信用代码：' + (fCreditCode.value || '—');
+      html += fCompanyFull.value + '<br/>法定代表人：' + (fLegalRep.value || '—') + '<br/>信用代码：' + (fCreditCode.value || '—');
       html += '</div></div>';
     }
     if(uploadedFileName){
@@ -1089,7 +1402,7 @@ app.get('/create', (c) => {
     document.getElementById('preview-content').innerHTML = html;
   }
 
-  // Step 3 nav (enterprise + payment)
+  // Step 3 nav
   document.getElementById('btn-prev-3').addEventListener('click', function(){ goStep(2, 'left'); });
   document.getElementById('btn-next-3').addEventListener('click', function(){
     var errors = [];
@@ -1100,32 +1413,36 @@ app.get('/create', (c) => {
     if(!fBankNameAcct.value.trim()) errors.push('收款户名');
     if(!fBankNumber.value.trim()) errors.push('银行账号');
     if(!fBankName.value) errors.push('开户银行');
-    if(errors.length > 0){
-      showToast('请填写：' + errors.join('、'), 'error');
-      return;
-    }
+    if(errors.length > 0){ showToast('请填写：' + errors.join('、'), 'error'); return; }
     buildPreview();
     goStep(4, 'right');
   });
 
-  // Step 4 nav
   document.getElementById('btn-prev-4').addEventListener('click', function(){ goStep(3, 'left'); });
 
-  // Collect form data
+  // ════════════════════════════════════════════
+  // Collect form data for API submission
+  // ════════════════════════════════════════════
   function collectData(status){
     var amount = parseFloat(fAmount.value) || 0;
     var rate = parseFloat(fRate.value) || 0;
     var duration = parseInt(fDuration.value) || 0;
     var minamt = parseFloat(fMinamt.value) || 0;
     var revenue = parseFloat(fRevenue.value) || 0;
+    var em = getExitMode();
     var yieldRate = parseFloat(fYield.value) || 12;
-    var exitMode = getExitMode();
+    var expectMultiple = parseFloat(fExpectMultiple.value) || 1.3;
     var basis = getSelectedBasis();
     var flatRate = getFlatRate(yieldRate, basis) / 100;
-    var periods = duration;
-    if(basis === 'weekly') periods = Math.ceil(duration * 4.33);
-    if(basis === 'daily') periods = Math.ceil(duration * 30.42);
-    var capMultiple = amount > 0 ? (amount + amount * flatRate * periods) / amount : 1;
+
+    // Compute recovery multiple for storage
+    var capMultiple = 1;
+    if(em === 'term_only'){
+      capMultiple = expectMultiple;
+    } else {
+      var p = em === 'cap_only' ? getPeriods(Math.ceil(amount / (revenue * rate / 100)) || 24, basis) : getPeriods(duration, basis);
+      capMultiple = amount > 0 ? (amount + amount * flatRate * p) / amount : 1;
+    }
     var shares = minamt > 0 ? Math.floor(amount / minamt) : 0;
     var hlArr = [fHighlight1.value.trim(), fHighlight2.value.trim(), fHighlight3.value.trim()].filter(function(v){return v;});
     return {
@@ -1136,15 +1453,14 @@ app.get('/create', (c) => {
       highlights: hlArr.length > 0 ? hlArr : [],
       targetAmount: amount, revenueShareRate: rate, duration: duration,
       recoveryMultiple: capMultiple, estimatedMonthlyRevenue: revenue,
-      settlementCycle: getSelectedBasis(),
+      settlementCycle: basis,
       totalShares: shares, sharePrice: minamt, minShares: 1,
       reportFrequency: fFreq.value,
-      // 退出条件
-      annualYieldRate: yieldRate, exitMode: exitMode,
-      // 风控
+      annualYieldRate: em === 'term_only' ? 0 : yieldRate,
+      expectMultiple: em === 'term_only' ? expectMultiple : null,
+      exitMode: em,
       lossThresholdMonths: fLossMonths.value ? parseInt(fLossMonths.value) : null,
       lossThresholdAmount: fLossAmount.value ? parseFloat(fLossAmount.value) : null,
-      // 企业主体
       companyFullName: fCompanyFull.value.trim() || null,
       creditCode: fCreditCode.value.trim() || null,
       registeredAddress: fRegAddr.value.trim() || null,
@@ -1153,10 +1469,8 @@ app.get('/create', (c) => {
       actualController: fController.value.trim() || null,
       actualControllerId: fControllerId.value.trim() || null,
       businessAddress: fBizAddr.value.trim() || null,
-      // 数据传输
       dataTransmitMode: fTransmit.value || '手工上报',
       paymentMode: fPaymentMode.value || '手动分账',
-      // 收款
       bankAccountName: fBankNameAcct.value.trim() || null,
       bankAccountNumber: fBankNumber.value.trim() || null,
       bankName: fBankName.value || null,
@@ -1166,47 +1480,34 @@ app.get('/create', (c) => {
     };
   }
 
-  // Save draft via API
+  // Save draft
   document.getElementById('btn-draft').addEventListener('click', function(){
     var proj = collectData('draft');
     var btn = this;
     btn.disabled = true; btn.textContent = '保存中...';
     fetch('/api/admin/projects/create', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      credentials: 'same-origin',
+      method: 'POST', headers: {'Content-Type': 'application/json'}, credentials: 'same-origin',
       body: JSON.stringify(Object.assign({}, proj, { initiatorNote: proj.detail, status: 'draft' }))
     }).then(function(r){return r.json();}).then(function(d){
       btn.disabled = false; btn.textContent = '保存草稿';
-      if(d.ok){
-        showToast('草稿已保存', 'success');
-        setTimeout(function(){ window.location.href = '/'; }, 800);
-      } else {
-        showToast(d.error || '保存失败', 'error');
-      }
-    }).catch(function(){
-      btn.disabled = false; btn.textContent = '保存草稿';
-      showToast('网络错误', 'error');
-    });
+      if(d.ok){ showToast('草稿已保存', 'success'); setTimeout(function(){ window.location.href = '/'; }, 800); }
+      else { showToast(d.error || '保存失败', 'error'); }
+    }).catch(function(){ btn.disabled = false; btn.textContent = '保存草稿'; showToast('网络错误', 'error'); });
   });
 
-  // Publish via API
+  // Publish
   document.getElementById('btn-publish').addEventListener('click', function(){
     var proj = collectData('open');
     var btn = this;
     btn.disabled = true; btn.textContent = '提交中...';
     fetch('/api/admin/projects/create', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      credentials: 'same-origin',
+      method: 'POST', headers: {'Content-Type': 'application/json'}, credentials: 'same-origin',
       body: JSON.stringify(Object.assign({}, proj, { initiatorNote: proj.detail }))
     }).then(function(r){return r.json();}).then(function(d){
       btn.disabled = false; btn.textContent = '发布项目';
       if(!d.ok){ showToast(d.error || '提交失败', 'error'); return; }
       var projectId = d.data.projectId;
       var shareCode = d.data.shareCode;
-
-      // Show custom success modal with share button
       var overlay = document.createElement('div');
       overlay.className = 'success-modal-overlay';
       overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.3s;';
@@ -1220,17 +1521,9 @@ app.get('/create', (c) => {
         + '</div></div>';
       document.body.appendChild(overlay);
       requestAnimationFrame(function(){ overlay.style.opacity = '1'; });
-
-      document.getElementById('success-share-btn').addEventListener('click', function(){
-        window.location.href = '/projects/' + projectId + '?share=true';
-      });
-      document.getElementById('success-view-btn').addEventListener('click', function(){
-        window.location.href = '/projects/' + projectId;
-      });
-    }).catch(function(){
-      btn.disabled = false; btn.textContent = '发布项目';
-      showToast('网络错误', 'error');
-    });
+      document.getElementById('success-share-btn').addEventListener('click', function(){ window.location.href = '/projects/' + projectId + '?share=true'; });
+      document.getElementById('success-view-btn').addEventListener('click', function(){ window.location.href = '/projects/' + projectId; });
+    }).catch(function(){ btn.disabled = false; btn.textContent = '发布项目'; showToast('网络错误', 'error'); });
   });
 })();
 `}} />

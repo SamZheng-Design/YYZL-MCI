@@ -535,7 +535,7 @@ adminApi.post('/projects/create', async (c) => {
         highlight_text, highlights, initiator_note,
         company_full_name, credit_code, registered_address,
         legal_representative, legal_rep_type, actual_controller, actual_controller_id,
-        business_address, annual_yield_rate, exit_mode,
+        business_address, annual_yield_rate, exit_mode, settlement_cycle, expect_multiple,
         loss_threshold_months, loss_threshold_amount,
         data_transmit_mode, report_frequency, payment_mode,
         bank_account_name, bank_account_number, bank_name, bank_branch, taxpayer_id
@@ -547,7 +547,7 @@ adminApi.post('/projects/create', async (c) => {
         ?, ?, ?,
         ?, ?, ?,
         ?, ?, ?, ?,
-        ?, ?, ?,
+        ?, ?, ?, ?, ?,
         ?, ?,
         ?, ?, ?,
         ?, ?, ?, ?, ?
@@ -566,7 +566,8 @@ adminApi.post('/projects/create', async (c) => {
       data.legalRepresentative || null, data.legalRepType || '法定代表人',
       data.actualController || null, data.actualControllerId || null,
       // 退出条件
-      data.businessAddress || null, data.annualYieldRate || 12.0, data.exitMode || 'both',
+      data.businessAddress || null, data.annualYieldRate ?? 12.0, data.exitMode || 'both',
+      data.settlementCycle || 'monthly', data.expectMultiple || null,
       // 风控
       data.lossThresholdMonths || null, data.lossThresholdAmount || null,
       // 数据传输与收款

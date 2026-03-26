@@ -45,9 +45,21 @@ app.get('/projects/:id', async (c) => {
   }
   // Render project detail
   var pct = proj.targetAmount > 0 ? Math.round(proj.raisedAmount / proj.targetAmount * 100) : 0;
-  var cap = proj.targetAmount * proj.recoveryMultiple;
+  var yieldRate = proj.annualYieldRate != null ? proj.annualYieldRate : 12;
+  var exitMode = proj.exitMode || 'both';
   var monthly = proj.estimatedMonthlyRevenue * (proj.revenueShareRate / 100);
   var payback = monthly > 0 ? Math.ceil(proj.targetAmount / monthly) : 0;
+  // Exit-mode-aware cap
+  var cap = proj.targetAmount * proj.recoveryMultiple;
+  if(exitMode === 'term_only' && proj.expectMultiple){
+    cap = proj.targetAmount * proj.expectMultiple;
+  } else if(exitMode !== 'term_only'){
+    var basis = proj.settlementCycle || 'monthly';
+    var flat = (yieldRate / (basis === 'weekly' ? 52 : basis === 'daily' ? 365 : 12)) / 100;
+    var dur = exitMode === 'cap_only' ? (payback > 0 ? payback : 24) : proj.duration;
+    var periods = basis === 'weekly' ? Math.ceil(dur*4.33) : basis === 'daily' ? Math.ceil(dur*30.42) : dur;
+    cap = proj.targetAmount + proj.targetAmount * flat * periods;
+  }
   var remainShares = proj.totalShares - proj.raisedShares;
   var statusLabel = {open:'募集中',funded:'已满额',active:'运营中',completed:'已完成',draft:'草稿'}[proj.status]||proj.status;
 
@@ -68,7 +80,13 @@ app.get('/projects/:id', async (c) => {
   html += '<div class="detail-card" style="padding:0;overflow:hidden;">';
   html += '<div style="padding:18px 20px;border-bottom:1px solid #F5F5F4;display:flex;align-items:center;gap:10px;"><i class="fas fa-file-contract" style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#FEE2E2,#FECDD3);color:#B91C1C;display:flex;align-items:center;justify-content:center;font-size:13px;"></i><span style="font-size:16px;font-weight:600;color:#1C1917;">收入分成条款</span></div>';
   html += '<div style="display:grid;grid-template-columns:1fr 1fr;">';
-  var terms = [["融资总额","¥"+proj.targetAmount+"万"],["分成比例",proj.revenueShareRate+"%"],["联营期限",proj.duration+"月"],["年化收益率",yieldRate+"%"],["回收上限","¥"+cap.toFixed(1)+"万"],["预估月收入","¥"+proj.estimatedMonthlyRevenue+"万"]];
+  var exitModeLabel = exitMode === 'both' ? '先到为准' : exitMode === 'term_only' ? '仅期限' : '仅封顶';
+  var terms = [["融资总额","¥"+proj.targetAmount+"万"],["分成比例",proj.revenueShareRate+"%"],["退出方式",exitModeLabel]];
+  if(exitMode !== 'term_only'){ terms.push(["年化收益率",yieldRate+"%"]); var _b2 = proj.settlementCycle || 'monthly'; var _bl2 = _b2 === 'weekly' ? '周' : _b2 === 'daily' ? '日' : '月'; var _fp2 = yieldRate / (_b2 === 'weekly' ? 52 : _b2 === 'daily' ? 365 : 12); terms.push(["平息口径",_bl2+"平息 "+_fp2.toFixed(3)+"%"]); }
+  if(exitMode === 'term_only' && proj.expectMultiple) terms.push(["预期收益倍数",proj.expectMultiple.toFixed(2)+"x"]);
+  if(exitMode !== 'cap_only') terms.push(["最长分成期限",proj.duration+"月"]);
+  terms.push(["回收上限","¥"+cap.toFixed(1)+"万"]);
+  terms.push(["预估月收入","¥"+proj.estimatedMonthlyRevenue+"万"]);
   terms.forEach(function(t,i){ html += "<div style=\\"padding:14px 20px;border-bottom:1px solid #F5F5F4;"+(i%2===0?"border-right:1px solid #F5F5F4;":"")+"\\"><div style=\\"font-size:12px;color:#78716C;margin-bottom:4px;\\">"+t[0]+"</div><div style=\\"font-size:18px;font-weight:700;color:#1C1917;\\">"+t[1]+"</div></div>"; });
   html += '</div><div style="background:linear-gradient(135deg,#FEF2F2,#FFF1F2);padding:18px 20px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">';
   html += '<div><div style="font-size:12px;color:#78716C;margin-bottom:4px;">预估月回款</div><div style="font-size:20px;font-weight:800;color:#B91C1C;">¥'+monthly.toFixed(1)+'万</div></div>';
@@ -97,6 +115,37 @@ app.get('/projects/:id', async (c) => {
   const owner = allMembers.find(m => m.id === proj.ownerId)!
   const rbf = calculateRBF(proj.targetAmount, proj.revenueShareRate, proj.estimatedMonthlyRevenue, proj.recoveryMultiple)
   const pct = Math.round((proj.raisedAmount / proj.targetAmount) * 100)
+
+  // Exit mode aware calculations
+  const exitMode = proj.exitMode || 'both'
+  const annualYieldRate = proj.annualYieldRate ?? 12
+  const settlementCycle = proj.settlementCycle || 'monthly'
+  const expectMultiple = proj.expectMultiple ?? null
+  const basisLabelMap: Record<string, string> = { monthly: '月', weekly: '周', daily: '日' }
+  const basisDivisor: Record<string, number> = { monthly: 12, weekly: 52, daily: 365 }
+  const basisLabel = basisLabelMap[settlementCycle] || '月'
+  const flatRatePct = annualYieldRate / (basisDivisor[settlementCycle] || 12)
+
+  // Compute cap based on exit mode
+  let ssrCap = rbf.recoveryCap
+  let ssrCapMultiple = proj.recoveryMultiple
+  if (exitMode === 'term_only' && expectMultiple) {
+    ssrCap = proj.targetAmount * expectMultiple
+    ssrCapMultiple = expectMultiple
+  } else if (exitMode !== 'term_only') {
+    const flatRate = flatRatePct / 100
+    const periodsMap: Record<string, (m: number) => number> = {
+      monthly: (m) => m,
+      weekly: (m) => Math.ceil(m * 4.33),
+      daily: (m) => Math.ceil(m * 30.42),
+    }
+    const getPeriods = periodsMap[settlementCycle] || periodsMap.monthly
+    const paybackEst = rbf.monthlyShare > 0 ? Math.ceil(proj.targetAmount / rbf.monthlyShare) : 24
+    const dur = exitMode === 'cap_only' ? paybackEst : proj.duration
+    const periods = getPeriods(dur)
+    ssrCap = proj.targetAmount + proj.targetAmount * flatRate * periods
+    ssrCapMultiple = proj.targetAmount > 0 ? ssrCap / proj.targetAmount : 1
+  }
   const remainShares = proj.totalShares - proj.raisedShares
   const investorMembers = proj.investors.map(iid => allMembers.find(m => m.id === iid)).filter(Boolean) as any[]
   const bgColors = ['#B91C1C','#D4A853','#991B1B','#B8860B','#7F1D1D']
@@ -191,27 +240,57 @@ app.get('/projects/:id', async (c) => {
               </div>
               <div class="terms-cell">
                 <div style="display:flex;align-items:center;gap:4px;">
-                  <span class="terms-label" style="margin-bottom:0;">联营期限</span>
-                  <span class="help-icon" data-help-id="cooperationTerm">?</span>
+                  <span class="terms-label" style="margin-bottom:0;">退出方式</span>
+                  <span class="help-icon" data-help-id="exitMode">?</span>
                 </div>
-                <div class="help-text">合作持续多长时间。到期后无论是否收回投资，合同自动结束。</div>
-                <div class="terms-value">{proj.duration}<span style="font-size:13px;font-weight:400;color:#A8A29E;">月</span></div>
+                <div class="help-text">决定合同何时终止。先到为准最常用：到期或封顶哪个先到就终止。</div>
+                <div class="terms-value" style="font-size:16px;">{exitMode === 'both' ? '先到为准' : exitMode === 'term_only' ? '仅期限' : '仅封顶'}</div>
               </div>
-              <div class="terms-cell">
-                <div style="display:flex;align-items:center;gap:4px;">
-                  <span class="terms-label" style="margin-bottom:0;">年化收益率</span>
-                  <span class="help-icon" data-help-id="annualYieldRate">?</span>
+              {exitMode !== 'cap_only' && (
+                <div class="terms-cell">
+                  <div style="display:flex;align-items:center;gap:4px;">
+                    <span class="terms-label" style="margin-bottom:0;">最长分成期限</span>
+                    <span class="help-icon" data-help-id="cooperationTerm">?</span>
+                  </div>
+                  <div class="help-text">合作持续多长时间。到期后无论是否收回投资，合同自动结束。</div>
+                  <div class="terms-value">{proj.duration}<span style="font-size:13px;font-weight:400;color:#A8A29E;">月</span></div>
                 </div>
-                <div class="help-text">投资人按年化收益率计算回收上限。年化12%意味着月平息1%，投入的本金按平息×占用期计算最大收益。</div>
-                <div class="terms-value">{proj.annualYieldRate || 12}<span style="font-size:13px;font-weight:400;color:#A8A29E;">%</span></div>
-              </div>
+              )}
+              {exitMode !== 'term_only' && (
+                <div class="terms-cell">
+                  <div style="display:flex;align-items:center;gap:4px;">
+                    <span class="terms-label" style="margin-bottom:0;">年化收益率</span>
+                    <span class="help-icon" data-help-id="annualYieldRate">?</span>
+                  </div>
+                  <div class="help-text">投资人按年化收益率计算回收上限。年化12%意味着月平息1%，投入的本金按平息x占用期计算最大收益。</div>
+                  <div class="terms-value">{annualYieldRate}<span style="font-size:13px;font-weight:400;color:#A8A29E;">%</span></div>
+                </div>
+              )}
+              {exitMode !== 'term_only' && (
+                <div class="terms-cell">
+                  <div style="display:flex;align-items:center;gap:4px;">
+                    <span class="terms-label" style="margin-bottom:0;">平息口径</span>
+                  </div>
+                  <div class="terms-value" style="font-size:16px;">{basisLabel}平息 {flatRatePct.toFixed(3)}%</div>
+                </div>
+              )}
+              {exitMode === 'term_only' && expectMultiple && (
+                <div class="terms-cell">
+                  <div style="display:flex;align-items:center;gap:4px;">
+                    <span class="terms-label" style="margin-bottom:0;">预期收益倍数</span>
+                    <span class="help-icon" data-help-id="expectMultiple">?</span>
+                  </div>
+                  <div class="help-text">参与人最多拿回本金的多少倍。如1.3x = 赚30%。</div>
+                  <div class="terms-value">{expectMultiple.toFixed(2)}<span style="font-size:13px;font-weight:400;color:#A8A29E;">x</span></div>
+                </div>
+              )}
               <div class="terms-cell">
                 <div style="display:flex;align-items:center;gap:4px;">
                   <span class="terms-label" style="margin-bottom:0;">回收上限</span>
                   <span class="help-icon" data-help-id="recoveryCap">?</span>
                 </div>
-                <div class="help-text">你最多能拿回的总金额 = 本金 + 本金 × 平息 × 占用期。</div>
-                <div class="terms-value">¥{rbf.recoveryCap}<span style="font-size:13px;font-weight:400;color:#A8A29E;">万</span></div>
+                <div class="help-text">你最多能拿回的总金额。{exitMode === 'term_only' ? '= 本金 x 预期收益倍数' : '= 本金 + 本金 x 平息 x 占用期'}</div>
+                <div class="terms-value">¥{Math.round(ssrCap * 10) / 10}<span style="font-size:13px;font-weight:400;color:#A8A29E;">万</span></div>
               </div>
               <div class="terms-cell">
                 <div style="display:flex;align-items:center;gap:4px;">
@@ -590,6 +669,10 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
     viewCount: proj.viewCount || 0,
     highlightText: proj.highlightText || '',
     highlights: proj.highlights || [],
+    exitMode: proj.exitMode || 'both',
+    annualYieldRate: proj.annualYieldRate ?? 12,
+    expectMultiple: proj.expectMultiple ?? null,
+    settlementCycle: proj.settlementCycle || 'monthly',
   })};
   var OWNER = ${JSON.stringify({ name: owner.name, className: owner.className || owner.cohort || '' })};
   var MOCK_CONTRACTS_FOR_COUNT = ${JSON.stringify(allContracts.filter(c => c.projectId === proj.id && c.status === 'active').length)};
@@ -683,10 +766,25 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
     if(amtEl) amtEl.textContent = '¥' + cost + '万';
     var ratio = cost / PROJ.targetAmount;
     var monthly = PROJ.estimatedMonthlyRevenue * (PROJ.revenueShareRate / 100) * ratio;
-    var cap = cost * PROJ.recoveryMultiple;
     var months = monthly > 0 ? Math.ceil(cost / monthly) : 0;
+
+    // Exit-mode-aware cap calculation
+    var em = PROJ.exitMode || 'both';
+    var cap = 0;
+    if(em === 'term_only'){
+      var mult = PROJ.expectMultiple || PROJ.recoveryMultiple || 1.3;
+      cap = cost * mult;
+    } else {
+      var yr = PROJ.annualYieldRate != null ? PROJ.annualYieldRate : 12;
+      var basis = PROJ.settlementCycle || 'monthly';
+      var flat = _getFlatRate(yr, basis) / 100;
+      var dur = em === 'cap_only' ? (months > 0 ? months : 24) : PROJ.duration;
+      var periods = _getPeriods(dur, basis);
+      cap = cost + cost * flat * periods;
+    }
+
     if(calcM) calcM.textContent = '¥' + monthly.toFixed(2) + '万';
-    if(calcC) calcC.textContent = '¥' + cap.toFixed(1) + '万';
+    if(calcC) calcC.textContent = '¥' + (Math.round(cap*10)/10) + '万';
     if(calcMo) calcMo.textContent = '约' + months + '月';
     if(partBtn && partBtn.style.display !== 'none') partBtn.textContent = '确认参与 ¥' + cost + '万';
     // Update calculator plain-language hint
@@ -696,6 +794,19 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
     }
   }
   if(sel) { sel.addEventListener('change', updateCalc); updateCalc(); }
+
+  // ── Helper: compute flat rate info ──
+  function _getFlatRate(yieldRate, basis){
+    if(basis === 'weekly') return yieldRate / 52;
+    if(basis === 'daily') return yieldRate / 365;
+    return yieldRate / 12;
+  }
+  function _getBasisLabel(basis){ return basis === 'weekly' ? '周' : basis === 'daily' ? '日' : '月'; }
+  function _getPeriods(durationMonths, basis){
+    if(basis === 'weekly') return Math.ceil(durationMonths * 4.33);
+    if(basis === 'daily') return Math.ceil(durationMonths * 30.42);
+    return durationMonths;
+  }
 
   // Render plain-language block for project detail page
   (function(){
@@ -711,11 +822,25 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
     var paybackMonths = perShareMonthly > 0 ? Math.ceil(minPart / perShareMonthly) : 0;
     var perShareCap = minPart * multiple;
 
+    var em = PROJ.exitMode || 'both';
+    var costDesc = '';
+    if(em === 'term_only'){
+      var mult = PROJ.expectMultiple || multiple;
+      perShareCap = minPart * mult;
+      costDesc = '预期收益倍数 ' + mult.toFixed(2) + 'x';
+    } else {
+      var pYieldRate = PROJ.annualYieldRate != null ? PROJ.annualYieldRate : 12;
+      var basis = PROJ.settlementCycle || 'monthly';
+      var pBasisLabel = _getBasisLabel(basis);
+      var pFlat = _getFlatRate(pYieldRate, basis);
+      costDesc = '年化' + pYieldRate + '%，' + pBasisLabel + '平息' + (pFlat).toFixed(3) + '%';
+    }
+
     plEl.innerHTML = '<div class="detail-card" style="background:#FFFBEB;border:1px solid #FDE68A;">'
       + '<div style="font-size:14px;font-weight:600;color:#92400E;margin-bottom:8px;">\\uD83D\\uDCAC 简单来说</div>'
       + '<div style="font-size:13px;line-height:1.8;color:#78716C;">'
       + '这个项目总共需要 ' + totalAmount + ' 万资金。发起人承诺把项目每月收入的 ' + ratio + '% 分给所有参与人。按目前预估每月收入 ' + estRevenue + ' 万计算，每月总共分出约 ' + monthlyShare.toFixed(2) + ' 万。'
-      + '<br/><br/>如果你参与 ' + minPart + ' 万（1份），你每月大约能拿到 ' + perShareMonthly.toFixed(2) + ' 万，大概 ' + paybackMonths + ' 个月收回本金，回收上限 ' + perShareCap.toFixed(2) + ' 万（年化' + pYieldRate + '%，' + pBasisLabel + '平息' + (pFlat*100).toFixed(3) + '%）。'
+      + '<br/><br/>如果你参与 ' + minPart + ' 万（1份），你每月大约能拿到 ' + perShareMonthly.toFixed(2) + ' 万，大概 ' + paybackMonths + ' 个月收回本金，回收上限 ' + perShareCap.toFixed(2) + ' 万（' + costDesc + '）。'
       + '<br/><br/><span style="color:#DC2626;">\\u26A0\\uFE0F 以上基于预估收入，实际回款取决于项目真实经营情况。</span>'
       + '</div></div>';
   })();

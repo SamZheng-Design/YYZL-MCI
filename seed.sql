@@ -471,6 +471,18 @@ INSERT OR IGNORE INTO notifications (id, type, title, content, icon, link, targe
 INSERT OR IGNORE INTO notifications (id, type, title, content, icon, link, target_role, target_id, is_read, created_at) VALUES ('n-062', 'system', '项目终止通知', '项目「共享办公空间运营」已终止，发起人梁俊豪已启动清算流程，请持续关注', '⚠️', '/admin#projects', 'admin', 'm-admin', 1, '2025-09-15');
 INSERT OR IGNORE INTO notifications (id, type, title, content, icon, link, target_role, target_id, is_read, created_at) VALUES ('n-063', 'system', '回款里程碑', '项目「短视频MCN机构内容升级」已完成全部回款，回报率142%，为平台第4个成功案例', '🏆', '/admin#projects', 'admin', 'm-admin', 1, '2025-08-18');
 
+-- ══ Exit Mode & Yield Settings for Test Projects ══
+-- p-001: 先到为准 (both) — default, annual yield 12%
+UPDATE projects SET exit_mode = 'both', annual_yield_rate = 12, expect_multiple = NULL, settlement_cycle = 'monthly' WHERE id = 'p-001';
+-- p-004: 仅期限 (term_only) — no annual yield, expected multiple 1.3x
+UPDATE projects SET exit_mode = 'term_only', annual_yield_rate = 0, expect_multiple = 1.3, settlement_cycle = 'monthly' WHERE id = 'p-004';
+-- p-009: 仅封顶 (cap_only) — annual yield 15%, duration defaults to 36 months
+UPDATE projects SET exit_mode = 'cap_only', annual_yield_rate = 15, expect_multiple = NULL, settlement_cycle = 'monthly', duration = 36 WHERE id = 'p-009';
+-- p-002: 先到为准 (both) — higher yield example
+UPDATE projects SET exit_mode = 'both', annual_yield_rate = 15, expect_multiple = NULL, settlement_cycle = 'monthly' WHERE id = 'p-002';
+-- p-005: 仅期限 (term_only) — small project
+UPDATE projects SET exit_mode = 'term_only', annual_yield_rate = 0, expect_multiple = 1.5, settlement_cycle = 'monthly' WHERE id = 'p-005';
+
 -- ══ Seed Data Summary ══
 -- Users (Members): 43
 -- Users (Teachers): 6

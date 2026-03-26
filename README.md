@@ -8,7 +8,7 @@
 - **名称**: 中流通 ZhongLiu Connect
 - **目标**: 私域RBF协作平台，数据透明，分账体外执行，结果在平台展示
 - **模式**: 投资人 → 第三方分账机构 → 融资方，分账结果推送至中流通平台
-- **状态**: **已上线** ✅ (Phase 1~5 + V22 条款通 + V23 P0升级 + V24 AI助理 + V25/V25.1 视觉升级 + 生产部署 + 方案C改密)
+- **状态**: **已上线** ✅ (Phase 1~5 + V22 条款通 + V23 P0升级 + V24 AI助理 + V25/V25.1 视觉升级 + 生产部署 + 方案C改密 + V27 三模式计算引擎)
 
 ## URLs
 
@@ -341,9 +341,10 @@ src/
 migrations/
 ├── 0001_initial_schema.sql  # D1 数据库 DDL (13表)
 ├── 0002_rate_limits.sql     # 登录限流表
-└── 0003_contract_terms_upgrade.sql  # 条款通字段升级 (V22)
+├── 0003_contract_terms_upgrade.sql  # 条款通字段升级 (V22)
+└── 0004_expect_multiple.sql # 预期收益倍数字段 (V27)
 
-seed.sql                      # Demo 数据 (484行)
+seed.sql                      # Demo 数据 (~500行, 含退出模式UPDATE)
 wrangler.jsonc               # Cloudflare 配置
 ecosystem.config.cjs         # PM2 配置
 ```
@@ -352,12 +353,12 @@ ecosystem.config.cjs         # PM2 配置
 
 | 分类 | 行数 |
 |------|------|
-| TypeScript/TSX 源码 | ~19,700 |
+| TypeScript/TSX 源码 | ~22,000 |
 | SQL (migration+seed) | ~850 |
 | API 端点总数 | 34 |
 | 页面路由 | 15（含条款通） |
 | AI 助理知识库 | 45 套页面上下文 + 12 术语 + 10 FAQ |
-| 打包大小 (dist/_worker.js) | ~847 KB |
+| 打包大小 (dist/_worker.js) | ~915 KB |
 
 ## 待开发功能 (远期路线图)
 
@@ -368,6 +369,50 @@ ecosystem.config.cjs         # PM2 配置
 - ✅ D1 绑定到 Pages 项目 (binding: DB)
 - ✅ 自定义域名 zhongliutong.net + www.zhongliutong.net (CNAME → zhongliu-connect.pages.dev)
 - ✅ SSL 证书自动配置
+
+### V27 — 三模式退出计算引擎 (2026-03-26)
+
+**核心变更：退出模式三分支计算 + 术语统一 + falsy陷阱修复 + 种子数据退出模式覆盖**
+
+#### 三种退出模式计算规则
+
+| 退出模式 | exitMode | 显示字段 | 封顶计算方式 |
+|----------|----------|----------|------------|
+| 先到为准 | `both` | 年化收益率 + 平息口径 + 最长分成期限 + 回收上限 | `封顶 = 融资额 + 融资额 × 平息 × 期数` |
+| 仅封顶 | `cap_only` | 年化收益率 + 平息口径 + 回收上限 (无期限) | `封顶 = 融资额 + 融资额 × 平息 × 预估回本期数` |
+| 仅期限 | `term_only` | 预期收益倍数 + 最长分成期限 (无年化) | `封顶 = 融资额 × 预期收益倍数`，年化设为0 |
+
+#### 数据库升级（migration 0004）
+- **projects 表新增**: `expect_multiple` REAL — 预期收益倍数（仅期限模式使用）
+- **contracts 表新增**: `expect_multiple` REAL — 合同级预期收益倍数
+
+#### 修复项
+- **falsy 陷阱修复**: `annualYieldRate || 12` → `annualYieldRate ?? 12` 或 `!= null` 检查
+  - db-bridge.ts、project-detail.tsx (SSR + 客户端JS)、contract-sign.tsx
+  - 修复 term_only 模式下 yield=0 被错误回退为 12% 的 bug
+- **种子数据更新**: seed.sql 追加 UPDATE 语句覆盖测试项目退出模式
+  - p-001: both (12%), p-002: both (15%), p-004: term_only (1.3x), p-005: term_only (1.5x), p-009: cap_only (15%)
+- **contract-sign.tsx**: 合同签署页 cap 计算适配三种退出模式
+- **projects.tsx**: 列表页注入 exitMode/annualYieldRate/expectMultiple/settlementCycle 字段
+
+#### 术语映射
+| 旧术语 | 新术语 | 说明 |
+|--------|--------|------|
+| 回收倍数 (recoveryMultiple) | 封顶倍数 | UI文案已替换，字段名保留兼容 |
+| — | 预期收益倍数 (expectMultiple) | 仅期限模式新增 |
+| — | 平息口径 | 年化收益率按结算周期拆分的单期利率 |
+
+#### 受影响文件 (8个)
+- `src/db-bridge.ts` — annualYieldRate ?? 修复 + expectMultiple 映射
+- `src/routes/project-detail.tsx` — SSR条款动态显示 + 客户端cap三分支计算 + falsy修复
+- `src/routes/contract-sign.tsx` — 传入新字段 + cap三分支计算
+- `src/routes/projects.tsx` — 注入退出模式字段
+- `src/routes/create.tsx` — expectMultiple 表单字段
+- `src/routes/terms-connect.tsx` — 条款通退出模式适配
+- `src/data.ts` — mock数据新增默认值 + 合同模板术语更新
+- `src/admin-api.ts` — 创建项目写入 expect_multiple + settlement_cycle
+- `seed.sql` — 追加 UPDATE 设置测试项目退出模式
+- `migrations/0004_expect_multiple.sql` — DDL
 
 ### V26 — 方案C首次登录安全验证 (2026-03-26)
 - **首次登录两步验证**: Step1 手机尾号验证 → Step2 设置新密码

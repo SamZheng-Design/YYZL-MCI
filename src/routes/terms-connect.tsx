@@ -467,14 +467,21 @@ app.get('/contracts/:id/terms', async (c) => {
   function updateCalcs(){
     // 每月预估分成 = 预估月收入 × 个人分成%
     var monthlyShare = TD.estimatedRevenue * (curRatio / 100);
-    // 封顶计算（基于平息口径）
+    // 封顶计算（根据退出模式）
+    var recoveryCap, capMultiple;
     var settleCycle = TD.settlementCycle || 'monthly';
     var flatRate = settleCycle === 'weekly' ? TD.annualYieldRate/52/100 : settleCycle === 'daily' ? TD.annualYieldRate/365/100 : TD.annualYieldRate/12/100;
     var capPeriods = curTerm;
     if(settleCycle === 'weekly') capPeriods = Math.ceil(curTerm * 4.33);
     if(settleCycle === 'daily') capPeriods = Math.ceil(curTerm * 30.42);
-    var recoveryCap = curAmount + curAmount * flatRate * capPeriods;
-    var capMultiple = curAmount > 0 ? recoveryCap / curAmount : 1;
+    if(TD.exitMode === 'term_only'){
+      // 仅期限模式：用预期收益倍数
+      capMultiple = TD.expectMultiple || 1.3;
+      recoveryCap = curAmount * capMultiple;
+    } else {
+      recoveryCap = curAmount + curAmount * flatRate * capPeriods;
+      capMultiple = curAmount > 0 ? recoveryCap / curAmount : 1;
+    }
     // 回本月数
     var paybackMonths = monthlyShare > 0 ? Math.ceil(curAmount / monthlyShare) : 0;
 
