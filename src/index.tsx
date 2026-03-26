@@ -345,14 +345,11 @@ app.get('/api/projects', async (c) => {
   return c.json({ ok: true, projects })
 })
 
-/** 用户统计 API */
+/** 用户统计 API — 优化：用针对性 SQL 替代全量加载 */
 app.get('/api/user-stats/:id', async (c) => {
   const db = c.env.DB
   const userId = c.req.param('id')
-  const [projects, contracts, repRecords] = await Promise.all([
-    loadProjects(db), loadContracts(db), loadRepaymentRecords(db),
-  ])
-  const stats = getUserStats(userId, projects, contracts, repRecords)
+  const stats = await getUserInvestmentStats(db, userId)
   return c.json({ ok: true, stats })
 })
 

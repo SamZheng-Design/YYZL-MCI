@@ -125,7 +125,7 @@ export async function generateUserId(db: D1Database, role: UserRole): Promise<st
 // Project Helpers
 // ══════════════════════════════════════════════════════════════
 
-/** 获取所有项目（含投资人列表） */
+/** 获取所有项目（含投资人列表）— 优化：2次查询替代 N+1 */
 export async function getProjects(db: D1Database, status?: ProjectStatus): Promise<ProjectWithInvestors[]> {
   let query = 'SELECT * FROM projects'
   const params: string[] = []
@@ -137,19 +137,27 @@ export async function getProjects(db: D1Database, status?: ProjectStatus): Promi
 
   const result = await db.prepare(query).bind(...params).all<DBProject>()
 
-  // 批量获取投资人
-  const projects: ProjectWithInvestors[] = []
-  for (const p of result.results) {
-    const investors = await db.prepare(
-      'SELECT investor_id FROM project_investors WHERE project_id = ?'
-    ).bind(p.id).all<{ investor_id: string }>()
+  if (result.results.length === 0) return []
 
-    projects.push({
-      ...p,
-      investors: investors.results.map(i => i.investor_id),
-    })
+  // 一次性获取所有投资人关系，在 JS 端分组
+  const invResult = await db.prepare(
+    'SELECT project_id, investor_id FROM project_investors'
+  ).all<{ project_id: string; investor_id: string }>()
+
+  const investorMap = new Map<string, string[]>()
+  for (const inv of invResult.results) {
+    const list = investorMap.get(inv.project_id)
+    if (list) {
+      list.push(inv.investor_id)
+    } else {
+      investorMap.set(inv.project_id, [inv.investor_id])
+    }
   }
-  return projects
+
+  return result.results.map(p => ({
+    ...p,
+    investors: investorMap.get(p.id) || [],
+  }))
 }
 
 /** 获取单个项目（含投资人） */

@@ -280,29 +280,44 @@ export async function loadTeachers(db: D1Database): Promise<Teacher[]> {
   return res.results.map(dbUserToTeacher)
 }
 
-/** 加载所有项目（含投资人列表） */
+/** 加载所有项目（含投资人列表）— 优化：2次查询替代 N+1 */
 export async function loadProjects(db: D1Database): Promise<Project[]> {
+  // 查询1：所有项目
   const projRes = await db.prepare(
     'SELECT * FROM projects ORDER BY created_at DESC'
   ).all<DBProject>()
 
-  const projects: Project[] = []
-  for (const p of projRes.results) {
-    const invRes = await db.prepare(
-      'SELECT investor_id FROM project_investors WHERE project_id = ?'
-    ).bind(p.id).all<{ investor_id: string }>()
-    projects.push(dbProjectToProject(p, invRes.results.map(i => i.investor_id)))
+  if (projRes.results.length === 0) return []
+
+  // 查询2：一次性获取所有 project_investors
+  const invRes = await db.prepare(
+    'SELECT project_id, investor_id FROM project_investors'
+  ).all<{ project_id: string; investor_id: string }>()
+
+  // JS 端按 project_id 分组
+  const investorMap = new Map<string, string[]>()
+  for (const inv of invRes.results) {
+    const list = investorMap.get(inv.project_id)
+    if (list) {
+      list.push(inv.investor_id)
+    } else {
+      investorMap.set(inv.project_id, [inv.investor_id])
+    }
   }
-  return projects
+
+  return projRes.results.map(p =>
+    dbProjectToProject(p, investorMap.get(p.id) || [])
+  )
 }
 
-/** 加载单个项目 */
+/** 加载单个项目 — 2次查询（project + investors），无 N+1 */
 export async function loadProjectById(db: D1Database, id: string): Promise<Project | null> {
-  const p = await db.prepare('SELECT * FROM projects WHERE id = ?').bind(id).first<DBProject>()
+  // 并行查询项目和投资人
+  const [p, invRes] = await Promise.all([
+    db.prepare('SELECT * FROM projects WHERE id = ?').bind(id).first<DBProject>(),
+    db.prepare('SELECT investor_id FROM project_investors WHERE project_id = ?').bind(id).all<{ investor_id: string }>(),
+  ])
   if (!p) return null
-  const invRes = await db.prepare(
-    'SELECT investor_id FROM project_investors WHERE project_id = ?'
-  ).bind(id).all<{ investor_id: string }>()
   return dbProjectToProject(p, invRes.results.map(i => i.investor_id))
 }
 
@@ -315,6 +330,7 @@ export async function loadProjectByShareCode(db: D1Database, code: string): Prom
   const invRes = await db.prepare(
     'SELECT investor_id FROM project_investors WHERE project_id = ?'
   ).bind(p.id).all<{ investor_id: string }>()
+  // share_code 查询已经是 2 次固定查询，无需优化
   return dbProjectToProject(p, invRes.results.map(i => i.investor_id))
 }
 
@@ -342,11 +358,11 @@ export async function loadRevenueReports(db: D1Database): Promise<RevenueReport[
   return res.results.map(dbSettlementToRevenueReport)
 }
 
-/** 加载所有回款明细 (RepaymentRecord) */
-export async function loadRepaymentRecords(db: D1Database): Promise<RepaymentRecord[]> {
+/** 加载所有回款明细 (RepaymentRecord) — 加 LIMIT 防止数据爆炸 */
+export async function loadRepaymentRecords(db: D1Database, limit: number = 500): Promise<RepaymentRecord[]> {
   const res = await db.prepare(
-    'SELECT * FROM repayment_details ORDER BY date DESC'
-  ).all<DBRepaymentDetail>()
+    'SELECT * FROM repayment_details ORDER BY date DESC LIMIT ?'
+  ).bind(limit).all<DBRepaymentDetail>()
   return res.results.map(dbRepaymentToRecord)
 }
 
@@ -366,27 +382,27 @@ export async function loadRepayments(db: D1Database): Promise<Repayment[]> {
   }))
 }
 
-/** 加载引荐记录 */
-export async function loadReferrals(db: D1Database): Promise<Referral[]> {
+/** 加载引荐记录 — 加 LIMIT */
+export async function loadReferrals(db: D1Database, limit: number = 200): Promise<Referral[]> {
   const res = await db.prepare(
-    'SELECT * FROM referrals ORDER BY created_at DESC'
-  ).all<DBReferral>()
+    'SELECT * FROM referrals ORDER BY created_at DESC LIMIT ?'
+  ).bind(limit).all<DBReferral>()
   return res.results.map(dbReferralToReferral)
 }
 
-/** 加载通知 */
-export async function loadNotifications(db: D1Database): Promise<Notification[]> {
+/** 加载通知 — 加 LIMIT 防止数据爆炸 */
+export async function loadNotifications(db: D1Database, limit: number = 200): Promise<Notification[]> {
   const res = await db.prepare(
-    'SELECT * FROM notifications ORDER BY created_at DESC'
-  ).all<DBNotification>()
+    'SELECT * FROM notifications ORDER BY created_at DESC LIMIT ?'
+  ).bind(limit).all<DBNotification>()
   return res.results.map(dbNotificationToNotification)
 }
 
-/** 加载分享记录 */
-export async function loadShareLogs(db: D1Database): Promise<ShareLog[]> {
+/** 加载分享记录 — 加 LIMIT 防止数据爆炸 */
+export async function loadShareLogs(db: D1Database, limit: number = 200): Promise<ShareLog[]> {
   const res = await db.prepare(
-    'SELECT * FROM share_logs ORDER BY created_at DESC'
-  ).all<any>()
+    'SELECT id, project_id, sharer_id, share_type, created_at FROM share_logs ORDER BY created_at DESC LIMIT ?'
+  ).bind(limit).all<any>()
   return res.results.map((s: any) => ({
     id: s.id, projectId: s.project_id, sharerId: s.sharer_id,
     shareType: s.share_type, createdAt: s.created_at,
