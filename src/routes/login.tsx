@@ -439,6 +439,19 @@ app.get('/login', (c) => {
       +'<div style="margin-bottom:20px;">'
       +'<label style="font-size:13px;color:#44403C;display:block;margin-bottom:6px;">请输入您的完整手机号</label>'
       +'<input id="cp-phone4" type="tel" maxlength="13" placeholder="请输入11位手机号" autocomplete="off" style="width:100%;box-sizing:border-box;padding:14px 16px;border:1px solid #E7E5E4;border-radius:12px;font-size:18px;letter-spacing:2px;text-align:center;outline:none;font-weight:600;" /></div>'
+      // 演示账号提示（仅 demo 账号显示）
+      +(function(){
+        var demoIds = ['m-001','m-002','m-003','t-001','t-002','m-admin'];
+        if(demoIds.indexOf(member.id) !== -1){
+          return '<div style="margin-bottom:16px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:10px 14px;display:flex;align-items:flex-start;gap:8px;">'
+            +'<span style="font-size:14px;flex-shrink:0;">🎯</span>'
+            +'<div style="font-size:12px;color:#92400E;line-height:1.6;">'
+            +'<span style="font-weight:600;">演示账号提示</span><br/>'
+            +'该账号的验证手机号为：<b style="color:#B91C1C;letter-spacing:1px;font-size:13px;">' + member.phone + '</b>'
+            +'</div></div>';
+        }
+        return '';
+      })()
       +'<button id="cp-verify" style="width:100%;padding:14px;background:linear-gradient(135deg,#B91C1C,#991B1B);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;">验证身份</button>'
       +'<div id="cp-verify-error" style="text-align:center;font-size:13px;color:#DC2626;margin-top:12px;display:none;"></div>'
       +'</div>'
