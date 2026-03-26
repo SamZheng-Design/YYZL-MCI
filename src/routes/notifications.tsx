@@ -32,8 +32,6 @@ app.get('/notifications', (c) => {
   try { u = JSON.parse(localStorage.getItem('zlc_user')); } catch(e){}
   if (!u) { window.location.href = '/login'; return; }
 
-  var NOTIFS_KEY = 'zlc_notifications';
-
   // Relative time helper
   function relativeTime(dateStr){
     if(!dateStr) return '';
@@ -90,12 +88,13 @@ app.get('/notifications', (c) => {
 
     var html = '';
     notifs.forEach(function(n){
-      var dotHTML = !n.read
+      var isUnread = !n.read && !n.isRead;
+      var dotHTML = isUnread
         ? '<div style="width:8px;height:8px;border-radius:50%;background:#B91C1C;flex-shrink:0;margin-top:6px;"></div>'
         : '<div style="width:8px;flex-shrink:0;"></div>';
-      var titleColor = !n.read ? 'color:#B91C1C;' : 'color:#1C1917;';
+      var titleColor = isUnread ? 'color:#B91C1C;' : 'color:#1C1917;';
       var linkAttr = n.link ? 'data-link="'+n.link+'"' : '';
-      var timeDisplay = relativeTime(n.time);
+      var timeDisplay = relativeTime(n.time || n.createdAt);
       html += '<div class="notif-item" data-id="'+n.id+'" '+linkAttr+' style="padding:16px;border-bottom:1px solid #F5F5F4;cursor:pointer;display:flex;gap:10px;transition:background 0.15s;" onmouseover="this.style.background=\\'#FAFAF9\\'" onmouseout="this.style.background=\\'transparent\\'">'
         + dotHTML
         + '<div style="flex:1;min-width:0;">'
@@ -116,8 +115,8 @@ app.get('/notifications', (c) => {
         var nid = item.getAttribute('data-id');
         var link = item.getAttribute('data-link');
         // Mark as read in the full allNotifs array
-        allNotifs.forEach(function(n){ if(n.id === nid) n.read = true; });
-        notifs.forEach(function(n){ if(n.id === nid) n.read = true; });
+        allNotifs.forEach(function(n){ if(n.id === nid){ n.read = true; n.isRead = true; } });
+        notifs.forEach(function(n){ if(n.id === nid){ n.read = true; n.isRead = true; } });
         // Mark read via API
         fetch('/api/admin/notifications/mark-read', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:u.id,notificationIds:[nid]})}).catch(function(){});
         if(link) window.location.href = link;
@@ -130,8 +129,8 @@ app.get('/notifications', (c) => {
   markAllBtn.addEventListener('click', function(){
     // Mark all MY visible notifs as read
     var myIds = {};
-    notifs.forEach(function(n){ myIds[n.id] = true; n.read = true; });
-    allNotifs.forEach(function(n){ if(myIds[n.id]) n.read = true; });
+    notifs.forEach(function(n){ myIds[n.id] = true; n.read = true; n.isRead = true; });
+    allNotifs.forEach(function(n){ if(myIds[n.id]){ n.read = true; n.isRead = true; } });
     // Mark all read via API
     fetch('/api/admin/notifications/mark-read', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:u.id})}).catch(function(){});
     renderList();

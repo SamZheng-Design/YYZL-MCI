@@ -20,7 +20,7 @@ app.get('/teacher', async (c) => {
       <script dangerouslySetInnerHTML={{ __html: `
 (function(){
   try {
-    var cu = JSON.parse(localStorage.getItem('zlc_current_user'));
+    var cu = JSON.parse(localStorage.getItem('zlc_user'));
     if(!cu || cu.role !== 'teacher'){ window.location.replace('/'); return; }
   } catch(e){ window.location.replace('/login'); }
 })();
@@ -121,14 +121,7 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
     id:t.id, name:t.name, classIds:t.classIds,
   })))};
 
-  // Also merge user-created projects from localStorage
-  var userProjects = [];
-  try { userProjects = JSON.parse(localStorage.getItem('zlc_user_projects') || '[]'); } catch(e){}
-  userProjects.forEach(function(up){
-    if(!ALL_PROJECTS.find(function(p){return p.id===up.id;})){
-      ALL_PROJECTS.push({id:up.id, name:up.name, ownerId:up.ownerId, industry:up.industry||'', status:up.status, recommendedByTeacher:up.recommendedByTeacher||[]});
-    }
-  });
+  // All projects are loaded from D1 via SSR — no localStorage merge needed
 
   // Find my teacher record
   var myTeacher = ALL_TEACHERS.find(function(t){ return t.id === u.id; });
@@ -165,7 +158,7 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
     // Pending referrals for this teacher — loaded from D1 via SSR
     var ALL_REFERRALS = ${JSON.stringify(allReferrals.map(r => ({
       id:r.id, projectId:r.projectId, requesterId:r.requesterId, requesterName:r.requesterName||'',
-      requesterClass:r.requesterClassName||'', teacherId:r.teacherId, status:r.status, message:r.message||'',
+      requesterClass:r.requesterClass||'', teacherId:r.teacherId, status:r.status, message:r.message||'',
       createdAt:r.createdAt||'', requestedAt:r.requestedAt||'', completedAt:r.completedAt||'',
       completedNote:r.completedNote||'', connectedAt:r.connectedAt||'', projectName:r.projectName||'',
     })))};
@@ -347,6 +340,14 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
     classHTML += '</div>';
   });
   classListEl.innerHTML = classHTML;
+
+  // Auto-expand the first class so users see students immediately
+  if(Object.keys(classMap).length > 0){
+    var firstEl = document.getElementById('class-students-0');
+    var firstArrow = document.getElementById('class-arrow-0');
+    if(firstEl){ firstEl.classList.add('open'); }
+    if(firstArrow){ firstArrow.style.transform = 'rotate(180deg)'; }
+  }
 
   window.toggleClass = function(idx) {
     var el = document.getElementById('class-students-' + idx);

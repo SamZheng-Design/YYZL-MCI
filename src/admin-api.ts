@@ -626,14 +626,21 @@ adminApi.post('/referrals/create', async (c) => {
     if (existing) return c.json({ ok: false, error: '您已请求过引荐' }, 400)
 
     const refId = `ref-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
-    await db.prepare(`
-      INSERT INTO referrals (id, project_id, requester_id, teacher_id, status, message)
-      VALUES (?, ?, ?, ?, 'pending', ?)
-    `).bind(refId, projectId, requesterId, teacherId, message || null).run()
 
-    // Notify the teacher
-    const requester = await db.prepare('SELECT name FROM users WHERE id = ?').bind(requesterId).first<{ name: string }>()
+    // Fetch denormalized fields for the referral record
+    const requester = await db.prepare('SELECT name, class_name FROM users WHERE id = ?').bind(requesterId).first<{ name: string; class_name: string | null }>()
+    const teacher = await db.prepare('SELECT name FROM users WHERE id = ?').bind(teacherId).first<{ name: string }>()
     const project = await db.prepare('SELECT name FROM projects WHERE id = ?').bind(projectId).first<{ name: string }>()
+
+    await db.prepare(`
+      INSERT INTO referrals (id, project_id, project_name, requester_id, requester_name, requester_class, teacher_id, teacher_name, status, message)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+    `).bind(
+      refId, projectId, project?.name || null,
+      requesterId, requester?.name || null, requester?.class_name || null,
+      teacherId, teacher?.name || null,
+      message || null
+    ).run()
     await createNotification(db, {
       type: 'referral', title: '新引荐请求',
       content: `${requester?.name || '学员'}请求您帮助对接项目「${project?.name || ''}」`,

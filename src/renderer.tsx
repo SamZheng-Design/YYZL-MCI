@@ -3859,22 +3859,20 @@ ${aiAssistantCSS}
     demoBtn.addEventListener('click', function(){ window.location.href = guideHref; });
   }
 
-  // ── Bell unread ──
+  // ── Bell unread (from D1 API) ──
   var bellDot = document.getElementById('dt-bell-dot');
   if(bellDot && u){
-    var allNotifs = [];
-    try { allNotifs = JSON.parse(localStorage.getItem('zlc_notifications') || '[]'); } catch(e){}
-    var myNotifs = allNotifs.filter(function(n){
-      if(n.targetRole === null && n.targetId === null) return true;
-      if(n.targetId === u.id) return true;
-      if(n.targetRole === u.role && n.targetId === null) return true;
-      return false;
-    });
-    var unreadCount = myNotifs.filter(function(n){ return !n.read; }).length;
-    if(unreadCount > 0){
-      bellDot.style.display = 'block';
-      bellDot.textContent = unreadCount > 99 ? '99+' : String(unreadCount);
-    }
+    fetch('/api/data/notifications/unread-count')
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        var unreadCount = d.count || 0;
+        if(unreadCount > 0){
+          bellDot.style.display = 'block';
+          bellDot.textContent = unreadCount > 99 ? '99+' : String(unreadCount);
+        } else {
+          bellDot.style.display = 'none';
+        }
+      }).catch(function(){ bellDot.style.display = 'none'; });
   }
 
   // ── Desktop user btn ──

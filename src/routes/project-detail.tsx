@@ -35,14 +35,25 @@ app.get('/projects/:id', async (c) => {
   try { u = JSON.parse(localStorage.getItem('zlc_user')); } catch(e){}
   if (!u) return;
   var projectId = '${id}';
-  var userProjects = [];
-  try { userProjects = JSON.parse(localStorage.getItem('zlc_user_projects') || '[]'); } catch(e){}
-  var proj = userProjects.find(function(p){ return p.id === projectId; });
   var el = document.getElementById('dynamic-project-content');
-  if(!proj){
-    el.innerHTML = '<div style="padding:40px 0;text-align:center;"><div style="width:56px;height:56px;border-radius:50%;background:#FEE2E2;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;"><i class="fas fa-circle-xmark" style="font-size:24px;color:#DC2626;"></i></div><p style="font-size:16px;font-weight:600;color:#292524;">项目未找到</p><p style="font-size:14px;color:#78716C;margin-top:4px;">该项目不存在或已被删除</p></div>';
-    return;
-  }
+
+  // Try to fetch the project from D1 API
+  fetch('/api/data/projects/' + encodeURIComponent(projectId))
+    .then(function(r){ return r.json(); })
+    .then(function(res){
+      if(!res.ok || !res.data){
+        el.innerHTML = '<div style="padding:40px 0;text-align:center;"><div style="width:56px;height:56px;border-radius:50%;background:#FEE2E2;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;"><i class="fas fa-circle-xmark" style="font-size:24px;color:#DC2626;"></i></div><p style="font-size:16px;font-weight:600;color:#292524;">项目未找到</p><p style="font-size:14px;color:#78716C;margin-top:4px;">该项目不存在或已被删除</p></div>';
+        return;
+      }
+      var proj = res.data;
+      renderDynamicProject(proj, u, el);
+    })
+    .catch(function(){
+      el.innerHTML = '<div style="padding:40px 0;text-align:center;"><div style="width:56px;height:56px;border-radius:50%;background:#FEE2E2;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;"><i class="fas fa-circle-xmark" style="font-size:24px;color:#DC2626;"></i></div><p style="font-size:16px;font-weight:600;color:#292524;">加载失败</p><p style="font-size:14px;color:#78716C;margin-top:4px;">网络错误，请刷新重试</p></div>';
+    });
+
+  function renderDynamicProject(proj, u, el) {
+  if(!proj) return;
   // Render project detail
   var pct = proj.targetAmount > 0 ? Math.round(proj.raisedAmount / proj.targetAmount * 100) : 0;
   var yieldRate = proj.annualYieldRate != null ? proj.annualYieldRate : 12;
@@ -102,6 +113,7 @@ app.get('/projects/:id', async (c) => {
   html += '<p style="text-align:center;font-size:13px;color:#A8A29E;margin-top:16px;">发布于 '+proj.createdAt+'</p>';
 
   el.innerHTML = html;
+  } // end renderDynamicProject
 })();
 `}} />
       </div>,
@@ -966,8 +978,9 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
   // Load existing referrals
   var referrals = [];
   var existingRef = null;
-  fetch('/api/data/referrals').then(function(r){return r.json();}).then(function(data){
-    referrals = (data || []).filter(function(r){ return r.projectId === PROJ.id; });
+  fetch('/api/data/referrals').then(function(r){return r.json();}).then(function(res){
+    var allRefs = (res && res.data) ? res.data : (Array.isArray(res) ? res : []);
+    referrals = allRefs.filter(function(r){ return r.projectId === PROJ.id; });
     existingRef = referrals.find(function(r){ return r.requesterId === u.id; });
     updateReferralUI();
   }).catch(function(){});
