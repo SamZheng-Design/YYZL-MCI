@@ -314,54 +314,97 @@ app.get('/projects/:id', async (c) => {
 
         {/* RIGHT COLUMN: Action area (sticky on desktop) */}
         {proj.status === 'open' && remainShares > 0 && (
-          <div id="participate-calculator" class="calc-card shadow-card p-5 mb-4 dk-detail-action-card">
-            <h3 style="font-size:16px;font-weight:700;color:#1C1917;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
-              <i class="fas fa-calculator" style="color:#D4A853;font-size:14px;" />
-              我要参与
-            </h3>
-            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-              <select id="share-select" class="share-select">
-                {Array.from({ length: Math.min(remainShares, 10) }, (_, i) => i + 1).map(n => (
-                  <option value={String(n)}>{n} 份</option>
-                ))}
-              </select>
-              <span style="font-size:15px;color:#A8A29E;">=</span>
-              <span id="share-amount" style="font-size:24px;font-weight:800;color:#1C1917;">¥{proj.sharePrice}万</span>
-            </div>
-            <div class="grid grid-cols-3 gap-3 mb-3 p-3 rounded-xl" style="background:#FAFAF9;">
-              <div class="text-center">
-                <div style="font-size:11px;color:#A8A29E;">月回款预估</div>
-                <div id="calc-monthly" style="font-size:15px;font-weight:700;color:#1C1917;margin-top:2px;">—</div>
-              </div>
-              <div class="text-center">
-                <div style="font-size:11px;color:#A8A29E;">回收上限</div>
-                <div id="calc-cap" style="font-size:15px;font-weight:700;color:#1C1917;margin-top:2px;">—</div>
-              </div>
-              <div class="text-center">
-                <div style="font-size:11px;color:#A8A29E;">预估回收期</div>
-                <div id="calc-months" style="font-size:15px;font-weight:700;color:#1C1917;margin-top:2px;">—</div>
-              </div>
-            </div>
-            {/* Calculator plain-language hint */}
-            <div id="calc-plain-hint" style="font-size:12px;line-height:1.6;color:#78716C;margin-bottom:16px;" />
-            {/* Owner info (desktop) */}
-            <div class="dk-detail-action-owner" style="display:none;margin-bottom:16px;">
-              <div style="display:flex;align-items:center;gap:12px;padding:12px;background:#FAFAF9;border-radius:12px;">
-                <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#DC2626,#991B1B);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;">
-                  {owner.name.charAt(0)}
+          <div id="participate-calculator" class="dk-detail-action-card" style="background:linear-gradient(160deg,#FFFBEB 0%,#FFF7ED 50%,#FEF2F2 100%);border-radius:20px;border:1.5px solid #FDE68A;padding:0;overflow:hidden;box-shadow:0 4px 24px rgba(212,168,83,0.15);margin-bottom:16px;">
+            {/* Header banner */}
+            <div style="background:linear-gradient(135deg,#B8860B 0%,#D4A853 100%);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div style="width:36px;height:36px;border-radius:12px;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;">
+                  <i class="fas fa-hand-holding-usd" style="color:#fff;font-size:16px;" />
                 </div>
                 <div>
-                  <div style="font-size:14px;font-weight:600;color:#1C1917;">{owner.name}</div>
-                  <div style="font-size:12px;color:#78716C;">{owner.company} · {owner.cohort}</div>
+                  <div style="font-size:16px;font-weight:700;color:#fff;">我要参与</div>
+                  <div style="font-size:11px;color:rgba(255,255,255,0.75);margin-top:1px;">选择份额，一键认购</div>
                 </div>
               </div>
+              <div style="background:rgba(255,255,255,0.2);padding:4px 12px;border-radius:20px;font-size:12px;color:#fff;font-weight:600;">
+                剩余 {remainShares} 份
+              </div>
             </div>
-            <button id="participate-btn" class="btn-gold" style="font-size:16px;height:48px;">
-              确认参与 ¥{proj.sharePrice}万
-            </button>
-            <p id="owner-hint" style="text-align:center;font-size:12px;color:#A8A29E;margin-top:12px;display:none;">
-              您是项目发起人，无法参与自己的项目
-            </p>
+
+            {/* Body */}
+            <div style="padding:20px;">
+              {/* Share selector */}
+              <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;">
+                <div style="flex:1;">
+                  <div style="font-size:12px;color:#92400E;font-weight:600;margin-bottom:6px;">选择份额</div>
+                  <select id="share-select" style="width:100%;padding:12px 16px;border:1.5px solid #FDE68A;border-radius:12px;font-size:16px;font-weight:700;color:#1C1917;background:#fff;outline:none;cursor:pointer;appearance:auto;">
+                    {Array.from({ length: Math.min(remainShares, 10) }, (_, i) => i + 1).map(n => (
+                      <option value={String(n)}>{n} 份</option>
+                    ))}
+                  </select>
+                </div>
+                <div style="font-size:20px;color:#D4A853;font-weight:300;">=</div>
+                <div style="flex:1;text-align:right;">
+                  <div style="font-size:12px;color:#92400E;font-weight:600;margin-bottom:6px;">投入金额</div>
+                  <div id="share-amount" style="font-size:28px;font-weight:800;color:#B8860B;line-height:1;">¥{proj.sharePrice}<span style="font-size:14px;font-weight:400;">万</span></div>
+                </div>
+              </div>
+
+              {/* Quick estimate grid */}
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;">
+                <div style="background:#fff;border-radius:12px;padding:12px;text-align:center;border:1px solid #FDE68A;">
+                  <div style="font-size:11px;color:#92400E;margin-bottom:4px;">月回款预估</div>
+                  <div id="calc-monthly" style="font-size:16px;font-weight:700;color:#B8860B;">—</div>
+                </div>
+                <div style="background:#fff;border-radius:12px;padding:12px;text-align:center;border:1px solid #FDE68A;">
+                  <div style="font-size:11px;color:#92400E;margin-bottom:4px;">回收上限</div>
+                  <div id="calc-cap" style="font-size:16px;font-weight:700;color:#B8860B;">—</div>
+                </div>
+                <div style="background:#fff;border-radius:12px;padding:12px;text-align:center;border:1px solid #FDE68A;">
+                  <div style="font-size:11px;color:#92400E;margin-bottom:4px;">预估回收期</div>
+                  <div id="calc-months" style="font-size:16px;font-weight:700;color:#B8860B;">—</div>
+                </div>
+              </div>
+
+              {/* Plain-language hint */}
+              <div id="calc-plain-hint" style="font-size:12px;line-height:1.7;color:#78716C;margin-bottom:18px;padding:10px 14px;background:#fff;border-radius:10px;border:1px dashed #E7E5E4;" />
+
+              {/* Owner info (desktop) */}
+              <div class="dk-detail-action-owner" style="display:none;margin-bottom:16px;">
+                <div style="display:flex;align-items:center;gap:12px;padding:12px;background:#fff;border-radius:12px;border:1px solid #FDE68A;">
+                  <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#DC2626,#991B1B);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;">
+                    {owner.name.charAt(0)}
+                  </div>
+                  <div>
+                    <div style="font-size:14px;font-weight:600;color:#1C1917;">{owner.name}</div>
+                    <div style="font-size:12px;color:#78716C;">{owner.company} · {owner.cohort}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* CTA Button */}
+              <button id="participate-btn" style="width:100%;height:52px;border:none;border-radius:14px;font-size:17px;font-weight:700;color:#fff;cursor:pointer;background:linear-gradient(135deg,#B8860B 0%,#D4A853 100%);box-shadow:0 4px 16px rgba(184,134,11,0.3);transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:8px;">
+                <i class="fas fa-check-circle" style="font-size:15px;" />
+                确认参与 ¥{proj.sharePrice}万
+              </button>
+              <p id="owner-hint" style="text-align:center;font-size:12px;color:#A8A29E;margin-top:10px;display:none;">
+                您是项目发起人，无法参与自己的项目
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Fixed bottom bar for mobile — "我要参与" button when calculator is out of view */}
+        {proj.status === 'open' && remainShares > 0 && (
+          <div id="mobile-participate-bar" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:900;background:rgba(255,255,255,0.97);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid #F5F5F4;padding:12px 16px;box-shadow:0 -4px 20px rgba(0,0,0,0.08);">
+            <div style="max-width:480px;margin:0 auto;display:flex;align-items:center;gap:12px;">
+              <div style="flex:1;">
+                <div style="font-size:12px;color:#78716C;">每份 ¥{proj.sharePrice}万 · 剩余{remainShares}份</div>
+              </div>
+              <button id="mobile-participate-scroll-btn" style="background:linear-gradient(135deg,#B8860B,#D4A853);color:#fff;border:none;border-radius:12px;padding:12px 24px;font-size:15px;font-weight:700;cursor:pointer;white-space:nowrap;box-shadow:0 2px 12px rgba(184,134,11,0.3);">
+                <i class="fas fa-hand-holding-usd" style="margin-right:6px;" />我要参与
+              </button>
+            </div>
           </div>
         )}
 
@@ -983,6 +1026,26 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
         hint.style.opacity = '0';
         hint.style.transition = 'opacity 0.3s';
         setTimeout(function(){ hint.remove(); }, 300);
+      });
+    }
+  })();
+
+  // ── Mobile fixed "我要参与" bar — show when calculator is scrolled out of view ──
+  (function(){
+    var calcEl = document.getElementById('participate-calculator');
+    var mobileBar = document.getElementById('mobile-participate-bar');
+    var scrollBtn = document.getElementById('mobile-participate-scroll-btn');
+    if(!calcEl || !mobileBar) return;
+    function checkScroll(){
+      var rect = calcEl.getBoundingClientRect();
+      var isHidden = rect.bottom < 0 || rect.top > window.innerHeight;
+      mobileBar.style.display = isHidden ? 'block' : 'none';
+    }
+    window.addEventListener('scroll', checkScroll, {passive:true});
+    checkScroll();
+    if(scrollBtn){
+      scrollBtn.addEventListener('click', function(){
+        calcEl.scrollIntoView({behavior:'smooth',block:'center'});
       });
     }
   })();

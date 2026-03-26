@@ -421,25 +421,24 @@ app.get('/login', (c) => {
   // ── Phone login logic (kept from original) ──
   var phoneInput=document.getElementById('phone-input'),codeInput=document.getElementById('code-input'),
       sendCodeBtn=document.getElementById('send-code-btn'),loginBtn=document.getElementById('login-btn');
-  // ── Change Password Modal (方案C：手机尾号验证 + 强制改密) ──
+  // ── Change Password Modal (方案B：输入完整手机号验证 + 强制改密) ──
   function showChangePasswordModal(member){
-    var maskedPhone = member.phone ? member.phone.slice(0,3) + '****' + member.phone.slice(-4) : '***';
     var overlay = document.createElement('div');
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
     overlay.innerHTML = '<div id="cp-modal" style="background:#fff;border-radius:20px;padding:32px 24px;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">'
-      // ── Step 1: 手机尾号验证 ──
+      // ── Step 1: 输入完整手机号验证 ──
       +'<div id="cp-step1">'
       +'<div style="text-align:center;margin-bottom:24px;">'
       +'<div style="width:56px;height:56px;border-radius:50%;background:#FEF2F2;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;"><span style="font-size:24px;">🔐</span></div>'
       +'<h3 style="font-size:18px;font-weight:700;color:#1C1917;">首次登录 · 身份验证</h3>'
-      +'<p style="font-size:13px;color:#78716C;margin-top:8px;line-height:1.6;">欢迎 <b style="color:#1C1917;">' + member.name + '</b>！<br/>请验证您的手机号后4位以确认身份</p></div>'
+      +'<p style="font-size:13px;color:#78716C;margin-top:8px;line-height:1.6;">欢迎 <b style="color:#1C1917;">' + member.name + '</b>！<br/>请输入您的完整手机号以确认身份</p></div>'
       +'<div style="text-align:center;margin-bottom:20px;">'
       +'<div style="display:inline-flex;align-items:center;gap:8px;background:#F5F5F4;padding:10px 20px;border-radius:12px;">'
-      +'<i class="fas fa-mobile-alt" style="color:#78716C;"></i>'
-      +'<span style="font-size:15px;color:#44403C;letter-spacing:2px;">' + maskedPhone + '</span></div></div>'
+      +'<i class="fas fa-user-check" style="color:#78716C;"></i>'
+      +'<span style="font-size:14px;color:#44403C;">管理员已为您注册账号，请验证手机号</span></div></div>'
       +'<div style="margin-bottom:20px;">'
-      +'<label style="font-size:13px;color:#44403C;display:block;margin-bottom:6px;">请输入手机号后4位</label>'
-      +'<input id="cp-phone4" type="tel" maxlength="4" placeholder="请输入4位数字" autocomplete="off" style="width:100%;box-sizing:border-box;padding:14px 16px;border:1px solid #E7E5E4;border-radius:12px;font-size:18px;letter-spacing:8px;text-align:center;outline:none;font-weight:600;" /></div>'
+      +'<label style="font-size:13px;color:#44403C;display:block;margin-bottom:6px;">请输入您的完整手机号</label>'
+      +'<input id="cp-phone4" type="tel" maxlength="11" placeholder="请输入11位手机号" autocomplete="off" style="width:100%;box-sizing:border-box;padding:14px 16px;border:1px solid #E7E5E4;border-radius:12px;font-size:18px;letter-spacing:4px;text-align:center;outline:none;font-weight:600;" /></div>'
       +'<button id="cp-verify" style="width:100%;padding:14px;background:linear-gradient(135deg,#B91C1C,#991B1B);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;">验证身份</button>'
       +'<div id="cp-verify-error" style="text-align:center;font-size:13px;color:#DC2626;margin-top:12px;display:none;"></div>'
       +'</div>'
@@ -468,22 +467,22 @@ app.get('/login', (c) => {
 
     var verifyAttempts = 0;
 
-    // Step 1: 验证手机尾号
+    // Step 1: 验证完整手机号
     document.getElementById('cp-verify').addEventListener('click', function(){
-      var phone4 = document.getElementById('cp-phone4').value.trim();
-      if(!/^\\d{4}$/.test(phone4)){ showToast('请输入4位数字', 'error'); return; }
+      var phoneInput = document.getElementById('cp-phone4').value.trim();
+      if(!/^1\\d{10}$/.test(phoneInput)){ showToast('请输入正确的11位手机号', 'error'); return; }
       verifyAttempts++;
       if(verifyAttempts > 5){
         showToast('验证次数过多，请联系管理员', 'error');
         document.getElementById('cp-verify').disabled = true;
         return;
       }
-      // 前端先校验手机尾号（快速反馈）
-      var realLast4 = member.phone ? member.phone.slice(-4) : '';
-      if(phone4 !== realLast4){
+      // 前端校验完整手机号（快速反馈）
+      var realPhone = member.phone || '';
+      if(phoneInput !== realPhone){
         var errEl = document.getElementById('cp-verify-error');
         errEl.style.display = 'block';
-        errEl.textContent = '手机尾号不匹配，请重试（' + (5-verifyAttempts) + '次机会）';
+        errEl.textContent = '手机号不匹配，请确认您的注册手机号（' + (5-verifyAttempts) + '次机会）';
         document.getElementById('cp-phone4').value = '';
         document.getElementById('cp-phone4').focus();
         // 输入框抖动动画

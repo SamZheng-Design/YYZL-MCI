@@ -1184,7 +1184,50 @@ app.get('/admin', async (c) => {
     });
 
     var html = '<div style="padding:16px;">';
-    Object.keys(classMap).forEach(function(cn){
+
+    // ── Action bar: 新增班级 + 批量导入班级 + 下载模板 ──
+    html += '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;">';
+    html += '<button id="btn-add-class" style="background:linear-gradient(135deg,#B91C1C,#991B1B);color:white;border:none;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;"><i class="fas fa-plus"></i> 新增班级</button>';
+    html += '<button id="btn-import-classes-csv" style="background:#FAFAF9;border:1.5px solid #E7E5E4;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;color:#44403C;display:flex;align-items:center;gap:6px;"><i class="fas fa-file-import"></i> 批量导入班级</button>';
+    html += '<button id="btn-dl-class-tpl" style="background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;color:#92400E;display:flex;align-items:center;gap:6px;"><i class="fas fa-download"></i> 下载班级CSV模板</button>';
+    html += '<button id="btn-dl-student-tpl" style="background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;color:#166534;display:flex;align-items:center;gap:6px;"><i class="fas fa-download"></i> 下载学员CSV模板</button>';
+    html += '</div>';
+
+    // ── Inline form: 新增单个班级 ──
+    html += '<div id="add-class-form" style="display:none;background:white;border-radius:14px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:16px;border:1.5px solid #FECACA;">';
+    html += '<div style="font-size:16px;font-weight:700;color:#1C1917;margin-bottom:16px;display:flex;align-items:center;gap:8px;"><i class="fas fa-graduation-cap" style="color:#B91C1C;"></i> 新增班级</div>';
+    html += '<div style="display:grid;grid-template-columns:1fr;gap:12px;">';
+    html += '<div><label style="font-size:13px;font-weight:600;color:#44403C;display:block;margin-bottom:4px;">班级名称 <span style="color:#DC2626;">*</span></label>';
+    html += '<input id="ac-name" type="text" placeholder="如：第18期智能装备班" style="width:100%;box-sizing:border-box;padding:10px 14px;border:1px solid #E7E5E4;border-radius:10px;font-size:14px;outline:none;" /></div>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">';
+    html += '<div><label style="font-size:13px;font-weight:600;color:#44403C;display:block;margin-bottom:4px;">班级老师姓名 <span style="color:#DC2626;">*</span></label>';
+    html += '<input id="ac-teacher" type="text" placeholder="如：王建国" style="width:100%;box-sizing:border-box;padding:10px 14px;border:1px solid #E7E5E4;border-radius:10px;font-size:14px;outline:none;" /></div>';
+    html += '<div><label style="font-size:13px;font-weight:600;color:#44403C;display:block;margin-bottom:4px;">老师联系方式 <span style="color:#DC2626;">*</span></label>';
+    html += '<input id="ac-phone" type="tel" placeholder="手机号" maxlength="11" style="width:100%;box-sizing:border-box;padding:10px 14px;border:1px solid #E7E5E4;border-radius:10px;font-size:14px;outline:none;" /></div>';
+    html += '</div></div>';
+    html += '<div style="display:flex;gap:10px;margin-top:16px;">';
+    html += '<button id="ac-cancel" style="flex:1;background:#F5F5F4;color:#44403C;border:none;border-radius:10px;padding:12px;font-size:14px;cursor:pointer;">取消</button>';
+    html += '<button id="ac-submit" style="flex:1;background:linear-gradient(135deg,#B91C1C,#991B1B);color:white;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;">确认创建</button>';
+    html += '</div></div>';
+
+    // ── Inline: 批量导入班级(CSV) ──
+    html += '<div id="import-classes-area" style="display:none;background:white;border-radius:14px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:16px;border:1.5px solid #BFDBFE;">';
+    html += '<div style="font-size:16px;font-weight:700;color:#1C1917;margin-bottom:12px;">📁 批量导入班级</div>';
+    html += '<div style="font-size:12px;color:#78716C;line-height:1.6;margin-bottom:12px;background:#F0F9FF;padding:10px;border-radius:8px;">';
+    html += '<strong>CSV格式：</strong>班级名称,班级老师姓名,班级老师联系方式<br>';
+    html += '示例：<code style="background:#DBEAFE;padding:1px 4px;border-radius:3px;">第18期智能装备班,王建国,13800001234</code></div>';
+    html += '<input type="file" id="class-csv-file" accept=".csv,.txt" style="font-size:14px;margin-bottom:12px;width:100%;">';
+    html += '<div id="class-csv-preview" style="display:none;max-height:240px;overflow:auto;border:1px solid #E7E5E4;border-radius:8px;margin-bottom:12px;"></div>';
+    html += '<div id="class-csv-warnings" style="display:none;background:#FEF2F2;border-radius:8px;padding:10px;margin-bottom:12px;font-size:12px;color:#B91C1C;"></div>';
+    html += '<div style="display:flex;gap:10px;">';
+    html += '<button id="class-csv-cancel" style="flex:1;background:#F5F5F4;color:#44403C;border:none;border-radius:10px;padding:12px;font-size:14px;cursor:pointer;">取消</button>';
+    html += '<button id="class-csv-confirm" style="flex:1;background:linear-gradient(135deg,#B91C1C,#991B1B);color:white;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;">确认导入</button>';
+    html += '</div></div>';
+
+    // ── Class list ──
+    var classKeys = Object.keys(classMap);
+    html += '<div style="font-size:14px;font-weight:600;color:#78716C;margin-bottom:10px;">共 '+classKeys.length+' 个班级</div>';
+    classKeys.forEach(function(cn){
       var students = classMap[cn];
       var teacher = MOCK_TEACHERS.find(function(t){
         var classId = students[0] && students[0].classId;
@@ -1193,7 +1236,7 @@ app.get('/admin', async (c) => {
       html += '<div style="background:white;border-radius:14px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,0.04);margin-bottom:12px;">';
       html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">';
       html += '<div><span style="font-size:16px;font-weight:700;color:#1C1917;">'+cn+'</span><span style="font-size:12px;color:#A8A29E;margin-left:8px;">'+students.length+'人</span></div>';
-      if(teacher) html += '<span style="font-size:12px;color:#78716C;background:#F5F5F4;border-radius:6px;padding:2px 8px;">'+teacher.name+'</span>';
+      if(teacher) html += '<span style="font-size:12px;color:#78716C;background:#F5F5F4;border-radius:6px;padding:2px 8px;"><i class="fas fa-chalkboard-teacher" style="margin-right:4px;font-size:10px;"></i>'+teacher.name+' · '+teacher.phone+'</span>';
       html += '</div>';
       students.forEach(function(s){
         html += '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #F5F5F4;">';
@@ -1206,6 +1249,115 @@ app.get('/admin', async (c) => {
     });
     html += '</div>';
     panels.classes.innerHTML = html;
+
+    // ── Event: 新增班级按钮 ──
+    document.getElementById('btn-add-class').addEventListener('click', function(){
+      document.getElementById('add-class-form').style.display = 'block';
+      document.getElementById('ac-name').focus();
+    });
+    document.getElementById('ac-cancel').addEventListener('click', function(){
+      document.getElementById('add-class-form').style.display = 'none';
+    });
+    document.getElementById('ac-submit').addEventListener('click', function(){
+      var name = document.getElementById('ac-name').value.trim();
+      var teacher = document.getElementById('ac-teacher').value.trim();
+      var phone = document.getElementById('ac-phone').value.trim();
+      if(!name){showToast('请输入班级名称','error');return;}
+      if(!teacher){showToast('请输入老师姓名','error');return;}
+      if(!phone||!/^1\\d{10}$/.test(phone)){showToast('请输入正确的手机号','error');return;}
+      var btn = this; btn.disabled=true; btn.textContent='创建中...';
+      fetch('/api/admin/classes/create',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({className:name,teacherName:teacher,teacherPhone:phone,adminId:cu.id})
+      }).then(function(r){return r.json();}).then(function(d){
+        btn.disabled=false; btn.textContent='确认创建';
+        if(d.ok){
+          showToast('班级「'+name+'」创建成功，老师：'+teacher,'success');
+          document.getElementById('add-class-form').style.display='none';
+          rendered['classes']=false;renderClasses();rendered['classes']=true;
+        } else { showToast(d.error||'创建失败','error'); }
+      }).catch(function(){ btn.disabled=false; btn.textContent='确认创建'; showToast('网络错误','error'); });
+    });
+
+    // ── Event: 下载班级CSV模板 ──
+    document.getElementById('btn-dl-class-tpl').addEventListener('click', function(){
+      var h = '班级名称,班级老师姓名,班级老师联系方式';
+      var s1 = '第18期智能装备班,王建国,13800001234';
+      var s2 = '第19期新能源班,李芳华,13900005678';
+      var csv = '\\uFEFF'+h+'\\n'+s1+'\\n'+s2+'\\n';
+      var blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');a.href=url;a.download='班级导入模板.csv';a.click();
+      URL.revokeObjectURL(url);
+      showToast('班级CSV模板已下载','success');
+    });
+
+    // ── Event: 下载学员CSV模板 ──
+    document.getElementById('btn-dl-student-tpl').addEventListener('click', function(){
+      var h = '姓名,手机号';
+      var s1 = '张三,13800001111';
+      var s2 = '李四,13900002222';
+      var csv = '\\uFEFF'+h+'\\n'+s1+'\\n'+s2+'\\n';
+      var blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');a.href=url;a.download='学员导入模板.csv';a.click();
+      URL.revokeObjectURL(url);
+      showToast('学员CSV模板已下载','success');
+    });
+
+    // ── Event: 批量导入班级 ──
+    document.getElementById('btn-import-classes-csv').addEventListener('click', function(){
+      document.getElementById('import-classes-area').style.display = 'block';
+    });
+    document.getElementById('class-csv-cancel').addEventListener('click', function(){
+      document.getElementById('import-classes-area').style.display = 'none';
+    });
+    var classCsvRows = [];
+    document.getElementById('class-csv-file').addEventListener('change', function(e){
+      var file = e.target.files[0]; if(!file) return;
+      var reader = new FileReader();
+      reader.onload = function(evt){
+        var text = evt.target.result;
+        var lines = text.split(/\\n|\\r\\n?/).filter(function(l){return l.trim();});
+        classCsvRows = []; var warnings = [];
+        var startIdx = 0;
+        if(lines.length>0 && (lines[0].indexOf('班级')!==-1 || lines[0].indexOf('老师')!==-1)) startIdx=1;
+        for(var i=startIdx;i<lines.length;i++){
+          var cols = lines[i].split(',');
+          if(cols.length<3){warnings.push('第'+(i+1)+'行列数不足');continue;}
+          var cn=cols[0].trim(),tn=cols[1].trim(),tp=cols[2].trim();
+          if(!cn||!tn||!tp){warnings.push('第'+(i+1)+'行有空字段');continue;}
+          if(!/^1\\d{10}$/.test(tp)){warnings.push('第'+(i+1)+'行手机号格式不对: '+tp);continue;}
+          classCsvRows.push({className:cn,teacherName:tn,teacherPhone:tp});
+        }
+        var previewEl = document.getElementById('class-csv-preview');
+        var tbl='<table style="width:100%;border-collapse:collapse;font-size:12px;">';
+        tbl+='<tr style="background:#F5F5F4;"><th style="padding:8px;text-align:left;">班级名称</th><th>老师姓名</th><th>联系方式</th></tr>';
+        classCsvRows.forEach(function(r){
+          tbl+='<tr style="border-bottom:1px solid #F5F5F4;"><td style="padding:8px;">'+r.className+'</td><td>'+r.teacherName+'</td><td>'+r.teacherPhone+'</td></tr>';
+        });
+        tbl+='</table>';
+        previewEl.innerHTML=tbl;previewEl.style.display='block';
+        var warnEl=document.getElementById('class-csv-warnings');
+        if(warnings.length>0){warnEl.innerHTML='⚠️ '+warnings.join('<br>');warnEl.style.display='block';}else{warnEl.style.display='none';}
+      };
+      reader.readAsText(file);
+    });
+    document.getElementById('class-csv-confirm').addEventListener('click', function(){
+      if(classCsvRows.length===0){showToast('没有可导入的数据','error');return;}
+      var btn=this;btn.disabled=true;btn.textContent='导入中...';
+      fetch('/api/admin/classes/batch-create',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({classes:classCsvRows,adminId:cu.id})
+      }).then(function(r){return r.json();}).then(function(d){
+        btn.disabled=false;btn.textContent='确认导入';
+        if(d.ok){
+          showToast('成功导入 '+d.data.count+' 个班级','success');
+          document.getElementById('import-classes-area').style.display='none';
+          rendered['classes']=false;renderClasses();rendered['classes']=true;
+        } else { showToast(d.error||'导入失败','error'); }
+      }).catch(function(){btn.disabled=false;btn.textContent='确认导入';showToast('网络错误','error');});
+    });
   }
 
   // ══════════════════════════════════

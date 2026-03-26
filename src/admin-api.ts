@@ -1413,4 +1413,93 @@ adminApi.post('/contracts/:id/send-to-esign', async (c) => {
   }
 })
 
+// ══════════════════════════════════════════════════════════
+// 班级管理 API
+// ══════════════════════════════════════════════════════════
+
+/**
+ * POST /api/admin/classes/create
+ * 新增单个班级（含老师）
+ */
+adminApi.post('/classes/create', async (c) => {
+  const db = c.env.DB
+  const sessionUser = c.get('user')!
+  if (sessionUser.role !== 'admin') return c.json({ ok: false, error: '无管理员权限' }, 403)
+  const ip = getClientIP(c)
+  try {
+    const { className, teacherName, teacherPhone } = await c.req.json<{
+      className: string; teacherName: string; teacherPhone: string; adminId?: string
+    }>()
+    if (!className || !teacherName || !teacherPhone) {
+      return c.json({ ok: false, error: '班级名称、老师姓名和联系方式为必填' }, 400)
+    }
+    // Generate IDs
+    const classId = 'class-' + className.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '').slice(0, 20) + '-' + Date.now()
+    const teacherId = 't-' + Date.now().toString(36)
+    // Check if teacher already exists (by phone) in users table
+    const existingTeacher = await db.prepare("SELECT id, class_id FROM users WHERE phone = ? AND role = 'teacher'").bind(teacherPhone).first() as any
+    if (existingTeacher) {
+      // Teacher exists — we can note that they now also cover this class
+      // For simplicity, update their class_name to include the new class
+      await db.prepare('UPDATE users SET class_name = class_name || ?, updated_at = datetime(?) WHERE id = ?')
+        .bind(', ' + className, new Date().toISOString(), existingTeacher.id).run()
+    } else {
+      // Create new teacher account in users table
+      const pw = generateInitialPassword()
+      const hash = await hashPassword(pw)
+      await db.prepare(`
+        INSERT OR IGNORE INTO users (id, name, phone, role, status, class_id, class_name, password_hash, must_change_password, created_at)
+        VALUES (?, ?, ?, 'teacher', 'active', ?, ?, ?, 1, datetime('now'))
+      `).bind(teacherId, teacherName, teacherPhone, classId, className, hash).run()
+    }
+    await logAudit(db, sessionUser.id, 'create_class', '创建班级: ' + className + ', 老师: ' + teacherName, ip)
+    return c.json({ ok: true, data: { classId, className, teacherName } })
+  } catch (e: any) {
+    return c.json({ ok: false, error: '创建失败: ' + (e.message || '') }, 500)
+  }
+})
+
+/**
+ * POST /api/admin/classes/batch-create
+ * 批量导入班级（CSV）
+ */
+adminApi.post('/classes/batch-create', async (c) => {
+  const db = c.env.DB
+  const sessionUser = c.get('user')!
+  if (sessionUser.role !== 'admin') return c.json({ ok: false, error: '无管理员权限' }, 403)
+  const ip = getClientIP(c)
+  try {
+    const { classes } = await c.req.json<{
+      classes: Array<{ className: string; teacherName: string; teacherPhone: string }>
+      adminId?: string
+    }>()
+    if (!classes || classes.length === 0) {
+      return c.json({ ok: false, error: '没有可导入的数据' }, 400)
+    }
+    let created = 0
+    for (const cls of classes) {
+      if (!cls.className || !cls.teacherName || !cls.teacherPhone) continue
+      const classId = 'class-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6)
+      const teacherId = 't-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 4)
+      const existingTeacher = await db.prepare("SELECT id FROM users WHERE phone = ? AND role = 'teacher'").bind(cls.teacherPhone).first() as any
+      if (existingTeacher) {
+        await db.prepare("UPDATE users SET class_name = class_name || ? WHERE id = ?")
+          .bind(', ' + cls.className, existingTeacher.id).run()
+      } else {
+        const pw = generateInitialPassword()
+        const hash = await hashPassword(pw)
+        await db.prepare(`
+          INSERT OR IGNORE INTO users (id, name, phone, role, status, class_id, class_name, password_hash, must_change_password, created_at)
+          VALUES (?, ?, ?, 'teacher', 'active', ?, ?, ?, 1, datetime('now'))
+        `).bind(teacherId, cls.teacherName, cls.teacherPhone, classId, cls.className, hash).run()
+      }
+      created++
+    }
+    await logAudit(db, sessionUser.id, 'batch_create_class', '批量创建 ' + created + ' 个班级', ip)
+    return c.json({ ok: true, data: { count: created } })
+  } catch (e: any) {
+    return c.json({ ok: false, error: '批量导入失败: ' + (e.message || '') }, 500)
+  }
+})
+
 export default adminApi

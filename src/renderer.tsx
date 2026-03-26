@@ -23,11 +23,16 @@ export const renderer = jsxRenderer(({ children, title }) => {
         {/* Tailwind CSS (locally built, production-ready) — loaded first, no network */}
         <link rel="stylesheet" href="/static/tailwind.css" />
 
-        {/* Google Fonts — only essential weights, swap for instant text rendering */}
+        {/* Google Fonts — non-blocking via media trick for faster FCP */}
         <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+SC:wght@400;600;700&display=swap"
           rel="stylesheet"
+          media="print"
+          onload="this.media='all'"
         />
+        <noscript>
+          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+SC:wght@400;600;700&display=swap" rel="stylesheet" />
+        </noscript>
         {/* FontAwesome — deferred with media trick */}
         <link
           rel="stylesheet"
@@ -35,6 +40,9 @@ export const renderer = jsxRenderer(({ children, title }) => {
           media="print"
           onload="this.media='all'"
         />
+        <noscript>
+          <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
+        </noscript>
 
         {/* Global Styles */}
         <style
@@ -619,11 +627,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display'
 }
 .upload-zone:hover { border-color: #B91C1C; background: #FEF2F2; }
 
-.input-unit-wrap { position: relative; }
-.input-unit-wrap .form-input { padding-right: 52px; }
+.input-unit-wrap { position: relative; display: flex; align-items: center; }
+.input-unit-wrap .form-input { padding-right: 40px; flex: 1; min-width: 0; color: #1C1917; -webkit-text-fill-color: #1C1917; }
 .input-unit {
   position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
-  font-size: 13px; color: #78716C; pointer-events: none;
+  font-size: 13px; color: #78716C; pointer-events: none; z-index: 1;
 }
 
 .auto-calc-card {

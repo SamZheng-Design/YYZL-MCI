@@ -59,6 +59,22 @@ const app = new Hono<HonoEnv>()
 // ══════════════════════════════════════════════════════════
 app.use('*', securityHeaders)
 
+// ── Performance: Cache-Control for static assets ──
+app.use('/static/*', async (c, next) => {
+  await next()
+  if (c.res.ok) {
+    c.res.headers.set('Cache-Control', 'public, max-age=604800, immutable')
+  }
+})
+
+// ── Performance: Cache-Control for read-only API data ──
+app.use('/api/data/*', async (c, next) => {
+  await next()
+  if (c.req.method === 'GET' && c.res.ok) {
+    c.res.headers.set('Cache-Control', 'private, max-age=30, stale-while-revalidate=60')
+  }
+})
+
 // ── Favicon ──
 app.get('/favicon.ico', (c) => {
   return new Response(faviconSVG, {

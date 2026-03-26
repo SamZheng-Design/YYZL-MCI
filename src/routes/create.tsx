@@ -321,21 +321,45 @@ app.get('/create', (c) => {
 
               {/* 年化收益率 — 仅在有封顶条件时显示 */}
               <div id="yield-rate-group">
-                <label class="form-label" style="display:flex;align-items:center;gap:4px;">年化收益率
-                  <span class="help-icon" data-help-id="annualYieldRate">?</span>
+                <label class="form-label" style="display:flex;align-items:center;gap:6px;">年化收益率
+                  <span id="yield-help-btn" style="width:18px;height:18px;border-radius:50%;background:#FEE2E2;color:#B91C1C;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;cursor:pointer;border:1px solid #FECACA;flex-shrink:0;" title="点击查看收益率计算详解">?</span>
                 </label>
-                <div class="help-text">用于计算动态封顶倍数。封顶倍数 = 1 + 年化收益率 × 期限(月)/12。例如18%年化×24个月=1.36倍。</div>
                 <div style="display:flex;align-items:center;gap:12px;">
                   <input id="f-yield-slider" type="range" class="terms-slider terms-slider-red" min="6" max="30" step="0.5" value="12" style="flex:1;" />
-                  <div class="input-unit-wrap" style="width:90px;flex-shrink:0;">
-                    <input id="f-yield" type="number" class="form-input" value="12" min={6} max={30} step={0.5} style="text-align:right;" />
-                    <span class="input-unit">%</span>
+                  <div class="input-unit-wrap" style="width:100px;flex-shrink:0;">
+                    <input id="f-yield" type="number" class="form-input" value="12" min={6} max={30} step={0.5} style="text-align:right;padding-right:32px;font-size:16px;font-weight:600;color:#1C1917;" />
+                    <span class="input-unit" style="right:10px;font-weight:600;">%</span>
                   </div>
                 </div>
                 <div style="display:flex;justify-content:space-between;font-size:11px;color:#A8A29E;margin-top:2px;">
                   <span>6%</span>
                   <span id="yield-multiple-hint" style="color:#B91C1C;font-weight:600;" />
                   <span>30%</span>
+                </div>
+
+                {/* 等效收益率展示面板 */}
+                <div id="yield-equiv-panel" style="margin-top:12px;background:linear-gradient(135deg,#F0F9FF,#EFF6FF);border:1px solid #BFDBFE;border-radius:12px;padding:14px 16px;">
+                  <div style="font-size:12px;font-weight:600;color:#1D4ED8;margin-bottom:10px;display:flex;align-items:center;gap:6px;">
+                    <i class="fas fa-calculator" style="font-size:11px;" />
+                    等效收益率换算
+                  </div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+                    <div style="background:#fff;border-radius:8px;padding:10px;text-align:center;border:1px solid #DBEAFE;">
+                      <div style="font-size:11px;color:#64748B;">月平息</div>
+                      <div id="yield-monthly" style="font-size:18px;font-weight:700;color:#1D4ED8;margin-top:2px;">1%</div>
+                    </div>
+                    <div style="background:#fff;border-radius:8px;padding:10px;text-align:center;border:1px solid #DBEAFE;">
+                      <div style="font-size:11px;color:#64748B;">周平息</div>
+                      <div id="yield-weekly" style="font-size:18px;font-weight:700;color:#1D4ED8;margin-top:2px;">0.23%</div>
+                    </div>
+                    <div style="background:#fff;border-radius:8px;padding:10px;text-align:center;border:1px solid #DBEAFE;">
+                      <div style="font-size:11px;color:#64748B;">日平息</div>
+                      <div id="yield-daily" style="font-size:18px;font-weight:700;color:#1D4ED8;margin-top:2px;">0.033%</div>
+                    </div>
+                  </div>
+                  <div id="yield-cap-formula" style="margin-top:10px;font-size:12px;color:#64748B;line-height:1.6;padding:8px 10px;background:#EFF6FF;border-radius:8px;">
+                    封顶退出条件：本金 × (年化÷12) × 资金占用月 = 回收上限
+                  </div>
                 </div>
               </div>
 
@@ -673,6 +697,69 @@ app.get('/create', (c) => {
   var fBankBranch = document.getElementById('f-bank-branch');
   var fTaxpayer = document.getElementById('f-taxpayer');
 
+  // ── 年化收益率 ? 帮助弹窗 ──
+  var yieldHelpBtn = document.getElementById('yield-help-btn');
+  if(yieldHelpBtn){
+    yieldHelpBtn.addEventListener('click', function(){
+      var overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+      overlay.innerHTML = '<div style="background:#fff;border-radius:20px;max-width:440px;width:100%;max-height:85vh;overflow-y:auto;padding:0;box-shadow:0 20px 60px rgba(0,0,0,0.3);">'
+        +'<div style="background:linear-gradient(135deg,#1E40AF,#3B82F6);padding:20px 24px;border-radius:20px 20px 0 0;color:#fff;">'
+        +'<div style="display:flex;align-items:center;justify-content:space-between;">'
+        +'<div style="font-size:18px;font-weight:700;">📐 收益率计算详解</div>'
+        +'<button id="yield-help-close" style="background:rgba(255,255,255,0.2);border:none;border-radius:50%;width:32px;height:32px;color:#fff;font-size:16px;cursor:pointer;">×</button>'
+        +'</div>'
+        +'<div style="font-size:13px;opacity:0.85;margin-top:6px;">理解年化收益率与月/周/日平息的换算关系</div>'
+        +'</div>'
+        +'<div style="padding:20px 24px;">'
+        // 公式
+        +'<div style="background:#F0F9FF;border:1px solid #BFDBFE;border-radius:12px;padding:14px;margin-bottom:16px;">'
+        +'<div style="font-size:14px;font-weight:700;color:#1E40AF;margin-bottom:10px;">📊 换算公式</div>'
+        +'<div style="font-size:13px;color:#334155;line-height:1.8;">'
+        +'<div style="padding:6px 0;border-bottom:1px dashed #BFDBFE;"><b>月平息</b> = 年化收益率 ÷ 12</div>'
+        +'<div style="padding:6px 0;border-bottom:1px dashed #BFDBFE;"><b>周平息</b> = 年化收益率 ÷ 52</div>'
+        +'<div style="padding:6px 0;"><b>日平息</b> = 年化收益率 ÷ 365</div>'
+        +'</div></div>'
+        // 封顶退出
+        +'<div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;padding:14px;margin-bottom:16px;">'
+        +'<div style="font-size:14px;font-weight:700;color:#B91C1C;margin-bottom:10px;">🔒 封顶退出条件</div>'
+        +'<div style="font-size:13px;color:#44403C;line-height:1.8;">'
+        +'回收上限 = 本金 × (年化收益率 ÷ 12) × 资金占用月数<br/>'
+        +'<span style="color:#DC2626;font-weight:600;">注：不足一个月按一个月计算</span>'
+        +'</div></div>'
+        // 案例
+        +'<div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:12px;padding:14px;margin-bottom:16px;">'
+        +'<div style="font-size:14px;font-weight:700;color:#166534;margin-bottom:10px;">💡 计算案例</div>'
+        +'<div style="font-size:13px;color:#334155;line-height:1.9;">'
+        +'假设年化收益率 <b>12%</b>，投入本金 <b>10万</b>：<br/>'
+        +'<div style="margin:8px 0;padding:10px 12px;background:#DCFCE7;border-radius:8px;">'
+        +'• 月平息 = 12% ÷ 12 = <b>1%</b>/月<br/>'
+        +'• 周平息 = 12% ÷ 52 ≈ <b>0.23%</b>/周<br/>'
+        +'• 日平息 = 12% ÷ 365 ≈ <b>0.033%</b>/日</div>'
+        +'<div style="margin-top:10px;font-weight:600;color:#166534;">📌 封顶退出计算：</div>'
+        +'若资金占用 <b>6个月</b>：<br/>'
+        +'回收上限 = 10万 × 1% × 6 = <b>¥0.6万（6000元）</b><br/><br/>'
+        +'若资金占用 <b>6个月零5天</b>（不足1月按1月算 → 按7月计）：<br/>'
+        +'回收上限 = 10万 × 1% × 7 = <b>¥0.7万（7000元）</b>'
+        +'</div></div>'
+        // 日平息案例
+        +'<div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:12px;padding:14px;">'
+        +'<div style="font-size:14px;font-weight:700;color:#92400E;margin-bottom:10px;">📅 按日计算案例</div>'
+        +'<div style="font-size:13px;color:#334155;line-height:1.9;">'
+        +'年化 <b>12%</b>，投入 <b>10万</b>，占用 <b>180天</b>：<br/>'
+        +'日平息 = 12% ÷ 365 ≈ 0.0329%<br/>'
+        +'收益 = 10万 × 0.0329% × 180 ≈ <b>¥5,918元</b>'
+        +'</div></div>'
+        +'</div></div>';
+      document.body.appendChild(overlay);
+      document.getElementById('yield-help-close').addEventListener('click', function(){
+        overlay.style.opacity='0'; overlay.style.transition='opacity 0.2s';
+        setTimeout(function(){ overlay.remove(); }, 200);
+      });
+      overlay.addEventListener('click', function(e){ if(e.target===overlay){ overlay.style.opacity='0'; overlay.style.transition='opacity 0.2s'; setTimeout(function(){overlay.remove();},200); }});
+    });
+  }
+
   // 退出方式联动
   function getExitMode(){
     var radios = document.querySelectorAll('input[name="exitMode"]');
@@ -820,6 +907,23 @@ app.get('/create', (c) => {
     var yieldHint = document.getElementById('yield-multiple-hint');
     if(yieldHint && duration > 0){
       yieldHint.textContent = '等效 ' + capMultiple.toFixed(2) + 'x';
+    }
+
+    // 等效收益率换算面板
+    var monthlyPct = yieldRate / 12;
+    var weeklyPct = yieldRate / 52;
+    var dailyPct = yieldRate / 365;
+    var yieldMonthlyEl = document.getElementById('yield-monthly');
+    var yieldWeeklyEl = document.getElementById('yield-weekly');
+    var yieldDailyEl = document.getElementById('yield-daily');
+    if(yieldMonthlyEl) yieldMonthlyEl.textContent = monthlyPct.toFixed(2) + '%';
+    if(yieldWeeklyEl) yieldWeeklyEl.textContent = weeklyPct.toFixed(2) + '%';
+    if(yieldDailyEl) yieldDailyEl.textContent = dailyPct.toFixed(3) + '%';
+    var capFormulaEl = document.getElementById('yield-cap-formula');
+    if(capFormulaEl && amount > 0 && duration > 0){
+      var capAmount = amount * (yieldRate/100/12) * duration;
+      capFormulaEl.innerHTML = '<strong>封顶退出公式：</strong>本金 × (' + yieldRate + '%÷12) × ' + duration + '月 = ¥' + capAmount.toFixed(2) + '万<br/>'
+        + '<span style="color:#92400E;">不足一个月按一个月计算</span>';
     }
 
     // Example
