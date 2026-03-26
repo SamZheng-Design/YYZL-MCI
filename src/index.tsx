@@ -65,6 +65,23 @@ const app = new Hono<HonoEnv>()
 // ══════════════════════════════════════════════════════════
 app.use('*', securityHeaders)
 
+// ══════════════════════════════════════════════════════════
+// 全局 API 错误处理中间件 — 统一 try-catch + 错误格式
+// ══════════════════════════════════════════════════════════
+app.use('/api/*', async (c, next) => {
+  try {
+    await next()
+  } catch (err: any) {
+    console.error(`[API Error] ${c.req.method} ${c.req.path}:`, err?.message || err)
+    const status = err.status || 500
+    return c.json({
+      ok: false,
+      error: status >= 500 ? '服务器内部错误，请稍后重试' : (err.message || '请求处理失败'),
+      code: status >= 500 ? 'INTERNAL_ERROR' : 'REQUEST_ERROR',
+    }, status)
+  }
+})
+
 // ── Performance: Cache-Control for static assets ──
 app.use('/static/*', async (c, next) => {
   await next()
@@ -101,6 +118,43 @@ app.use('/api/user-stats/*', requireAuth)
 app.use('/api/platform-stats', requireAuth)
 app.use('/api/change-password', requireAuth)
 app.use('/api/admin/*', requireAuth)
+
+// ══════════════════════════════════════════════════════════
+// Web Vitals 性能监控 — 接收前端上报的 LCP/FCP/CLS 数据
+// ══════════════════════════════════════════════════════════
+app.post('/api/metrics', async (c) => {
+  try {
+    const body = await c.req.json<{ metrics: Array<{ name: string; value: number; ts: number; path: string; ua?: string }> }>()
+    const metrics = body.metrics || []
+    if (metrics.length === 0) return c.json({ ok: true })
+
+    const db = c.env.DB
+    // 确保 metrics 表存在
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS web_vitals (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        value REAL NOT NULL,
+        path TEXT,
+        ua TEXT,
+        created_at TEXT DEFAULT (datetime('now'))
+      )
+    `).run()
+
+    // 批量写入（最多存 50 条，防止滥用）
+    const batch = metrics.slice(0, 50)
+    for (const m of batch) {
+      await db.prepare(
+        'INSERT INTO web_vitals (name, value, path, ua) VALUES (?, ?, ?, ?)'
+      ).bind(m.name, m.value, m.path || '', (m.ua || '').slice(0, 120)).run()
+    }
+
+    return c.json({ ok: true, count: batch.length })
+  } catch (e: any) {
+    // 监控端点不应影响用户体验，静默失败
+    return c.json({ ok: true })
+  }
+})
 
 // ══════════════════════════════════════════════════════════
 // Auth API — 不需要鉴权的公开端点
@@ -177,7 +231,7 @@ app.post('/api/login', loginRateLimit, async (c) => {
     }
 
     // Set session cookie (Secure flag for production HTTPS)
-    c.header('Set-Cookie', `zlc_session=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7*24*60*60}`)
+    c.header('Set-Cookie', `zlc_session=${sessionId}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${7*24*60*60}`)
 
     // 审计日志
     await logAudit(db, { userId: user.id, action: 'login_success', detail: { deviceInfo: deviceInfo.slice(0, 80) }, ipAddress: ip })
@@ -325,7 +379,7 @@ app.post('/api/logout', async (c) => {
       await db.prepare('DELETE FROM sessions WHERE id = ?').bind(match[1]).run()
     }
     // Clear cookie
-    c.header('Set-Cookie', 'zlc_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0')
+    c.header('Set-Cookie', 'zlc_session=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0')
     return c.json({ ok: true })
   } catch (e: any) {
     return c.json({ ok: true }) // Always succeed for logout

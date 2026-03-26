@@ -54,7 +54,7 @@ export async function requireAuth(c: Context<HonoEnv>, next: Next) {
 
   if (!session) {
     // Session 不存在或已被删除 → 清除 cookie
-    c.header('Set-Cookie', 'zlc_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0')
+    c.header('Set-Cookie', 'zlc_session=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0')
     return c.json({ ok: false, error: '登录已失效，请重新登录', code: 'SESSION_EXPIRED' }, 401)
   }
 
@@ -62,14 +62,14 @@ export async function requireAuth(c: Context<HonoEnv>, next: Next) {
   if (new Date(session.expires_at) < new Date()) {
     // 过期 → 删除并拒绝
     await db.prepare('DELETE FROM sessions WHERE id = ?').bind(sessionId).run()
-    c.header('Set-Cookie', 'zlc_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0')
+    c.header('Set-Cookie', 'zlc_session=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0')
     return c.json({ ok: false, error: '登录已过期，请重新登录', code: 'SESSION_EXPIRED' }, 401)
   }
 
   // 检查用户状态
   if (session.status === 'inactive') {
     await db.prepare('DELETE FROM sessions WHERE id = ?').bind(sessionId).run()
-    c.header('Set-Cookie', 'zlc_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0')
+    c.header('Set-Cookie', 'zlc_session=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0')
     return c.json({ ok: false, error: '您的账号已被禁用', code: 'ACCOUNT_DISABLED' }, 403)
   }
 
@@ -299,7 +299,7 @@ export async function verifySession(c: Context<HonoEnv>) {
   `).bind(sessionId).first<any>()
 
   if (!session || new Date(session.expires_at) < new Date()) {
-    c.header('Set-Cookie', 'zlc_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0')
+    c.header('Set-Cookie', 'zlc_session=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0')
     return c.json({ ok: false, code: 'SESSION_EXPIRED' }, 401)
   }
 

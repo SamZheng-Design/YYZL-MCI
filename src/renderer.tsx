@@ -39,6 +39,12 @@ export const renderer = jsxRenderer(({ children, title }) => {
         {/* Pagination utility — loaded in head so inline page scripts can use it */}
         <script src="/static/pagination.js"></script>
 
+        {/* API Client — unified fetch with timeout/retry/error handling */}
+        <script src="/static/api-client.js"></script>
+
+        {/* Web Vitals monitoring — LCP/FCP/CLS/TTFB */}
+        <script src="/static/vitals.js" defer></script>
+
         {/* SPA Router progress bar styles */}
         <style dangerouslySetInnerHTML={{__html: `
           #zlc-spa-progress{position:fixed;top:0;left:0;width:100%;height:3px;z-index:99999;pointer-events:none;display:none;}
