@@ -243,6 +243,19 @@ app.get('/login', (c) => {
   animation: none !important;
 }
 
+/* ── Shake animation for phone verification ── */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-6px); }
+  80% { transform: translateX(4px); }
+}
+#cp-phone4:focus {
+  border-color: #B91C1C !important;
+  box-shadow: 0 0 0 3px rgba(185,28,28,0.1) !important;
+}
+
 /* ── Demo Login Button Hover Glow ── */
 .demo-login-btn:hover {
   box-shadow: 0 0 12px rgba(212,168,83,0.25) !important;
@@ -408,44 +421,139 @@ app.get('/login', (c) => {
   // ── Phone login logic (kept from original) ──
   var phoneInput=document.getElementById('phone-input'),codeInput=document.getElementById('code-input'),
       sendCodeBtn=document.getElementById('send-code-btn'),loginBtn=document.getElementById('login-btn');
-  // ── Change Password Modal ──
+  // ── Change Password Modal (方案C：手机尾号验证 + 强制改密) ──
   function showChangePasswordModal(member){
+    var maskedPhone = member.phone ? member.phone.slice(0,3) + '****' + member.phone.slice(-4) : '***';
     var overlay = document.createElement('div');
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
-    overlay.innerHTML = '<div style="background:#fff;border-radius:20px;padding:32px 24px;max-width:380px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">'
+    overlay.innerHTML = '<div id="cp-modal" style="background:#fff;border-radius:20px;padding:32px 24px;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">'
+      // ── Step 1: 手机尾号验证 ──
+      +'<div id="cp-step1">'
       +'<div style="text-align:center;margin-bottom:24px;">'
       +'<div style="width:56px;height:56px;border-radius:50%;background:#FEF2F2;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;"><span style="font-size:24px;">🔐</span></div>'
-      +'<h3 style="font-size:18px;font-weight:700;color:#1C1917;">首次登录请修改密码</h3>'
-      +'<p style="font-size:13px;color:#78716C;margin-top:8px;">为了账户安全，请设置您的新密码</p></div>'
-      +'<div style="margin-bottom:16px;"><label style="font-size:13px;color:#44403C;display:block;margin-bottom:6px;">新密码</label>'
-      +'<input id="cp-new" type="password" placeholder="至少6位" style="width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid #E7E5E4;border-radius:10px;font-size:14px;outline:none;" /></div>'
-      +'<div style="margin-bottom:24px;"><label style="font-size:13px;color:#44403C;display:block;margin-bottom:6px;">确认新密码</label>'
-      +'<input id="cp-confirm" type="password" placeholder="再次输入新密码" style="width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid #E7E5E4;border-radius:10px;font-size:14px;outline:none;" /></div>'
-      +'<button id="cp-submit" style="width:100%;padding:14px;background:#B91C1C;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;">确认修改</button>'
-      +'<button id="cp-skip" style="width:100%;padding:10px;background:transparent;color:#A8A29E;border:none;font-size:13px;cursor:pointer;margin-top:8px;">跳过，以后再改</button>'
+      +'<h3 style="font-size:18px;font-weight:700;color:#1C1917;">首次登录 · 身份验证</h3>'
+      +'<p style="font-size:13px;color:#78716C;margin-top:8px;line-height:1.6;">欢迎 <b style="color:#1C1917;">' + member.name + '</b>！<br/>请验证您的手机号后4位以确认身份</p></div>'
+      +'<div style="text-align:center;margin-bottom:20px;">'
+      +'<div style="display:inline-flex;align-items:center;gap:8px;background:#F5F5F4;padding:10px 20px;border-radius:12px;">'
+      +'<i class="fas fa-mobile-alt" style="color:#78716C;"></i>'
+      +'<span style="font-size:15px;color:#44403C;letter-spacing:2px;">' + maskedPhone + '</span></div></div>'
+      +'<div style="margin-bottom:20px;">'
+      +'<label style="font-size:13px;color:#44403C;display:block;margin-bottom:6px;">请输入手机号后4位</label>'
+      +'<input id="cp-phone4" type="tel" maxlength="4" placeholder="请输入4位数字" autocomplete="off" style="width:100%;box-sizing:border-box;padding:14px 16px;border:1px solid #E7E5E4;border-radius:12px;font-size:18px;letter-spacing:8px;text-align:center;outline:none;font-weight:600;" /></div>'
+      +'<button id="cp-verify" style="width:100%;padding:14px;background:linear-gradient(135deg,#B91C1C,#991B1B);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;">验证身份</button>'
+      +'<div id="cp-verify-error" style="text-align:center;font-size:13px;color:#DC2626;margin-top:12px;display:none;"></div>'
+      +'</div>'
+      // ── Step 2: 设置新密码 ──
+      +'<div id="cp-step2" style="display:none;">'
+      +'<div style="text-align:center;margin-bottom:24px;">'
+      +'<div style="width:56px;height:56px;border-radius:50%;background:#F0FDF4;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;"><span style="font-size:24px;">✅</span></div>'
+      +'<h3 style="font-size:18px;font-weight:700;color:#1C1917;">身份验证通过</h3>'
+      +'<p style="font-size:13px;color:#78716C;margin-top:8px;">请设置您的专属密码（至少6位）</p></div>'
+      +'<div style="margin-bottom:16px;"><label style="font-size:13px;color:#44403C;display:block;margin-bottom:6px;">设置新密码</label>'
+      +'<div style="position:relative;">'
+      +'<input id="cp-new" type="password" placeholder="至少6位，建议字母+数字" style="width:100%;box-sizing:border-box;padding:12px 44px 12px 14px;border:1px solid #E7E5E4;border-radius:10px;font-size:14px;outline:none;" />'
+      +'<button id="cp-toggle-pw1" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#A8A29E;font-size:14px;padding:4px;"><i class="fas fa-eye"></i></button></div></div>'
+      +'<div style="margin-bottom:8px;"><label style="font-size:13px;color:#44403C;display:block;margin-bottom:6px;">确认新密码</label>'
+      +'<div style="position:relative;">'
+      +'<input id="cp-confirm" type="password" placeholder="再次输入新密码" style="width:100%;box-sizing:border-box;padding:12px 44px 12px 14px;border:1px solid #E7E5E4;border-radius:10px;font-size:14px;outline:none;" />'
+      +'<button id="cp-toggle-pw2" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#A8A29E;font-size:14px;padding:4px;"><i class="fas fa-eye"></i></button></div></div>'
+      // 密码强度提示
+      +'<div id="cp-strength" style="margin-bottom:20px;padding:8px 12px;border-radius:8px;background:#F5F5F4;font-size:12px;color:#78716C;">密码强度：<span id="cp-strength-text">—</span></div>'
+      +'<button id="cp-submit" style="width:100%;padding:14px;background:linear-gradient(135deg,#B91C1C,#991B1B);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;">确认修改并进入平台</button>'
+      +'</div>'
+      // ── Footer ──
+      +'<button id="cp-skip" style="width:100%;padding:10px;background:transparent;color:#A8A29E;border:none;font-size:13px;cursor:pointer;margin-top:8px;">暂时跳过</button>'
       +'</div>';
     document.body.appendChild(overlay);
 
+    var verifyAttempts = 0;
+
+    // Step 1: 验证手机尾号
+    document.getElementById('cp-verify').addEventListener('click', function(){
+      var phone4 = document.getElementById('cp-phone4').value.trim();
+      if(!/^\\d{4}$/.test(phone4)){ showToast('请输入4位数字', 'error'); return; }
+      verifyAttempts++;
+      if(verifyAttempts > 5){
+        showToast('验证次数过多，请联系管理员', 'error');
+        document.getElementById('cp-verify').disabled = true;
+        return;
+      }
+      // 前端先校验手机尾号（快速反馈）
+      var realLast4 = member.phone ? member.phone.slice(-4) : '';
+      if(phone4 !== realLast4){
+        var errEl = document.getElementById('cp-verify-error');
+        errEl.style.display = 'block';
+        errEl.textContent = '手机尾号不匹配，请重试（' + (5-verifyAttempts) + '次机会）';
+        document.getElementById('cp-phone4').value = '';
+        document.getElementById('cp-phone4').focus();
+        // 输入框抖动动画
+        var input = document.getElementById('cp-phone4');
+        input.style.borderColor = '#DC2626';
+        input.style.animation = 'shake 0.4s ease';
+        setTimeout(function(){ input.style.animation=''; input.style.borderColor='#E7E5E4'; }, 500);
+        return;
+      }
+      // 验证通过，切换到 Step 2
+      document.getElementById('cp-step1').style.display = 'none';
+      document.getElementById('cp-step2').style.display = 'block';
+      setTimeout(function(){ document.getElementById('cp-new').focus(); }, 100);
+    });
+
+    // 密码强度检测
+    var newPwInput = document.getElementById('cp-new');
+    if(newPwInput){
+      newPwInput.addEventListener('input', function(){
+        var v = this.value;
+        var strengthEl = document.getElementById('cp-strength-text');
+        if(!v){ strengthEl.textContent = '—'; strengthEl.style.color='#78716C'; return; }
+        var score = 0;
+        if(v.length >= 6) score++;
+        if(v.length >= 8) score++;
+        if(/[A-Z]/.test(v)) score++;
+        if(/[a-z]/.test(v)) score++;
+        if(/[0-9]/.test(v)) score++;
+        if(/[^A-Za-z0-9]/.test(v)) score++;
+        if(score <= 2){ strengthEl.textContent = '弱 ⚠️'; strengthEl.style.color='#DC2626'; }
+        else if(score <= 4){ strengthEl.textContent = '中等 👍'; strengthEl.style.color='#D97706'; }
+        else { strengthEl.textContent = '强 💪'; strengthEl.style.color='#16A34A'; }
+      });
+    }
+
+    // 密码显示切换
+    ['cp-toggle-pw1','cp-toggle-pw2'].forEach(function(btnId, idx){
+      var btn = document.getElementById(btnId);
+      if(!btn) return;
+      btn.addEventListener('click', function(){
+        var inputId = idx === 0 ? 'cp-new' : 'cp-confirm';
+        var input = document.getElementById(inputId);
+        if(input.type === 'password'){ input.type='text'; btn.innerHTML='<i class="fas fa-eye-slash"></i>'; }
+        else { input.type='password'; btn.innerHTML='<i class="fas fa-eye"></i>'; }
+      });
+    });
+
+    // Step 2: 提交新密码
     document.getElementById('cp-submit').addEventListener('click', function(){
       var newPw = document.getElementById('cp-new').value;
       var confirmPw = document.getElementById('cp-confirm').value;
       if(!newPw || newPw.length < 6){ showToast('密码至少6位', 'error'); return; }
       if(newPw !== confirmPw){ showToast('两次密码不一致', 'error'); return; }
+      if(newPw === 'zhongliu2026' || newPw === _lastUsedPassword){ showToast('新密码不能与默认密码相同', 'error'); return; }
       this.disabled = true; this.textContent = '修改中...';
+      var phoneLast4 = member.phone ? member.phone.slice(-4) : '';
       fetch('/api/change-password', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ userId: member.id, oldPassword: _lastUsedPassword, newPassword: newPw })
+        body: JSON.stringify({ userId: member.id, oldPassword: _lastUsedPassword, newPassword: newPw, phoneLast4: phoneLast4 })
       }).then(function(r){return r.json();}).then(function(res){
         if(res.ok){
-          showToast('密码已修改，欢迎使用！', 'success');
+          showToast('密码已修改，欢迎使用中流通！', 'success');
           overlay.remove();
           setTimeout(function(){window.location.href=member.role==='teacher'?'/teacher':(member.role==='admin'?'/admin':'/');},800);
         } else {
           showToast(res.error || '修改失败', 'error');
           document.getElementById('cp-submit').disabled = false;
-          document.getElementById('cp-submit').textContent = '确认修改';
+          document.getElementById('cp-submit').textContent = '确认修改并进入平台';
         }
-      }).catch(function(){ showToast('网络错误', 'error'); document.getElementById('cp-submit').disabled=false; document.getElementById('cp-submit').textContent='确认修改'; });
+      }).catch(function(){ showToast('网络错误', 'error'); document.getElementById('cp-submit').disabled=false; document.getElementById('cp-submit').textContent='确认修改并进入平台'; });
     });
 
     document.getElementById('cp-skip').addEventListener('click', function(){
@@ -454,8 +562,9 @@ app.get('/login', (c) => {
       setTimeout(function(){window.location.href=member.role==='teacher'?'/teacher':(member.role==='admin'?'/admin':'/');},800);
     });
 
-    // 按 Enter 键提交 + 自动聚焦
-    setTimeout(function(){ var el=document.getElementById('cp-new'); if(el) el.focus(); }, 100);
+    // 按 Enter 键流程
+    setTimeout(function(){ var el=document.getElementById('cp-phone4'); if(el) el.focus(); }, 100);
+    document.getElementById('cp-phone4').addEventListener('keydown', function(e){ if(e.key==='Enter') document.getElementById('cp-verify').click(); });
     document.getElementById('cp-new').addEventListener('keydown', function(e){ if(e.key==='Enter') document.getElementById('cp-confirm').focus(); });
     document.getElementById('cp-confirm').addEventListener('keydown', function(e){ if(e.key==='Enter') document.getElementById('cp-submit').click(); });
   }

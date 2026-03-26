@@ -171,12 +171,12 @@ app.post('/api/login', loginRateLimit, async (c) => {
   }
 })
 
-/** 修改密码 API — 从 session 获取用户身份（不信任前端传的 userId） */
+/** 修改密码 API — 方案C：手机尾号验证 + 强制改密 */
 app.post('/api/change-password', async (c) => {
   try {
     const sessionUser = c.get('user')!
-    const { oldPassword, newPassword } = await c.req.json<{
-      userId?: string; oldPassword: string; newPassword: string
+    const { oldPassword, newPassword, phoneLast4 } = await c.req.json<{
+      userId?: string; oldPassword: string; newPassword: string; phoneLast4?: string
     }>()
     if (!newPassword || newPassword.length < 6) {
       return c.json({ ok: false, error: '新密码至少6位' }, 400)
@@ -185,6 +185,15 @@ app.post('/api/change-password', async (c) => {
     const db = c.env.DB
     const user = await db.prepare('SELECT * FROM users WHERE id = ?').bind(sessionUser.id).first<any>()
     if (!user) return c.json({ ok: false, error: '用户不存在' }, 404)
+
+    // 方案C：首次改密时验证手机尾号
+    if (user.must_change_password === 1 && phoneLast4) {
+      const realLast4 = (user.phone || '').slice(-4)
+      if (phoneLast4 !== realLast4) {
+        await logAudit(db, { userId: sessionUser.id, action: 'change_password_failed', detail: { reason: 'phone_last4_mismatch' }, ipAddress: getClientIP(c) })
+        return c.json({ ok: false, error: '手机尾号验证失败，请确认您的手机号后4位' }, 400)
+      }
+    }
 
     const valid = await verifyPassword(oldPassword, user.password_hash || '')
     if (!valid) return c.json({ ok: false, error: '原密码错误' }, 400)

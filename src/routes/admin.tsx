@@ -768,8 +768,13 @@ app.get('/admin', async (c) => {
         body:JSON.stringify({adminId:u.id,members:[{name:name,phone:phone,className:cls}]})
       }).then(function(r){return r.json();}).then(function(res){
         if(res.ok){
-          showToast('创建成功！初始密码: '+res.data.initialPassword, 'success', 10000);
           overlay.remove();
+          // 显示账号密码列表
+          if(res.data && res.data.accountList && res.data.accountList.length > 0){
+            showAccountListModal(res.data.accountList);
+          } else {
+            showToast('创建成功！初始密码: '+res.data.initialPassword, 'success', 10000);
+          }
           refreshMembers();
         } else { showToast(res.error||'创建失败','error'); document.getElementById('sc-submit').disabled=false; document.getElementById('sc-submit').textContent='创建账号'; }
       }).catch(function(){ showToast('网络错误','error'); document.getElementById('sc-submit').disabled=false; document.getElementById('sc-submit').textContent='创建账号'; });
@@ -1079,11 +1084,12 @@ app.get('/admin', async (c) => {
         if(d.ok){
           overlay.style.display='none';
           showToast(d.message || '注册成功','success');
-          if(d.data && d.data.initialPassword){
-            showToast('初始密码: '+d.data.initialPassword, 'info', 8000);
-          }
           if(d.data && d.data.skipped && d.data.skipped.length > 0){
             showToast('跳过 '+d.data.skipped.length+' 位（已注册）', 'info', 5000);
+          }
+          // 显示账号密码列表弹窗（可下载）
+          if(d.data && d.data.accountList && d.data.accountList.length > 0){
+            showAccountListModal(d.data.accountList);
           }
           refreshMembers();
         } else {
@@ -1095,6 +1101,74 @@ app.get('/admin', async (c) => {
         submitBtn.disabled=false;submitBtn.textContent='确认注册 '+count+' 位';
       });
     });
+  }
+
+  // ── Account List Modal (批量注册后展示账号密码 + 下载) ──
+  function showAccountListModal(accounts){
+    var acOverlay = document.createElement('div');
+    acOverlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px;';
+    var html = '<div style="background:white;border-radius:20px;max-width:520px;width:100%;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;">';
+    html += '<div style="background:linear-gradient(135deg,#16A34A,#15803D);padding:20px 24px;color:white;">';
+    html += '<div style="font-size:18px;font-weight:700;"><i class="fas fa-check-circle" style="margin-right:8px;"></i>注册成功</div>';
+    html += '<div style="font-size:13px;opacity:0.85;margin-top:6px;">已成功创建 '+accounts.length+' 个学员账号，请妥善保存以下初始密码</div>';
+    html += '</div>';
+    html += '<div style="padding:16px 20px;overflow-y:auto;flex:1;">';
+    html += '<div style="background:#FEF3C7;border:1px solid #F59E0B;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:#92400E;line-height:1.5;">';
+    html += '<i class="fas fa-exclamation-triangle" style="margin-right:6px;"></i><b>重要提示：</b>请立即下载或截图保存此密码列表。每个学员首次登录时需验证手机尾号并修改密码。</div>';
+    html += '<table style="width:100%;border-collapse:collapse;font-size:13px;">';
+    html += '<thead><tr style="background:#F5F5F4;"><th style="padding:10px 12px;text-align:left;font-weight:600;color:#44403C;">姓名</th><th style="padding:10px 12px;text-align:left;font-weight:600;color:#44403C;">手机号</th><th style="padding:10px 12px;text-align:left;font-weight:600;color:#44403C;">初始密码</th></tr></thead><tbody>';
+    accounts.forEach(function(a, i){
+      var bg = i%2===0?'#fff':'#FAFAF9';
+      html += '<tr style="background:'+bg+';border-bottom:1px solid #F5F5F4;"><td style="padding:8px 12px;color:#1C1917;font-weight:500;">'+a.name+'</td>';
+      html += '<td style="padding:8px 12px;color:#57534E;font-family:monospace;">'+a.phone+'</td>';
+      html += '<td style="padding:8px 12px;color:#B91C1C;font-family:monospace;font-weight:600;">'+a.password+'</td></tr>';
+    });
+    html += '</tbody></table></div>';
+    html += '<div style="padding:16px 20px;border-top:1px solid #F5F5F4;display:flex;gap:10px;">';
+    html += '<button id="ac-download-csv" style="flex:1;padding:12px;background:#F5F5F4;border:none;border-radius:10px;font-size:13px;color:#44403C;cursor:pointer;font-weight:500;"><i class="fas fa-file-csv" style="margin-right:6px;color:#16A34A;"></i>下载 CSV</button>';
+    html += '<button id="ac-copy-all" style="flex:1;padding:12px;background:#F5F5F4;border:none;border-radius:10px;font-size:13px;color:#44403C;cursor:pointer;font-weight:500;"><i class="fas fa-copy" style="margin-right:6px;color:#3B82F6;"></i>复制全部</button>';
+    html += '<button id="ac-close" style="flex:1;padding:12px;background:#B91C1C;border:none;border-radius:10px;font-size:13px;color:white;cursor:pointer;font-weight:600;">确认关闭</button>';
+    html += '</div></div>';
+    acOverlay.innerHTML = html;
+    document.body.appendChild(acOverlay);
+
+    // 下载CSV
+    document.getElementById('ac-download-csv').addEventListener('click', function(){
+      var csv = '\\uFEFF姓名,手机号,初始密码,班级\\n';
+      accounts.forEach(function(a){
+        csv += '"'+a.name+'","'+a.phone+'","'+a.password+'","'+(a.className||'')+'\"\\n';
+      });
+      var blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+      var link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = '学员账号密码_' + new Date().toISOString().slice(0,10) + '.csv';
+      link.click();
+      showToast('已下载密码列表 CSV', 'success');
+    });
+
+    // 复制全部
+    document.getElementById('ac-copy-all').addEventListener('click', function(){
+      var text = '中流通 学员账号密码列表\\n';
+      text += '========================\\n';
+      accounts.forEach(function(a){
+        text += a.name + '  |  ' + a.phone + '  |  密码: ' + a.password + '\\n';
+      });
+      text += '========================\\n';
+      text += '首次登录需验证手机尾号并修改密码\\n';
+      text += '登录地址: https://zhongliutong.net\\n';
+      if(navigator.clipboard){
+        navigator.clipboard.writeText(text).then(function(){ showToast('已复制到剪贴板', 'success'); });
+      } else {
+        // Fallback
+        var ta = document.createElement('textarea');
+        ta.value = text; document.body.appendChild(ta);
+        ta.select(); document.execCommand('copy');
+        document.body.removeChild(ta);
+        showToast('已复制到剪贴板', 'success');
+      }
+    });
+
+    document.getElementById('ac-close').addEventListener('click', function(){ acOverlay.remove(); });
   }
 
   // ══════════════════════════════════

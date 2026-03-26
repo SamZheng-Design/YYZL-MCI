@@ -168,7 +168,7 @@ adminApi.post('/members/batch-register', async (c) => {
   const ip = getClientIP(c)
   try {
     const { members, adminId } = await c.req.json<{
-      members: Array<{ name: string; phone: string; className: string }>
+      members: Array<{ name: string; phone: string; className: string; company?: string; title?: string }>
       adminId: string
     }>()
 
@@ -178,8 +178,8 @@ adminApi.post('/members/batch-register', async (c) => {
 
     let registered = 0
     const skipped: string[] = []
-    const password = generateInitialPassword()
-    const passwordHash = await hashPassword(password)
+    // 每个学员独立密码 + 记录密码列表
+    const accountList: Array<{ name: string; phone: string; password: string; className: string }> = []
 
     for (const m of members) {
       // 检查手机号是否已存在
@@ -192,13 +192,16 @@ adminApi.post('/members/batch-register', async (c) => {
         continue
       }
 
+      // 每个学员生成独立密码
+      const password = generateInitialPassword()
+      const passwordHash = await hashPassword(password)
       const userId = await generateUserId(db, 'member')
       const classId = 'class-' + m.className.replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, '')
 
       await db.prepare(`
-        INSERT INTO users (id, phone, name, password_hash, role, status, cohort, class_id, class_name, join_date, must_change_password)
-        VALUES (?, ?, ?, ?, 'member', 'active', ?, ?, ?, date('now'), 1)
-      `).bind(userId, m.phone, m.name, passwordHash, m.className, classId, m.className).run()
+        INSERT INTO users (id, phone, name, password_hash, role, status, company, title, cohort, class_id, class_name, join_date, must_change_password)
+        VALUES (?, ?, ?, ?, 'member', 'active', ?, ?, ?, ?, ?, date('now'), 1)
+      `).bind(userId, m.phone, m.name, passwordHash, m.company || '', m.title || '', m.className, classId, m.className).run()
 
       // 生成邀请码
       const inviteCode = generateInviteCode()
@@ -207,10 +210,11 @@ adminApi.post('/members/batch-register', async (c) => {
         VALUES (?, ?, ?, ?, 'member', ?, ?, 'used', ?, datetime('now'))
       `).bind(inviteCode, adminId, m.phone, m.name, classId, m.className, userId).run()
 
+      accountList.push({ name: m.name, phone: m.phone, password, className: m.className })
       registered++
     }
 
-    // 审计日志
+    // 审计日志（不记录明文密码）
     await logAudit(db, {
       userId: sessionUser.id, action: 'batch_register',
       entityType: 'user', detail: { registered, skipped, totalAttempted: members.length },
@@ -219,7 +223,13 @@ adminApi.post('/members/batch-register', async (c) => {
 
     return c.json({
       ok: true,
-      data: { registered, skipped, initialPassword: password },
+      data: {
+        registered, skipped,
+        // 返回完整的账号密码列表，供管理员下载
+        accountList,
+        // 兼容旧前端，保留单一密码字段
+        initialPassword: accountList.length > 0 ? accountList[0].password : '',
+      },
       message: `成功注册 ${registered} 位学员` + (skipped.length > 0 ? `，跳过 ${skipped.length} 位` : ''),
     })
   } catch (e: any) {
