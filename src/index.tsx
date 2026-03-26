@@ -455,6 +455,23 @@ app.get('/api/data/invite-codes', async (c) => {
   }))})
 })
 
+// Contract HTML API — generate contract HTML on demand (for API-driven pages)
+app.get('/api/data/contracts/:contractId/html', async (c) => {
+  const db = c.env.DB
+  const contractId = c.req.param('contractId')
+  const [allMembers, allProjects, allContracts] = await Promise.all([
+    loadMembers(db), loadProjects(db), loadContracts(db)
+  ])
+  const ct = allContracts.find(c => c.id === contractId)
+  if (!ct) return c.json({ ok: false, error: '合同不存在' }, 404)
+  const proj = allProjects.find(p => p.id === ct.projectId)
+  if (!proj) return c.json({ ok: false, error: '项目不存在' }, 404)
+  const initiator = allMembers.find(m => m.id === ct.initiatorId) || null
+  const participant = allMembers.find(m => m.id === ct.participantId) || null
+  const html = generateContractHTML(ct, proj, participant, initiator)
+  return c.json({ ok: true, data: html })
+})
+
 // Audit logs API
 app.get('/api/data/audit-logs', async (c) => {
   const db = c.env.DB

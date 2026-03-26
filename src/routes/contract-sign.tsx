@@ -7,64 +7,8 @@ import {
 
 export function registerContractSignRoute(app: Hono<HonoEnv>) {
 app.get('/contracts/:id/sign', async (c) => {
-  const db = c.env.DB
-  const { loadMembers, loadProjects, loadContracts, generateContractHTML } = await import('../db-bridge')
-  const [allMembers, allProjects, allContracts] = await Promise.all([
-    loadMembers(db), loadProjects(db), loadContracts(db)
-  ])
+  // ═══ Phase 1C: NO DB calls — pure HTML skeleton ═══
   const contractId = c.req.param('id')
-
-  // Find the specific contract and load SSR data
-  const targetContract = allContracts.find(ct => ct.id === contractId)
-  const targetProject = targetContract ? allProjects.find(p => p.id === targetContract.projectId) : null
-  const targetInitiator = targetContract ? allMembers.find(m => m.id === targetContract.initiatorId) : null
-
-  // Prepare contract data for client-side script
-  const contractData = targetContract ? {
-    id: targetContract.id,
-    projectId: targetContract.projectId,
-    projectName: targetContract.projectName,
-    userId: targetContract.participantId,
-    amount: targetContract.amount,
-    shares: targetContract.shares,
-    revenueShareRatio: targetContract.revenueShareRatio,
-    cooperationTerm: targetContract.cooperationTerm,
-    recoveryCap: targetContract.recoveryCap,
-    signedByInitiator: targetContract.signedByInitiator,
-    signedByParticipant: targetContract.signedByParticipant,
-    signedAt: targetContract.signedAt,
-    status: targetContract.status,
-    totalRepaid: targetContract.totalRepaid || 0,
-    ownerName: targetInitiator?.name || targetContract.initiatorName || '发起人',
-    // 条款通新增
-    approvalStatus: targetContract.approvalStatus || 'draft',
-    annualYieldRate: targetContract.annualYieldRate || 0,
-    exitMode: targetContract.exitMode || 'both',
-    endDate: targetContract.endDate || null,
-    capMultipleAtTerm: targetContract.capMultipleAtTerm || 0,
-    project: targetProject ? {
-      id: targetProject.id, name: targetProject.name,
-      targetAmount: targetProject.targetAmount,
-      revenueShareRate: targetProject.revenueShareRate,
-      recoveryMultiple: targetProject.recoveryMultiple,
-      duration: targetProject.duration,
-      exitMode: targetProject.exitMode || 'both',
-      annualYieldRate: targetProject.annualYieldRate ?? 12,
-      expectMultiple: targetProject.expectMultiple ?? null,
-      settlementCycle: targetProject.settlementCycle || 'monthly',
-      estimatedMonthlyRevenue: targetProject.estimatedMonthlyRevenue || 0,
-    } : null,
-  } : null
-
-  // Pre-generate contract HTML map for all known contracts (server-side)
-  const contractHTMLMap: Record<string, string> = {}
-  for (const ct of allContracts) {
-    const proj = allProjects.find(p => p.id === ct.projectId)
-    if (!proj) continue
-    const initiator = allMembers.find(m => m.id === ct.initiatorId) || null
-    const participant = allMembers.find(m => m.id === ct.participantId) || null
-    contractHTMLMap[ct.id] = generateContractHTML(ct, proj, participant, initiator)
-  }
 
   return c.render(
     <div class="app-container">
@@ -167,28 +111,55 @@ app.get('/contracts/:id/sign', async (c) => {
   if (!u) return;
 
   var CONTRACT_ID = '${contractId}';
+  var contract = null;
 
-  // Pre-rendered contract HTML from server (keyed by contract id)
-  var CONTRACT_HTML_MAP = ${JSON.stringify(contractHTMLMap)};
-
-  // Contract data loaded from D1 via SSR
-  var contract = ${JSON.stringify(contractData)};
-
-  if(!contract){
-    // Fallback: try fetching from API for newly created contracts
-    fetch('/api/admin/contracts/' + CONTRACT_ID).then(function(r){return r.json();}).then(function(res){
-      if(res.ok && res.data){
-        contract = res.data;
-        renderContract();
-      } else {
-        document.getElementById('contract-content').innerHTML = '<p style="text-align:center;color:#DC2626;">合同未找到</p>';
-        document.getElementById('sign-area').style.display = 'none';
-      }
-    }).catch(function(){
-      document.getElementById('contract-content').innerHTML = '<p style="text-align:center;color:#DC2626;">合同未找到</p>';
-      document.getElementById('sign-area').style.display = 'none';
-    });
-  }
+  // Fetch contract data + project data via APIs
+  Promise.all([
+    fetch('/api/data/contracts').then(function(r){return r.json();}),
+    fetch('/api/data/projects').then(function(r){return r.json();}),
+    fetch('/api/data/members').then(function(r){return r.json();})
+  ]).then(function(results){
+    var allContracts = results[0].ok ? results[0].data : [];
+    var allProjects = results[1].ok ? results[1].data : [];
+    var allMembers = results[2].ok ? results[2].data : [];
+    var tc = allContracts.find(function(c){return c.id === CONTRACT_ID;});
+    if(!tc){
+      // Fallback: try fetching from admin API for newly created contracts
+      return fetch('/api/admin/contracts/' + CONTRACT_ID).then(function(r){return r.json();}).then(function(res){
+        if(res.ok && res.data){ contract = res.data; renderContract(); }
+        else { document.getElementById('contract-content').innerHTML='<p style="text-align:center;color:#DC2626;">合同未找到</p>'; document.getElementById('sign-area').style.display='none'; }
+      });
+    }
+    var tp = allProjects.find(function(p){return p.id === tc.projectId;});
+    var ti = allMembers.find(function(m){return m.id === tc.initiatorId;});
+    contract = {
+      id:tc.id, projectId:tc.projectId, projectName:tc.projectName, userId:tc.participantId,
+      amount:tc.amount, shares:tc.shares, revenueShareRatio:tc.revenueShareRatio,
+      cooperationTerm:tc.cooperationTerm, recoveryCap:tc.recoveryCap,
+      signedByInitiator:tc.signedByInitiator, signedByParticipant:tc.signedByParticipant,
+      signedAt:tc.signedAt, status:tc.status, totalRepaid:tc.totalRepaid||0,
+      ownerName: (ti?ti.name:null) || tc.initiatorName || '发起人',
+      approvalStatus: tc.approvalStatus || 'draft',
+      annualYieldRate: tc.annualYieldRate || 0,
+      exitMode: tc.exitMode || 'both',
+      endDate: tc.endDate || null,
+      capMultipleAtTerm: tc.capMultipleAtTerm || 0,
+      initiatorId: tc.initiatorId,
+      project: tp ? {
+        id:tp.id, name:tp.name, targetAmount:tp.targetAmount,
+        revenueShareRate:tp.revenueShareRate, recoveryMultiple:tp.recoveryMultiple,
+        duration:tp.duration, exitMode:tp.exitMode||'both',
+        annualYieldRate:tp.annualYieldRate!=null?tp.annualYieldRate:12,
+        expectMultiple:tp.expectMultiple!=null?tp.expectMultiple:null,
+        settlementCycle:tp.settlementCycle||'monthly',
+        estimatedMonthlyRevenue:tp.estimatedMonthlyRevenue||0,
+      } : null,
+    };
+    renderContract();
+  }).catch(function(){
+    document.getElementById('contract-content').innerHTML='<p style="text-align:center;color:#DC2626;">合同未找到</p>';
+    document.getElementById('sign-area').style.display='none';
+  });
 
   function renderContract(){
   if(!contract) return;
@@ -240,16 +211,14 @@ app.get('/contracts/:id/sign', async (c) => {
   var proj = contract.project;
   var ownerName = contract.ownerName || '发起人';
 
-  // ── Render full contract HTML ──
-  var fullContractHTML = CONTRACT_HTML_MAP[CONTRACT_ID];
-  if (!fullContractHTML) {
-    // Fallback: generate client-side for user-created contracts
-    fullContractHTML = window.__generateContractHTMLClient ? window.__generateContractHTMLClient(contract) : '';
-  }
+  // ── Render full contract HTML via API ──
+  document.getElementById('contract-content').innerHTML = '<div style="text-align:center;padding:20px;"><div class="spinner" style="border-color:rgba(185,28,28,0.2);border-top-color:#B91C1C;width:24px;height:24px;margin:0 auto;"></div></div>';
+  fetch('/api/data/contracts/' + CONTRACT_ID + '/html').then(function(r){return r.json();}).then(function(res){
+    if(res.ok && res.data){ document.getElementById('contract-content').innerHTML = res.data; setupScrollDetection(); }
+    else { renderFallbackContract(); }
+  }).catch(function(){ renderFallbackContract(); });
 
-  if (fullContractHTML) {
-    document.getElementById('contract-content').innerHTML = fullContractHTML;
-  } else {
+  function renderFallbackContract(){
     // Ultimate fallback — old-style rendering
     var html = '';
     html += '<div style="text-align:center;padding-bottom:24px;border-bottom:2px solid #B91C1C;">';
@@ -322,18 +291,21 @@ app.get('/contracts/:id/sign', async (c) => {
       scrollBtn.innerHTML = '<i class="fas fa-signature" style="margin-right:8px;"></i>我已阅读完毕，开始签署';
     }
   }
-  scrollContainer.addEventListener('scroll', checkScrollBottom);
-  // Also check if content is short enough to not need scrolling
-  setTimeout(function(){
-    if (scrollContainer.scrollHeight <= scrollContainer.clientHeight + 20) {
-      hasScrolledToBottom = true;
-      scrollBtn.style.background = 'linear-gradient(135deg, #B91C1C, #991B1B)';
-      scrollBtn.style.color = '#fff';
-      scrollBtn.style.cursor = 'pointer';
-      scrollBtn.disabled = false;
-      scrollBtn.innerHTML = '<i class="fas fa-signature" style="margin-right:8px;"></i>我已阅读完毕，开始签署';
-    }
-  }, 300);
+
+  function setupScrollDetection(){
+    scrollContainer.addEventListener('scroll', checkScrollBottom);
+    setTimeout(function(){
+      if (scrollContainer.scrollHeight <= scrollContainer.clientHeight + 20) {
+        hasScrolledToBottom = true;
+        scrollBtn.style.background = 'linear-gradient(135deg, #B91C1C, #991B1B)';
+        scrollBtn.style.color = '#fff';
+        scrollBtn.style.cursor = 'pointer';
+        scrollBtn.disabled = false;
+        scrollBtn.innerHTML = '<i class="fas fa-signature" style="margin-right:8px;"></i>我已阅读完毕，开始签署';
+      }
+    }, 300);
+  }
+  setupScrollDetection();
 
   scrollBtn.addEventListener('click', function(){
     if (!hasScrolledToBottom) return;

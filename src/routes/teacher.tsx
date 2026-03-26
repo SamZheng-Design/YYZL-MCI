@@ -1,4 +1,4 @@
-// Route: /teacher
+// Route: /teacher — Phase 1C: API-driven skeleton (zero DB calls)
 import { Hono } from 'hono'
 import type { HonoEnv } from '../types'
 import {
@@ -7,12 +7,7 @@ import {
 
 export function registerTeacherRoute(app: Hono<HonoEnv>) {
 app.get('/teacher', async (c) => {
-  const db = c.env.DB
-  const { loadMembers, loadProjects, loadTeachers, loadReferrals } = await import('../db-bridge')
-  const [allMembers, allProjects, allTeachers, allReferrals] = await Promise.all([
-    loadMembers(db), loadProjects(db), loadTeachers(db), loadReferrals(db)
-  ])
-
+  // ═══ NO DB calls — pure HTML skeleton ═══
   return c.render(
     <div class="app-container has-tabbar">
       <AuthCheckScript />
@@ -35,18 +30,24 @@ app.get('/teacher', async (c) => {
           </span>
         </a>
         <div style="display:flex;align-items:center;gap:8px;">
-          {/* Demo guide button for teacher (Task 5) */}
           <span onclick="window.location.href='/guide/teacher'" style="font-size:12px;color:#B91C1C;background:rgba(185,28,28,0.08);border-radius:8px;padding:4px 10px;cursor:pointer;">📖 演示</span>
           <span id="teacher-nav-title" style="font-size:14px;color:#78716C;"></span>
         </div>
       </nav>
 
       <main class="max-w-lg mx-auto px-4 pt-4 pb-8 page-enter dk-teacher-main">
-        {/* Welcome Card (Task 3 Enhancement 1) */}
-        <div id="teacher-welcome-card" style="padding:20px 16px;margin-bottom:12px;" />
+        {/* Welcome Card skeleton */}
+        <div id="teacher-welcome-card" class="animate-pulse" style="padding:20px 16px;margin-bottom:12px;">
+          <div style="height:20px;background:#F5F5F4;border-radius:8px;width:50%;margin-bottom:10px;" />
+          <div style="height:14px;background:#F5F5F4;border-radius:6px;width:70%;" />
+        </div>
 
-        {/* Stats Bar (Task 3 Enhancement 2) */}
-        <div id="teacher-stats-bar" style="display:flex;gap:0;background:white;border-radius:14px;margin:0 0 12px;box-shadow:0 1px 4px rgba(0,0,0,0.04);" />
+        {/* Stats Bar skeleton */}
+        <div id="teacher-stats-bar" class="animate-pulse" style="display:flex;gap:0;background:white;border-radius:14px;margin:0 0 12px;box-shadow:0 1px 4px rgba(0,0,0,0.04);">
+          <div style="flex:1;text-align:center;padding:16px 8px;border-right:1px solid #F5F5F4;"><div style="height:22px;background:#F5F5F4;border-radius:6px;width:40%;margin:0 auto 6px;" /><div style="height:11px;background:#F5F5F4;border-radius:4px;width:50%;margin:0 auto;" /></div>
+          <div style="flex:1;text-align:center;padding:16px 8px;border-right:1px solid #F5F5F4;"><div style="height:22px;background:#F5F5F4;border-radius:6px;width:40%;margin:0 auto 6px;" /><div style="height:11px;background:#F5F5F4;border-radius:4px;width:50%;margin:0 auto;" /></div>
+          <div style="flex:1;text-align:center;padding:16px 8px;"><div style="height:22px;background:#F5F5F4;border-radius:6px;width:40%;margin:0 auto 6px;" /><div style="height:11px;background:#F5F5F4;border-radius:4px;width:50%;margin:0 auto;" /></div>
+        </div>
 
         {/* Header */}
         <div class="teacher-header" id="teacher-header">
@@ -60,20 +61,25 @@ app.get('/teacher', async (c) => {
             <span>引荐请求</span>
             <span class="ref-badge" id="ref-badge" style="display:none;">0</span>
           </div>
-          {/* Tabs for pending/completed */}
           <div id="referral-tabs" style="display:flex;gap:0;margin-bottom:12px;background:#F5F5F4;border-radius:10px;padding:3px;">
             <button id="ref-tab-pending" style="flex:1;padding:8px 0;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:#fff;color:#B91C1C;box-shadow:0 1px 2px rgba(0,0,0,0.05);" onclick="switchRefTab('pending')">待处理</button>
             <button id="ref-tab-completed" style="flex:1;padding:8px 0;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:#78716C;" onclick="switchRefTab('completed')">已处理</button>
           </div>
           <div id="referral-list">
-            <div style="text-align:center;padding:16px;font-size:14px;color:#78716C;">暂无待处理的引荐请求</div>
+            <div class="animate-pulse" style="padding:16px;">
+              <div style="height:14px;background:#F5F5F4;border-radius:4px;width:60%;margin-bottom:8px;" />
+              <div style="height:14px;background:#F5F5F4;border-radius:4px;width:40%;" />
+            </div>
           </div>
         </div>
 
         {/* My Classes */}
         <div class="teacher-card" id="classes-section">
           <div class="teacher-card-title"><span>我的班级</span></div>
-          <div id="class-list"></div>
+          <div id="class-list" class="animate-pulse">
+            <div style="height:40px;background:#F5F5F4;border-radius:8px;margin-bottom:8px;" />
+            <div style="height:40px;background:#F5F5F4;border-radius:8px;" />
+          </div>
         </div>
 
         {/* Recommend Projects */}
@@ -103,27 +109,33 @@ app.get('/teacher', async (c) => {
       </div>
 
       <script dangerouslySetInnerHTML={{ __html: `
-window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name:t.name, phone:t.phone, classIds:t.classIds })))};
 (function(){
   var u = null;
   try { u = JSON.parse(localStorage.getItem('zlc_user')); } catch(e){}
   if (!u || u.role !== 'teacher') { window.location.href = '/login'; return; }
 
-  var ALL_PROJECTS = ${JSON.stringify(allProjects.map(p => ({
-    id:p.id, name:p.name, ownerId:p.ownerId, industry:p.industry,
-    status:p.status, recommendedByTeacher:p.recommendedByTeacher||[],
-  })))};
-  var ALL_MEMBERS = ${JSON.stringify(allMembers.map(m => ({
-    id:m.id, name:m.name, company:m.company, industry:m.industry,
-    classId:m.classId||'', className:m.className||'',
-  })))};
-  var ALL_TEACHERS = ${JSON.stringify(allTeachers.map(t => ({
-    id:t.id, name:t.name, classIds:t.classIds,
-  })))};
+  // Fetch all needed data in parallel from APIs
+  Promise.all([
+    fetch('/api/data/projects').then(function(r){return r.json();}),
+    fetch('/api/data/members').then(function(r){return r.json();}),
+    fetch('/api/data/teachers').then(function(r){return r.json();}),
+    fetch('/api/data/referrals').then(function(r){return r.json();})
+  ]).then(function(results){
+    var ALL_PROJECTS = (results[0].ok ? results[0].data : []).map(function(p){ return {id:p.id,name:p.name,ownerId:p.ownerId,industry:p.industry,status:p.status,recommendedByTeacher:p.recommendedByTeacher||[]}; });
+    var ALL_MEMBERS = (results[1].ok ? results[1].data : []).map(function(m){ return {id:m.id,name:m.name,company:m.company,industry:m.industry,classId:m.classId||'',className:m.className||''}; });
+    var ALL_TEACHERS = (results[2].ok ? results[2].data : []).map(function(t){ return {id:t.id,name:t.name,phone:t.phone,classIds:t.classIds||[]}; });
+    var ALL_REFERRALS = (results[3].ok ? results[3].data : []).map(function(r){ return {id:r.id,projectId:r.projectId,requesterId:r.requesterId,requesterName:r.requesterName||'',requesterClass:r.requesterClass||'',teacherId:r.teacherId,status:r.status,message:r.message||'',createdAt:r.createdAt||'',requestedAt:r.requestedAt||'',completedAt:r.completedAt||'',completedNote:r.completedNote||'',connectedAt:r.connectedAt||'',projectName:r.projectName||''}; });
 
-  // All projects are loaded from D1 via SSR — no localStorage merge needed
+    // Set teachers for navbar renderer
+    window.__ZLC_TEACHERS__ = ALL_TEACHERS;
 
-  // Find my teacher record
+    renderTeacherPage(ALL_PROJECTS, ALL_MEMBERS, ALL_TEACHERS, ALL_REFERRALS);
+  }).catch(function(err){
+    console.error('Failed to load teacher data:', err);
+    document.getElementById('th-sub').textContent = '数据加载失败，请刷新重试';
+  });
+
+  function renderTeacherPage(ALL_PROJECTS, ALL_MEMBERS, ALL_TEACHERS, ALL_REFERRALS){
   var myTeacher = ALL_TEACHERS.find(function(t){ return t.id === u.id; });
   if (!myTeacher) { myTeacher = { id: u.id, name: u.name, classIds: u.classIds || [] }; }
 
@@ -134,18 +146,15 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
   document.getElementById('th-sub').textContent = '管理 ' + classCount + ' 个班级 · ' + myStudents.length + ' 位学员';
   document.getElementById('teacher-nav-title').textContent = u.name + '老师的工作台';
 
-  // ── Teacher Welcome Card (Task 3 Enhancement 1) ──
+  // ── Teacher Welcome Card ──
   (function(){
     var h = new Date().getHours();
     var greeting = (h >= 6 && h < 12) ? '早上好' : (h >= 12 && h < 18) ? '下午好' : (h >= 18 && h < 24) ? '晚上好' : '夜深了';
-    var teacherName = u.name || '老师';
-    var totalStudents = myStudents.length;
-    var totalClasses = classCount;
-
     var wcEl = document.getElementById('teacher-welcome-card');
     if(wcEl){
-      wcEl.innerHTML = '<div style="font-size:20px;font-weight:700;color:#1C1917;">' + greeting + '，' + teacherName + '</div>'
-        + '<div style="margin-top:8px;font-size:13px;color:#78716C;">您负责 ' + totalClasses + ' 个班级，共 ' + totalStudents + ' 位学员</div>'
+      wcEl.className = '';
+      wcEl.innerHTML = '<div style="font-size:20px;font-weight:700;color:#1C1917;">' + greeting + '，' + u.name + '</div>'
+        + '<div style="margin-top:8px;font-size:13px;color:#78716C;">您负责 ' + classCount + ' 个班级，共 ' + myStudents.length + ' 位学员</div>'
         + '<div style="margin-top:12px;display:flex;gap:10px;">'
         + '<a href="/guide/teacher" style="text-decoration:none;background:#FAFAF9;border:1px solid #E7E5E4;border-radius:10px;padding:8px 14px;font-size:13px;color:#44403C;cursor:pointer;display:inline-block;">📖 查看演示</a>'
         + '<a href="/projects" style="text-decoration:none;background:#FAFAF9;border:1px solid #E7E5E4;border-radius:10px;padding:8px 14px;font-size:13px;color:#44403C;cursor:pointer;display:inline-block;">📊 项目大厅</a>'
@@ -153,36 +162,21 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
     }
   })();
 
-  // ── Teacher Stats Bar (Task 3 Enhancement 2) ──
+  // ── Teacher Stats Bar ──
   (function(){
-    // Pending referrals for this teacher — loaded from D1 via SSR
-    var ALL_REFERRALS = ${JSON.stringify(allReferrals.map(r => ({
-      id:r.id, projectId:r.projectId, requesterId:r.requesterId, requesterName:r.requesterName||'',
-      requesterClass:r.requesterClass||'', teacherId:r.teacherId, status:r.status, message:r.message||'',
-      createdAt:r.createdAt||'', requestedAt:r.requestedAt||'', completedAt:r.completedAt||'',
-      completedNote:r.completedNote||'', connectedAt:r.connectedAt||'', projectName:r.projectName||'',
-    })))};
     var pendingCount = ALL_REFERRALS.filter(function(r){ return r.teacherId === myTeacher.id && r.status === 'pending'; }).length;
-
-    // Recommended projects count
     var recommendedCount = ALL_PROJECTS.filter(function(p){ return p.recommendedByTeacher && p.recommendedByTeacher.indexOf(myTeacher.id) !== -1; }).length;
-
-    // Active projects in my classes — all projects already in D1
     var myClassIds = myTeacher.classIds || [];
     var activeProjectCount = 0;
-    var allP = ALL_PROJECTS.slice();
-    allP.forEach(function(p){
+    ALL_PROJECTS.forEach(function(p){
       if(p.status === 'open' || p.status === 'active'){
-        // Check if project owner is in one of my classes
         var ownerMember = ALL_MEMBERS.find(function(m){ return m.id === p.ownerId; });
-        if(ownerMember && myClassIds.indexOf(ownerMember.classId) !== -1){
-          activeProjectCount++;
-        }
+        if(ownerMember && myClassIds.indexOf(ownerMember.classId) !== -1) activeProjectCount++;
       }
     });
-
     var statsEl = document.getElementById('teacher-stats-bar');
     if(statsEl){
+      statsEl.className = '';
       statsEl.innerHTML = '<div style="flex:1;text-align:center;padding:16px 8px;border-right:1px solid #F5F5F4;">'
         + '<div style="font-size:22px;font-weight:700;color:#DC2626;">' + pendingCount + '</div>'
         + '<div style="font-size:11px;color:#A8A29E;margin-top:2px;">待引荐</div></div>'
@@ -197,7 +191,6 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
 
   // ── Referral Requests ──
   var currentRefTab = 'pending';
-
   window.switchRefTab = function(tab){
     currentRefTab = tab;
     var pendingBtn = document.getElementById('ref-tab-pending');
@@ -213,66 +206,42 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
   };
 
   function renderReferrals() {
-    var referrals = ALL_REFERRALS;
-
-    // Filter by this teacher
-    var myRefs = referrals.filter(function(r){ return r.teacherId === myTeacher.id; });
+    var myRefs = ALL_REFERRALS.filter(function(r){ return r.teacherId === myTeacher.id; });
     var pending = myRefs.filter(function(r){ return r.status === 'pending'; });
     var completed = myRefs.filter(function(r){ return r.status === 'completed' || r.status === 'connected'; });
-
-    // Sort pending by createdAt desc, completed by completedAt desc
     pending.sort(function(a,b){ return new Date(b.createdAt || b.requestedAt || 0) - new Date(a.createdAt || a.requestedAt || 0); });
     completed.sort(function(a,b){ return new Date(b.completedAt || b.connectedAt || 0) - new Date(a.completedAt || a.connectedAt || 0); });
-
     var badge = document.getElementById('ref-badge');
-    if (pending.length > 0) {
-      badge.style.display = 'inline-flex';
-      badge.textContent = pending.length;
-    } else {
-      badge.style.display = 'none';
-    }
-
+    if (pending.length > 0) { badge.style.display = 'inline-flex'; badge.textContent = pending.length; } else { badge.style.display = 'none'; }
     var items = currentRefTab === 'pending' ? pending : completed;
     var listEl = document.getElementById('referral-list');
-
-    if (items.length === 0) {
+    if (items.length === 0){
       var emptyMsg = currentRefTab === 'pending' ? '暂无待处理的引荐请求' : '暂无已处理的引荐记录';
       listEl.innerHTML = '<div style="text-align:center;padding:16px;font-size:14px;color:#78716C;">' + emptyMsg + '</div>';
       return;
     }
-
     listEl.innerHTML = items.map(function(r) {
-      // Find project owner info
       var project = ALL_PROJECTS.find(function(p){ return p.id === r.projectId; });
       var projectOwner = project ? ALL_MEMBERS.find(function(m){ return m.id === project.ownerId; }) : null;
       var ownerName = projectOwner ? projectOwner.name : '';
-      var ownerCompany = projectOwner ? projectOwner.company : '';
       var dateStr = r.createdAt || r.requestedAt || '';
-
       var html = '<div class="ref-request-item">';
-      // Requester info
       html += '<div class="ref-person-row"><div class="ref-avatar">' + r.requesterName.charAt(0) + '</div>';
       html += '<span style="font-size:14px;color:#1C1917;">' + r.requesterName + '</span>';
-      html += '<span style="font-size:12px;color:#A8A29E;">' + (r.requesterClass || r.requesterClassName || '') + '</span></div>';
+      html += '<span style="font-size:12px;color:#A8A29E;">' + (r.requesterClass || '') + '</span></div>';
       html += '<div style="font-size:12px;color:#A8A29E;margin:4px 0;">想了解项目</div>';
-      // Project info
       html += '<div style="display:flex;align-items:center;gap:8px;margin:4px 0;">';
       html += '<span style="font-size:14px;font-weight:600;color:#1C1917;">' + r.projectName + '</span>';
       if(ownerName) html += '<span style="font-size:12px;color:#78716C;">(发起人: ' + ownerName + ')</span>';
       html += '</div>';
-      // Message
-      if(r.message){
-        html += '<div class="ref-msg-block">\\uD83D\\uDCAC ' + r.message + '</div>';
-      }
+      if(r.message) html += '<div class="ref-msg-block">\\uD83D\\uDCAC ' + r.message + '</div>';
       html += '<div style="font-size:11px;color:#A8A29E;margin-top:6px;">' + dateStr + '</div>';
-
       if(currentRefTab === 'pending'){
         html += '<div class="ref-btn-row">';
         html += '<button class="ref-btn ref-btn-connected" onclick="handleRef(\\'' + r.id + '\\',\\'completed\\')">已对接</button>';
         html += '<button class="ref-btn ref-btn-decline" onclick="handleRef(\\'' + r.id + '\\',\\'declined\\')">暂缓</button>';
         html += '</div>';
       } else {
-        // Show completed info
         var completedInfo = r.completedNote || r.completedAt || '已完成';
         var completedDate = r.completedAt || r.connectedAt || '';
         html += '<div style="margin-top:8px;padding:8px 12px;background:#F0FDF4;border-radius:8px;font-size:12px;color:#16a34a;">';
@@ -286,14 +255,11 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
   }
 
   window.handleRef = function(refId, newStatus) {
-    // Call API to handle referral
     fetch('/api/admin/referrals/' + refId + '/handle', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
+      method: 'POST', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ status: newStatus === 'connected' ? 'completed' : newStatus })
     }).then(function(r){return r.json();}).then(function(res){
       if(res.ok){
-        // Update local data
         var ref = ALL_REFERRALS.find(function(r){ return r.id === refId; });
         if(ref){
           ref.status = newStatus === 'connected' ? 'completed' : newStatus;
@@ -305,22 +271,20 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
         }
         showToast(res.message || (newStatus === 'completed' || newStatus === 'connected' ? '已标记为已对接' : '已暂缓'));
         renderReferrals();
-      } else {
-        showToast(res.error || '操作失败', 'error');
-      }
+      } else { showToast(res.error || '操作失败', 'error'); }
     }).catch(function(){ showToast('网络错误', 'error'); });
   };
   renderReferrals();
 
   // ── My Classes ──
   var classListEl = document.getElementById('class-list');
+  classListEl.className = '';
   var classMap = {};
   myTeacher.classIds.forEach(function(cid) {
     var className = cid.replace('class-', '第') + '期';
     var students = ALL_MEMBERS.filter(function(m){ return m.classId === cid; });
     classMap[cid] = { name: className, students: students };
   });
-
   var classHTML = '';
   Object.keys(classMap).forEach(function(cid, ci) {
     var cls = classMap[cid];
@@ -333,47 +297,35 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
       classHTML += '<div class="class-student-row">';
       classHTML += '<div class="ref-avatar-sm">' + s.name.charAt(0) + '</div>';
       classHTML += '<span>' + s.name + '</span>';
-      classHTML += '<span style="color:#78716C;">' + s.company + '</span>';
+      classHTML += '<span style="color:#78716C;">' + (s.company||'') + '</span>';
       classHTML += '<span style="color:#A8A29E;font-size:12px;">' + (s.industry||'') + '</span>';
       classHTML += '</div>';
     });
     classHTML += '</div>';
   });
   classListEl.innerHTML = classHTML;
-
-  // Auto-expand the first class so users see students immediately
   if(Object.keys(classMap).length > 0){
     var firstEl = document.getElementById('class-students-0');
     var firstArrow = document.getElementById('class-arrow-0');
     if(firstEl){ firstEl.classList.add('open'); }
     if(firstArrow){ firstArrow.style.transform = 'rotate(180deg)'; }
   }
-
   window.toggleClass = function(idx) {
     var el = document.getElementById('class-students-' + idx);
     var arrow = document.getElementById('class-arrow-' + idx);
-    if (el.classList.contains('open')) {
-      el.classList.remove('open');
-      arrow.style.transform = 'rotate(0)';
-    } else {
-      el.classList.add('open');
-      arrow.style.transform = 'rotate(180deg)';
-    }
+    if (el.classList.contains('open')) { el.classList.remove('open'); arrow.style.transform = 'rotate(0)'; }
+    else { el.classList.add('open'); arrow.style.transform = 'rotate(180deg)'; }
   };
 
   // ── Recommend Projects ──
   function renderRecommended() {
-    var projects = ${JSON.stringify(allProjects.map(p => ({ id:p.id, name:p.name, ownerId:p.ownerId, recommendedByTeacher:p.recommendedByTeacher||[] })))};
-
     var recommended = [];
-    projects.forEach(function(p) {
-      var recs = p.recommendedByTeacher;
-      if (recs && recs.indexOf(myTeacher.id) !== -1) {
+    ALL_PROJECTS.forEach(function(p) {
+      if (p.recommendedByTeacher && p.recommendedByTeacher.indexOf(myTeacher.id) !== -1) {
         var owner = ALL_MEMBERS.find(function(m){ return m.id === p.ownerId; });
         recommended.push({ id: p.id, name: p.name, ownerName: owner ? owner.name : '?' });
       }
     });
-
     var listEl = document.getElementById('recommended-list');
     if (recommended.length === 0) {
       listEl.innerHTML = '<div style="text-align:center;padding:12px;font-size:13px;color:#A8A29E;">暂无推荐项目</div>';
@@ -389,12 +341,10 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
 
   window.removeRecommend = function(pid) {
     fetch('/api/admin/projects/' + pid + '/recommend', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
+      method: 'POST', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ teacherId: myTeacher.id, action: 'remove' })
     }).then(function(r){return r.json();}).then(function(res){
       if(res.ok){
-        // Update local projects data
         var proj = ALL_PROJECTS.find(function(p){ return p.id === pid; });
         if(proj) proj.recommendedByTeacher = proj.recommendedByTeacher.filter(function(t){ return t !== myTeacher.id; });
         showToast('已取消推荐');
@@ -402,14 +352,12 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
       } else { showToast(res.error || '操作失败', 'error'); }
     }).catch(function(){ showToast('网络错误', 'error'); });
   };
-
   renderRecommended();
 
   // Recommend new project panel
   var recOverlay = document.getElementById('recommend-overlay');
   var recPanel = document.getElementById('recommend-panel');
   document.getElementById('btn-recommend-new').addEventListener('click', function() {
-    // Show panel with open projects
     var openProjects = ALL_PROJECTS.filter(function(p){ return p.status === 'open'; });
     var listEl = document.getElementById('recommend-project-list');
     if (openProjects.length === 0) {
@@ -424,27 +372,20 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
           + '</div>';
       }).join('');
     }
-
     recOverlay.style.display = 'block';
     void recPanel.offsetHeight;
     recPanel.style.transform = 'translateY(0)';
   });
-
   recOverlay.addEventListener('click', function(e) {
-    if (e.target === recOverlay) {
-      recPanel.style.transform = 'translateY(100%)';
-      setTimeout(function(){ recOverlay.style.display = 'none'; }, 250);
-    }
+    if (e.target === recOverlay) { recPanel.style.transform = 'translateY(100%)'; setTimeout(function(){ recOverlay.style.display = 'none'; }, 250); }
   });
 
   window.doRecommend = function(pid) {
     fetch('/api/admin/projects/' + pid + '/recommend', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
+      method: 'POST', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ teacherId: myTeacher.id, action: 'add' })
     }).then(function(r){return r.json();}).then(function(res){
       if(res.ok){
-        // Update local projects data
         var proj = ALL_PROJECTS.find(function(p){ return p.id === pid; });
         if(proj && proj.recommendedByTeacher.indexOf(myTeacher.id) === -1) proj.recommendedByTeacher.push(myTeacher.id);
         showToast('已推荐');
@@ -468,6 +409,7 @@ window.__ZLC_TEACHERS__ = ${JSON.stringify(allTeachers.map(t => ({ id:t.id, name
       }
     });
   });
+  } // end renderTeacherPage
 })();
 `}} />
     </div>,

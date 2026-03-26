@@ -7,22 +7,8 @@ import {
 
 export function registerInvestmentsRoute(app: Hono<HonoEnv>) {
 app.get('/investments/:contractId', async (c) => {
-  const db = c.env.DB
-  const { loadMembers, loadProjects, loadContracts, loadRepaymentRecords, generateContractHTML } = await import('../db-bridge')
-  const [allMembers, allProjects, allContracts, allRepRecords] = await Promise.all([
-    loadMembers(db), loadProjects(db), loadContracts(db), loadRepaymentRecords(db)
-  ])
+  // ═══ Phase 1C: NO DB calls — pure HTML skeleton ═══
   const contractId = c.req.param('contractId')
-
-  // Pre-generate contract HTML map for all known contracts (server-side)
-  const contractHTMLMap: Record<string, string> = {}
-  for (const ct of allContracts) {
-    const proj = allProjects.find(p => p.id === ct.projectId)
-    if (!proj) continue
-    const initiator = allMembers.find(m => m.id === ct.initiatorId) || null
-    const participant = allMembers.find(m => m.id === ct.participantId) || null
-    contractHTMLMap[ct.id] = generateContractHTML(ct, proj, participant, initiator)
-  }
 
   return c.render(
     <div class="app-container">
@@ -66,15 +52,27 @@ app.get('/investments/:contractId', async (c) => {
   if (!u) return;
 
   var CONTRACT_ID = '${contractId}';
-  var CONTRACTS = ${JSON.stringify(allContracts)};
-  var REP_RECORDS = ${JSON.stringify(allRepRecords)};
-  var MEMBERS = ${JSON.stringify(allMembers.map(m => ({ id:m.id, name:m.name, company:m.company })))};
-  var CONTRACT_HTML_MAP = ${JSON.stringify(contractHTMLMap)};
-
-  // Data loaded from D1 via SSR — no localStorage merge needed
-
-  var contract = CONTRACTS.find(function(c){ return c.id === CONTRACT_ID; });
+  var CONTRACTS = [];
+  var REP_RECORDS = [];
+  var MEMBERS = [];
   var el = document.getElementById('invest-detail-content');
+
+  // Fetch data from APIs
+  Promise.all([
+    fetch('/api/data/contracts').then(function(r){return r.json();}),
+    fetch('/api/data/repayment-records').then(function(r){return r.json();}),
+    fetch('/api/data/members').then(function(r){return r.json();})
+  ]).then(function(results){
+    CONTRACTS = results[0].ok ? results[0].data : [];
+    REP_RECORDS = results[1].ok ? results[1].data : [];
+    MEMBERS = (results[2].ok ? results[2].data : []).map(function(m){ return {id:m.id,name:m.name,company:m.company}; });
+    initInvestDetail();
+  }).catch(function(err){
+    el.innerHTML = '<div style="text-align:center;padding:40px;"><p style="color:#DC2626;">数据加载失败，请刷新重试</p></div>';
+  });
+
+  function initInvestDetail(){
+  var contract = CONTRACTS.find(function(c){ return c.id === CONTRACT_ID; });
 
   if(!contract){
     el.innerHTML = '<div style="text-align:center;padding:40px 0;"><div style="width:56px;height:56px;border-radius:50%;background:#FEE2E2;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;"><i class="fas fa-circle-xmark" style="font-size:24px;color:#DC2626;"></i></div><p style="font-size:16px;font-weight:600;color:#292524;">合同未找到</p></div>';
@@ -216,9 +214,13 @@ app.get('/investments/:contractId', async (c) => {
   var modalFooter = document.getElementById('contract-modal-footer');
 
   function openContractModal() {
-    // Fill contract content
-    var contractHTML = CONTRACT_HTML_MAP[CONTRACT_ID] || '';
-    modalBody.innerHTML = contractHTML || '<p style="text-align:center;color:#A8A29E;">合同内容不可用</p>';
+    // Load contract HTML on demand via API
+    modalBody.innerHTML = '<div style="text-align:center;padding:40px;"><div class="spinner" style="border-color:rgba(185,28,28,0.2);border-top-color:#B91C1C;width:24px;height:24px;margin:0 auto;"></div><p style="font-size:13px;color:#A8A29E;margin-top:12px;">加载合同...</p></div>';
+    fetch('/api/data/contracts/' + CONTRACT_ID + '/html').then(function(r){return r.json();}).then(function(res){
+      modalBody.innerHTML = (res.ok && res.data) ? res.data : '<p style="text-align:center;color:#A8A29E;">合同内容不可用</p>';
+    }).catch(function(){
+      modalBody.innerHTML = '<p style="text-align:center;color:#DC2626;">加载失败</p>';
+    });
 
     // Fill status footer
     var footerHTML = '';
@@ -248,6 +250,7 @@ app.get('/investments/:contractId', async (c) => {
   document.getElementById('view-contract-btn').addEventListener('click', openContractModal);
   closeBtn.addEventListener('click', closeContractModal);
   mask.addEventListener('click', closeContractModal);
+  } // end initInvestDetail
 })();
 `}} />
     </div>,

@@ -7,11 +7,7 @@ import {
 
 export function registerRevenueReportRoute(app: Hono<HonoEnv>) {
 app.get('/initiated/:projectId/report', async (c) => {
-  const db = c.env.DB
-  const { loadMembers, loadProjects, loadContracts, loadRevenueReports, loadRepaymentRecords } = await import('../db-bridge')
-  const [allMembers, allProjects, allContracts, allRevReports, allRepRecords] = await Promise.all([
-    loadMembers(db), loadProjects(db), loadContracts(db), loadRevenueReports(db), loadRepaymentRecords(db)
-  ])
+  // ═══ Phase 1C: NO DB calls — pure HTML skeleton ═══
   const projectId = c.req.param('projectId')
 
   return c.render(
@@ -51,16 +47,34 @@ app.get('/initiated/:projectId/report', async (c) => {
   if (!u) return;
 
   var PROJECT_ID = '${projectId}';
-  var CONTRACTS = ${JSON.stringify(allContracts)};
-  var PROJECTS = ${JSON.stringify(allProjects)};
-  var REV_REPORTS = ${JSON.stringify(allRevReports)};
-  var REP_RECORDS = ${JSON.stringify(allRepRecords)};
-  var MEMBERS = ${JSON.stringify(allMembers.map(m => ({ id:m.id, name:m.name, company:m.company })))};
+  var CONTRACTS = [];
+  var PROJECTS = [];
+  var REV_REPORTS = [];
+  var REP_RECORDS = [];
+  var MEMBERS = [];
 
-  // Data loaded from D1 via SSR — no localStorage merge needed
-
-  var proj = PROJECTS.find(function(p){ return p.id === PROJECT_ID; });
   var el = document.getElementById('report-content');
+
+  // Fetch data from APIs
+  Promise.all([
+    fetch('/api/data/contracts').then(function(r){return r.json();}),
+    fetch('/api/data/projects').then(function(r){return r.json();}),
+    fetch('/api/data/revenue-reports').then(function(r){return r.json();}),
+    fetch('/api/data/repayment-records').then(function(r){return r.json();}),
+    fetch('/api/data/members').then(function(r){return r.json();})
+  ]).then(function(results){
+    CONTRACTS = results[0].ok ? results[0].data : [];
+    PROJECTS = results[1].ok ? results[1].data : [];
+    REV_REPORTS = results[2].ok ? results[2].data : [];
+    REP_RECORDS = results[3].ok ? results[3].data : [];
+    MEMBERS = (results[4].ok ? results[4].data : []).map(function(m){ return {id:m.id,name:m.name,company:m.company}; });
+    initReport();
+  }).catch(function(err){
+    el.innerHTML = '<div style="text-align:center;padding:40px;"><p style="color:#DC2626;">数据加载失败，请刷新重试</p></div>';
+  });
+
+  function initReport(){
+  var proj = PROJECTS.find(function(p){ return p.id === PROJECT_ID; });
 
   if(!proj){
     el.innerHTML = '<div style="text-align:center;padding:40px 0;"><div style="width:56px;height:56px;border-radius:50%;background:#FEE2E2;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;"><i class="fas fa-circle-xmark" style="font-size:24px;color:#DC2626;"></i></div><p style="font-size:16px;font-weight:600;color:#292524;">项目未找到</p></div>';
@@ -274,6 +288,7 @@ app.get('/initiated/:projectId/report', async (c) => {
   }
 
   render();
+  } // end initReport
 })();
 `}} />
     </div>,

@@ -7,12 +7,7 @@ import type { HonoEnv } from '../types'
 
 export function registerAdminRoute(app: Hono<HonoEnv>) {
 app.get('/admin', async (c) => {
-  // Load data from D1 via bridge
-  const db = c.env.DB
-  const { loadMembers, loadTeachers, loadProjects, loadContracts, loadRepaymentRecords } = await import('../db-bridge')
-  const [allMembers, allTeachers, allProjects, allContracts, allRepRecords] = await Promise.all([
-    loadMembers(db), loadTeachers(db), loadProjects(db), loadContracts(db), loadRepaymentRecords(db)
-  ])
+  // ═══ Phase 1C: NO DB calls — pure HTML skeleton ═══
   return c.render(
     <div class="app-container has-tabbar" style="background:#F8F7F6;">
       <AuthCheckScript />
@@ -69,7 +64,20 @@ app.get('/admin', async (c) => {
 
       <main class="max-w-lg mx-auto pb-4 dk-admin-main">
         {/* Tab Content Panels */}
-        <div id="tab-overview" class="admin-tab-panel" style="opacity:1;" />
+        <div id="tab-overview" class="admin-tab-panel" style="opacity:1;">
+          {/* Skeleton for overview */}
+          <div class="animate-pulse" style="padding:20px 16px;">
+            <div style="height:15px;background:#F5F5F4;border-radius:6px;width:60%;margin-bottom:16px;" />
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              {[1,2,3,4,5,6].map(i => (
+                <div style="background:white;border-radius:16px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
+                  <div style="height:28px;background:#F5F5F4;border-radius:8px;width:50%;margin-bottom:8px;" />
+                  <div style="height:12px;background:#F5F5F4;border-radius:4px;width:40%;" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
         <div id="tab-settlement" class="admin-tab-panel" style="display:none;opacity:0;" />
         <div id="tab-members" class="admin-tab-panel" style="display:none;opacity:0;" />
         <div id="tab-classes" class="admin-tab-panel" style="display:none;opacity:0;" />
@@ -106,20 +114,15 @@ app.get('/admin', async (c) => {
   try { u = JSON.parse(localStorage.getItem('zlc_user')); } catch(e){}
   if (!u) u = cu;
 
-  // ── Data from D1 ──
-  var MOCK_MEMBERS = ${JSON.stringify(allMembers)};
-  var MOCK_PROJECTS = ${JSON.stringify(allProjects)};
-  var MOCK_CONTRACTS = ${JSON.stringify(allContracts)};
-  var MOCK_REP_RECORDS = ${JSON.stringify(allRepRecords)};
-  var MOCK_TEACHERS = ${JSON.stringify(allTeachers)};
+  // ── Data loaded via API (Phase 1C) ──
+  var MOCK_MEMBERS = [];
+  var MOCK_PROJECTS = [];
+  var MOCK_CONTRACTS = [];
+  var MOCK_REP_RECORDS = [];
+  var MOCK_TEACHERS = [];
 
-  // Members loaded from D1 — no localStorage merge needed
-  function getMembers(){
-    return MOCK_MEMBERS.slice();
-  }
-  function saveMembers(members){
-    // No-op: members are now in D1
-  }
+  function getMembers(){ return MOCK_MEMBERS.slice(); }
+  function saveMembers(members){}
 
   // ── Admin nav dropdown ──
   var navBtn = document.getElementById('admin-nav-user-btn');
@@ -188,9 +191,27 @@ app.get('/admin', async (c) => {
     else if(name==='audit') renderAuditTab();
   }
 
-  // Render initial tab
-  renderOverview(); rendered['overview']=true;
-  if(currentTab !== 'overview'){ renderTab(currentTab); rendered[currentTab]=true; panels[currentTab].style.display='block'; panels[currentTab].style.opacity='1'; }
+  // ── Load data from APIs then render ──
+  Promise.all([
+    fetch('/api/data/members').then(function(r){return r.json();}),
+    fetch('/api/data/teachers').then(function(r){return r.json();}),
+    fetch('/api/data/projects').then(function(r){return r.json();}),
+    fetch('/api/data/contracts').then(function(r){return r.json();}),
+    fetch('/api/data/repayment-records').then(function(r){return r.json();})
+  ]).then(function(results){
+    MOCK_MEMBERS = results[0].ok ? results[0].data : [];
+    MOCK_TEACHERS = results[1].ok ? results[1].data : [];
+    MOCK_PROJECTS = results[2].ok ? results[2].data : [];
+    MOCK_CONTRACTS = results[3].ok ? results[3].data : [];
+    MOCK_REP_RECORDS = results[4].ok ? results[4].data : [];
+
+    // Render initial tab
+    renderOverview(); rendered['overview']=true;
+    if(currentTab !== 'overview'){ renderTab(currentTab); rendered[currentTab]=true; panels[currentTab].style.display='block'; panels[currentTab].style.opacity='1'; }
+  }).catch(function(err){
+    console.error('Failed to load admin data:', err);
+    panels.overview.innerHTML = '<div style="text-align:center;padding:40px;"><p style="color:#DC2626;font-size:14px;">数据加载失败，请刷新重试</p></div>';
+  });
 
   // ══════════════════════════════════
   // TAB: Overview (总览)
